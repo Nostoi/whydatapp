@@ -128,3 +128,21 @@ def test_share_returns_markdown(why_home: Path) -> None:
     r = c.post(f"/installs/{iid}/share")
     assert r.status_code == 200
     assert "**ripgrep**" in r.text
+
+
+def test_export_md(why_home: Path) -> None:
+    iid = _seed_one(why_home)
+    c = _client(why_home)
+    r = c.get(f"/export?ids={iid}&format=md")
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("text/markdown")
+    assert "ripgrep" in r.text
+
+
+def test_export_json(why_home: Path) -> None:
+    iid = _seed_one(why_home)
+    c = _client(why_home)
+    r = c.get(f"/export?ids={iid}&format=json")
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("application/json")
+    assert "ripgrep" in r.text

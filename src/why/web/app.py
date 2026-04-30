@@ -23,4 +23,7 @@ def create_app() -> FastAPI:
 
     from why.web.routes.share import router as share_router
     app.include_router(share_router)
+
+    from why.web.routes.export import router as export_router
+    app.include_router(export_router)
     return app
