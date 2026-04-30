@@ -121,10 +121,28 @@ Soft-delete means the row is marked `deleted=1` and `updated_at` is bumped, but 
 why serve                        # binds 127.0.0.1:7873, opens browser
 why serve --no-open              # don't open browser
 why serve --port 8080            # custom port
-why serve --host 127.0.0.1 --port 7873 --no-open
+why serve --lan                  # expose to LAN (shortcut for --host 0.0.0.0)
+why serve --host 0.0.0.0         # same as --lan
 ```
 
-Bound to localhost only. See [Web UI](web-ui.md) for the walkthrough.
+The startup banner shows the URL(s) the server is reachable on:
+
+```
+whydatApp v1.1.0 — web UI starting…
+  → http://127.0.0.1:7873/
+  localhost only · press Ctrl-C to stop
+```
+
+With `--lan` (or `--host 0.0.0.0`) it also enumerates your machine's LAN IP so you can hit it from another device:
+
+```
+whydatApp v1.1.0 — web UI starting…
+  → http://127.0.0.1:7873/
+  → http://192.168.1.42:7873/  (LAN)
+  exposed to LAN — anyone on your network can reach this. Press Ctrl-C to stop.
+```
+
+LAN exposure is opt-in. There's no auth on the UI yet, so anyone on your network can read and edit your install history when `--lan` is on. Default (localhost only) is the safe choice. See [Web UI](web-ui.md) for the walkthrough.
 
 ## `why uninstall`
 

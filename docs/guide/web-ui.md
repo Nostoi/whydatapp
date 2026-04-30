@@ -1,12 +1,15 @@
 # Web UI
 
-A local web UI at `http://127.0.0.1:7873/`. Bound to localhost only — no remote access, no external traffic.
+A local web UI at `http://127.0.0.1:7873/`. Bound to localhost only by default — no remote access, no external traffic.
 
 ```bash
-why serve              # opens the browser
+why serve              # opens the browser at 127.0.0.1:7873
 why serve --no-open    # don't open
 why serve --port 8080  # custom port
+why serve --lan        # also expose to your local network (opt-in, no auth yet)
 ```
+
+The startup banner prints every URL the server is reachable on. With `--lan`, it adds your machine's LAN IP — handy when you want to hit the UI from a phone or another laptop. Anyone on the same network can reach it, so think before you flip it on; auth is post-MVP.
 
 ## Layout
 

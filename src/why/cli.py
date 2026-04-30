@@ -225,13 +225,45 @@ def delete_cmd(
     console.print(f"[green]✓[/green] deleted (soft) id={install_id}.")
 
 
+def _primary_lan_ip() -> str | None:
+    """Best-effort: the local IP that would be used to reach the public internet.
+    No packet is actually sent; we just ask the kernel which interface it would route to."""
+    import socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.connect(("8.8.8.8", 80))
+            ip: str = s.getsockname()[0]
+            return ip
+        finally:
+            s.close()
+    except OSError:
+        return None
+
+
+def _serve_urls(host: str, port: int) -> tuple[str, list[str]]:
+    """Return (browser_url, [printed_urls]) for the given bind host."""
+    if host in ("0.0.0.0", "::", ""):
+        urls = [f"http://127.0.0.1:{port}/"]
+        lan = _primary_lan_ip()
+        if lan and lan != "127.0.0.1":
+            urls.append(f"http://{lan}:{port}/  (LAN)")
+        return urls[0], urls
+    return f"http://{host}:{port}/", [f"http://{host}:{port}/"]
+
+
 @app.command("serve")
 def serve_cmd(
-    host: str | None = typer.Option(None),
-    port: int | None = typer.Option(None),
+    host: str | None = typer.Option(
+        None, help="Bind host. Default 127.0.0.1 (localhost only). Use 0.0.0.0 for LAN."
+    ),
+    port: int | None = typer.Option(None, help="Bind port. Default 7873."),
     open_browser: bool = typer.Option(True, "--open/--no-open"),
+    lan: bool = typer.Option(
+        False, "--lan", help="Shortcut for --host 0.0.0.0 (exposes to your local network)."
+    ),
 ) -> None:
-    """Start the local web UI on 127.0.0.1."""
+    """Start the local web UI."""
     import webbrowser
 
     import uvicorn
@@ -240,10 +272,23 @@ def serve_cmd(
     from why.web.app import create_app
 
     cfg = load_config()
-    h = host or cfg["web"]["host"]
+    h = "0.0.0.0" if lan else (host or cfg["web"]["host"])
     p = port or int(cfg["web"]["port"])
+
+    browser_url, printed = _serve_urls(h, p)
+    console.print(f"[bold]whydatApp[/bold] [dim]v{__version__}[/dim] — web UI starting…")
+    for url in printed:
+        console.print(f"  → {url}")
+    if h in ("0.0.0.0", "::", ""):
+        console.print(
+            "  [yellow]exposed to LAN[/yellow] — anyone on your network can reach this. "
+            "Press Ctrl-C to stop."
+        )
+    else:
+        console.print("  [dim]localhost only · press Ctrl-C to stop[/dim]")
+
     if open_browser:
-        webbrowser.open(f"http://{h}:{p}/")
+        webbrowser.open(browser_url)
     uvicorn.run(create_app(), host=h, port=p, log_level="warning")
 
 
