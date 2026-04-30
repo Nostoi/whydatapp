@@ -1,14 +1,31 @@
 # Installation
 
-> **Status:** whydatApp is not yet published to PyPI. The install paths below assume you are installing from source or from a locally built wheel. PyPI publication is on the post-1.0 roadmap.
-
 ## Requirements
 
 - Python **3.11+**
 - macOS (zsh, bash) or Linux (zsh, bash, fish). Windows is not supported.
 - One of: [`uv`](https://docs.astral.sh/uv/) (recommended) or [`pipx`](https://pipx.pypa.io/).
 
-## Option A — From source (recommended for now)
+## Option A — From PyPI (recommended)
+
+```bash
+uv tool install 'why-cli[web]'    # or: pipx install 'why-cli[web]'
+why init
+```
+
+The `[web]` extra installs FastAPI, uvicorn, Jinja2, and friends. If you only want the CLI logger and don't need `why serve`, omit the extra:
+
+```bash
+uv tool install why-cli           # CLI only, no web UI
+```
+
+To upgrade later:
+
+```bash
+uv tool upgrade why-cli           # or: pipx upgrade why-cli
+```
+
+## Option B — From source (for development or pre-release)
 
 ```bash
 git clone https://github.com/Nostoi/whydatapp.git
@@ -20,30 +37,19 @@ why init
 `pipx` works the same way:
 
 ```bash
-pipx install --pip-args='-e' '.[web]'   # editable install
+pipx install '.[web]'
 why init
 ```
 
-## Option B — From a built wheel
+## Option C — From a locally built wheel
 
 ```bash
 git clone https://github.com/Nostoi/whydatapp.git
 cd whydatapp
-uv build                                  # produces dist/why_cli-*.whl
-uv tool install --from ./dist/why_cli-1.0.1-py3-none-any.whl 'why-cli[web]'
+uv build                          # produces dist/why_cli-*.whl
+uv tool install --from ./dist/why_cli-1.0.5-py3-none-any.whl 'why-cli[web]'
 why init
 ```
-
-## Option C — From PyPI (planned)
-
-Once whydatApp is published, this will be the canonical path:
-
-```bash
-uv tool install 'why-cli[web]'   # or: pipx install 'why-cli[web]'
-why init
-```
-
-The `[web]` extra installs FastAPI, uvicorn, Jinja2, and friends. If you only want the CLI logger and don't need `why serve`, omit the extra.
 
 ## What `why init` does
 

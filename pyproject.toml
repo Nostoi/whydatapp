@@ -1,14 +1,40 @@
 [project]
 name = "why-cli"
-version = "1.0.4"
+version = "1.0.5"
 description = "Track why you installed every tool on your machine."
 readme = "README.md"
 requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Mark Jędrzejczyk" }]
+keywords = ["cli", "shell", "homebrew", "npm", "pip", "install-tracking", "documentation"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Console",
+  "Environment :: Web Environment",
+  "Intended Audience :: Developers",
+  "Operating System :: MacOS",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development",
+  "Topic :: System :: Installation/Setup",
+  "Topic :: Utilities",
+]
 dependencies = [
   "typer>=0.12",
   "rich>=13.7",
   "tomli-w>=1.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/Nostoi/whydatapp"
+Repository = "https://github.com/Nostoi/whydatapp"
+Issues = "https://github.com/Nostoi/whydatapp/issues"
+Documentation = "https://github.com/Nostoi/whydatapp/tree/main/docs/guide"
+Changelog = "https://github.com/Nostoi/whydatapp/releases"
 
 [project.scripts]
 why = "why.cli:app"

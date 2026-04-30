@@ -1,8 +1,14 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/whydatapp-dark.png">
-    <img src="docs/assets/whydatapp-light.png" alt="whydatApp" width="320">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Nostoi/whydatapp/main/docs/assets/whydatapp-dark.png">
+    <img src="https://raw.githubusercontent.com/Nostoi/whydatapp/main/docs/assets/whydatapp-light.png" alt="whydatApp" width="320">
   </picture>
+</p>
+
+<p align="center">
+  <a href="https://pypi.org/project/why-cli/"><img src="https://img.shields.io/pypi/v/why-cli.svg" alt="PyPI"></a>
+  <a href="https://pypi.org/project/why-cli/"><img src="https://img.shields.io/pypi/pyversions/why-cli.svg" alt="Python"></a>
+  <a href="https://github.com/Nostoi/whydatapp/blob/main/LICENSE"><img src="https://img.shields.io/pypi/l/why-cli.svg" alt="License"></a>
 </p>
 
 # whydatApp (`why?`)
@@ -13,18 +19,25 @@ Track *why* you installed every tool on your machine.
 
 ## Install
 
-> Not yet on PyPI. The current path is install-from-source. PyPI publication is on the roadmap.
+**From PyPI** (recommended):
+
+```bash
+uv tool install 'why-cli[web]'   # or: pipx install 'why-cli[web]'
+why init                          # interactive setup; edits your shell rc
+```
+
+**From source** (for development or pre-release):
 
 ```bash
 git clone https://github.com/Nostoi/whydatapp.git
 cd whydatapp
-uv tool install --from . 'why-cli[web]'   # or: pipx install '.[web]'
-why init                                   # interactive setup; edits your shell rc
+uv tool install --from . 'why-cli[web]'
+why init
 ```
 
 Restart your shell, then try `brew install ripgrep` (or any tracked manager).
 
-Full install instructions, including building from a wheel: **[docs/guide/install.md](docs/guide/install.md)**.
+Full install instructions, including building from a wheel: **[Install guide](https://github.com/Nostoi/whydatapp/blob/main/docs/guide/install.md)**.
 
 ## Quick reference
 
@@ -38,17 +51,17 @@ Full install instructions, including building from a wheel: **[docs/guide/instal
 | `why serve`       | Open the local web UI at `127.0.0.1:7873`      |
 | `why uninstall`   | Remove the hook (and optionally the data)      |
 
-Detailed usage with examples: **[docs/guide/usage.md](docs/guide/usage.md)**.
+Detailed usage with examples: **[Usage guide](https://github.com/Nostoi/whydatapp/blob/main/docs/guide/usage.md)**.
 
 ## Documentation
 
-- **[Install](docs/guide/install.md)** — Requirements, install paths (source / wheel / future PyPI), what `why init` does, uninstall.
-- **[Usage](docs/guide/usage.md)** — Every CLI subcommand with examples.
-- **[Web UI](docs/guide/web-ui.md)** — Walkthrough of the local web interface.
-- **[Configuration](docs/guide/configuration.md)** — `~/.why/*.toml` files, env vars, ignore rules.
-- **[Troubleshooting](docs/guide/troubleshooting.md)** — Hook not firing, prompt missed, address-in-use, restoring data, filing bugs.
-- **[Development](docs/guide/development.md)** — Clone, set up, run tests, build the wheel, project layout, contribute.
-- **[Design spec](docs/superpowers/specs/2026-04-29-whydatapp-design.md)** — Architecture, data model, decisions, post-MVP roadmap.
+- **[Install](https://github.com/Nostoi/whydatapp/blob/main/docs/guide/install.md)** — Requirements, install paths (PyPI / source / wheel), what `why init` does, uninstall.
+- **[Usage](https://github.com/Nostoi/whydatapp/blob/main/docs/guide/usage.md)** — Every CLI subcommand with examples.
+- **[Web UI](https://github.com/Nostoi/whydatapp/blob/main/docs/guide/web-ui.md)** — Walkthrough of the local web interface.
+- **[Configuration](https://github.com/Nostoi/whydatapp/blob/main/docs/guide/configuration.md)** — `~/.why/*.toml` files, env vars, ignore rules.
+- **[Troubleshooting](https://github.com/Nostoi/whydatapp/blob/main/docs/guide/troubleshooting.md)** — Hook not firing, prompt missed, address-in-use, restoring data, filing bugs.
+- **[Development](https://github.com/Nostoi/whydatapp/blob/main/docs/guide/development.md)** — Clone, set up, run tests, build the wheel, project layout, contribute.
+- **[Design spec](https://github.com/Nostoi/whydatapp/blob/main/docs/superpowers/specs/2026-04-29-whydatapp-design.md)** — Architecture, data model, decisions, post-MVP roadmap.
 
 ## Privacy
 
@@ -59,8 +72,8 @@ Detailed usage with examples: **[docs/guide/usage.md](docs/guide/usage.md)**.
 
 ## Status
 
-1.0 MVP. Sync, auth, AI enrichment, source scraping, and one-click remote install are on the roadmap. See [docs/guide/development.md](docs/guide/development.md#roadmap) for the priority order.
+1.0 — published to [PyPI](https://pypi.org/project/why-cli/). Sync, auth, AI enrichment, source scraping, and one-click remote install are on the roadmap. See the [development guide](https://github.com/Nostoi/whydatapp/blob/main/docs/guide/development.md#roadmap) for priority order.
 
 ## License
 
-TBD.
+[MIT](https://github.com/Nostoi/whydatapp/blob/main/LICENSE)
