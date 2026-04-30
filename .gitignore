@@ -11,3 +11,4 @@ build/
 htmlcov/
 node_modules/
 .why-sandbox/
+docs/superpowers/
