@@ -73,6 +73,7 @@ def test_offer_shell_reload_declines_does_not_exec(monkeypatch):
     monkeypatch.setattr("sys.stdout.isatty", lambda: True)
     monkeypatch.setenv("SHELL", "/bin/zsh")
     monkeypatch.delenv("WHY_INIT_NO_RELOAD", raising=False)
+    monkeypatch.setattr("os.path.exists", lambda p: True)
 
     called = {"exec": False}
     monkeypatch.setattr("os.execvp", lambda *a, **kw: called.__setitem__("exec", True))
@@ -88,6 +89,7 @@ def test_offer_shell_reload_accepts_calls_execvp(monkeypatch):
     monkeypatch.setattr("sys.stdout.isatty", lambda: True)
     monkeypatch.setenv("SHELL", "/bin/zsh")
     monkeypatch.delenv("WHY_INIT_NO_RELOAD", raising=False)
+    monkeypatch.setattr("os.path.exists", lambda p: True)
 
     captured: dict[str, object] = {}
 
@@ -111,6 +113,7 @@ def test_offer_shell_reload_handles_exec_failure(monkeypatch):
     monkeypatch.setattr("sys.stdout.isatty", lambda: True)
     monkeypatch.setenv("SHELL", "/bin/zsh")
     monkeypatch.delenv("WHY_INIT_NO_RELOAD", raising=False)
+    monkeypatch.setattr("os.path.exists", lambda p: True)
 
     def boom(*a, **kw):
         raise OSError("simulated exec failure")

@@ -13,9 +13,21 @@
 
 # whydatApp (`why?`)
 
-Track *why* you installed every tool on your machine.
+Ever install something, then months later wonder *why* it's on your machine?
 
-`why?` watches for installs (`brew install`, `npm i -g`, `pip install`, `cargo install`, `git clone`, …) via a tiny shell hook, and asks five quick questions: name, what it does, project, why, and what to do with it (document, add to setup script, experimental, remove later, ignore). Local-only SQLite. Local web UI for search, sort, and sharing. Privacy-focused — nothing leaves your machine.
+`why?` catches every package manager install (`brew`, `npm`, `pip`, `cargo`, `apt`, …) right as it happens via a lightweight shell hook, then prompts you to jot down what the tool is for, which project needed it, whether it's worth keeping, and what to do with it later. Everything stays in a local SQLite database — nothing is sent anywhere. Browse, search, filter, and export your install history through a built-in web UI, or right from the terminal.
+
+**What you can answer with `why?`:**
+
+- **What do I have installed?** — Full inventory across all package managers in one place
+- **Why did I install this?** — Context captured at install time, while you remember
+- **Which project needed it?** — Auto-inferred from your working directory
+- **Is this still useful?** — Mark tools as experimental, for removal, or permanent docs
+- **What's taking up space?** — See resolved install paths and identify candidates to uninstall
+- **Did I ever install X?** — Search by name, command, or description — find it instantly
+- **What should I clean up?** — Review queue surfaces incomplete entries and stale experimental installs
+- **How do I set up this project elsewhere?** — Export your setup dependencies to Markdown or JSON
+- **Which managers do I use most?** — Dashboard shows install trends by manager, project, and month
 
 ## Install
 
@@ -69,10 +81,6 @@ Detailed usage with examples: **[Usage guide](https://github.com/Nostoi/whydatap
 - The web UI binds to `127.0.0.1` only.
 - All static assets vendored locally — no CDN, no Google Fonts, no analytics.
 - The shell hook ignores any install triggered by another tracked installer (no false positives from `brew` resolving deps).
-
-## Status
-
-1.0 — published to [PyPI](https://pypi.org/project/why-cli/). Sync, auth, AI enrichment, source scraping, and one-click remote install are on the roadmap. See the [development guide](https://github.com/Nostoi/whydatapp/blob/main/docs/guide/development.md#roadmap) for priority order.
 
 ## License
 
