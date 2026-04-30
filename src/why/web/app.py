@@ -29,4 +29,7 @@ def create_app() -> FastAPI:
 
     from why.web.routes.dashboard import router as dashboard_router
     app.include_router(dashboard_router)
+
+    from why.web.routes.review import router as review_router
+    app.include_router(review_router)
     return app

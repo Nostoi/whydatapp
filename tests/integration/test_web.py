@@ -169,3 +169,49 @@ def test_stale_review_shows_skipped(why_home: Path) -> None:
     c = _client(why_home)
     r = c.get("/dashboard")
     assert "fd" in r.text
+
+
+def test_review_redirects_when_empty(why_home: Path) -> None:
+    c = _client(why_home)
+    r = c.get("/review", follow_redirects=False)
+    assert r.status_code in (200, 307)
+
+
+def test_review_shows_first_pending(why_home: Path) -> None:
+    db = ensure_ready()
+    user = store.get_solo_user(db); device = store.get_solo_device(db)
+    store.create_install(
+        db, user_id=user.id, device_id=device.id,
+        command="brew install fd", package_name="fd", manager="brew",
+        install_dir="/tmp", resolved_path=None, exit_code=0,
+    )
+    c = _client(why_home)
+    r = c.get("/review")
+    assert r.status_code == 200
+    assert "fd" in r.text
+    assert "Disposition" in r.text
+
+
+def test_review_post_saves_and_advances(why_home: Path) -> None:
+    db = ensure_ready()
+    user = store.get_solo_user(db); device = store.get_solo_device(db)
+    inst = store.create_install(
+        db, user_id=user.id, device_id=device.id,
+        command="brew install fd", package_name="fd", manager="brew",
+        install_dir="/tmp", resolved_path=None, exit_code=0,
+    )
+    c = _client(why_home)
+    r = c.post(
+        f"/review/{inst.id}",
+        data={
+            "display_name": "fd", "what_it_does": "find replacement",
+            "project": "p", "why": "speed",
+            "disposition": "doc", "notes": "",
+        },
+        follow_redirects=False,
+    )
+    assert r.status_code in (200, 303)
+    db = ensure_ready()
+    inst = store.get_install(db, inst.id)
+    assert inst.disposition == "doc"
+    assert inst.metadata_complete == 1
