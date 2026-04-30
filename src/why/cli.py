@@ -145,3 +145,97 @@ def log_cmd(
         metadata_complete=1 if result.metadata_complete else 0,
     )
     console.print(f"  [green]✓[/green] logged (id={inst.id}).")
+
+
+import json
+from pathlib import Path as _P
+
+
+@app.command("review")
+def review_cmd() -> None:
+    """Drain the skipped/incomplete queue, one entry at a time."""
+    db = ensure_ready()
+    pending = store.list_skipped(db)
+    if not pending:
+        console.print("Review queue is empty.")
+        return
+    for inst in pending:
+        result = run_metadata_prompt(
+            default_name=inst.display_name or inst.package_name,
+            default_project=inst.project,
+            command=inst.command,
+            cwd=inst.install_dir,
+            input=sys.stdin,
+            output=sys.stdout,
+        )
+        if result.disposition == "skip":
+            console.print(f"  [dim]still skipped (id={inst.id})[/dim]")
+            continue
+        if result.project:
+            store.upsert_project(db, result.project)
+        store.update_install(
+            db, inst.id,
+            display_name=result.display_name,
+            what_it_does=result.what_it_does,
+            project=result.project,
+            why=result.why,
+            notes=result.notes,
+            disposition=result.disposition,
+            metadata_complete=1 if result.metadata_complete else 0,
+        )
+        console.print(f"  [green]✓[/green] reviewed (id={inst.id}).")
+
+
+def _to_md(inst: store.Install) -> str:
+    name = inst.display_name or inst.package_name or "(unnamed)"
+    parts = [f"**{name}** — `{inst.command}`"]
+    if inst.what_it_does:
+        parts.append(inst.what_it_does)
+    parts.append(
+        f"Installed {inst.installed_at} in `{inst.install_dir}`"
+    )
+    if inst.why:
+        parts.append(f"Why: {inst.why}")
+    return "\n".join(parts) + "\n"
+
+
+@app.command("export")
+def export_cmd(
+    fmt: str = typer.Option("md", "--format"),
+    out: _P = typer.Option(..., "--out"),
+    disposition: str | None = typer.Option(None),
+    project: str | None = typer.Option(None),
+) -> None:
+    """Export installs to a file (md|json)."""
+    db = ensure_ready()
+    rows = store.list_installs(
+        db,
+        InstallFilters(disposition=disposition, project=project, limit=10_000),
+    )
+    if fmt == "md":
+        out.write_text("\n".join(_to_md(r) for r in rows))
+    elif fmt == "json":
+        out.write_text(json.dumps([r.__dict__ for r in rows], indent=2, default=str))
+    else:
+        console.print("[red]format must be md or json[/red]")
+        raise typer.Exit(code=2)
+    console.print(f"wrote {len(rows)} entries → {out}")
+
+
+@app.command("delete")
+def delete_cmd(
+    install_id: int,
+    yes: bool = typer.Option(False, "--yes", help="Skip confirmation."),
+) -> None:
+    """Soft-delete an install by id."""
+    db = ensure_ready()
+    inst = store.get_install(db, install_id)
+    if not inst:
+        console.print(f"[red]no install with id={install_id}[/red]")
+        raise typer.Exit(code=1)
+    if not yes:
+        ok = typer.confirm(f"Delete '{inst.display_name or inst.package_name}'?")
+        if not ok:
+            raise typer.Exit(code=0)
+    store.soft_delete_install(db, install_id)
+    console.print(f"[green]✓[/green] deleted (soft) id={install_id}.")
