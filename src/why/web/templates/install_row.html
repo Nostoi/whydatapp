@@ -1,29 +1,29 @@
-<tr class="border-b border-zinc-100 dark:border-zinc-900 {% if r.metadata_complete == 0 %}row-stale{% endif %}">
-  <td class="py-2 pr-4">
+<tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-900/60 transition-colors duration-100 {% if r.metadata_complete == 0 %}row-stale{% endif %}">
+  <td class="py-1.5 pr-4 pl-3">
     <a href="/installs/{{ r.id }}/edit" hx-get="/installs/{{ r.id }}/edit"
        hx-target="closest tr" hx-swap="outerHTML"
        class="font-medium hover:underline">
       {{ r.display_name or r.package_name or "—" }}
     </a>
-    <div class="text-xs text-zinc-500 font-mono">{{ r.command }}</div>
+    <div class="text-xs text-zinc-400 dark:text-zinc-500 font-mono truncate max-w-xs">{{ r.command }}</div>
   </td>
-  <td class="py-2 pr-4">
+  <td class="py-1.5 pr-4">
     {% with manager=r.manager %}
       {% include "components/manager_badge.html" %}
     {% endwith %}
   </td>
-  <td class="py-2 pr-4">{{ r.project or "—" }}</td>
-  <td class="py-2 pr-4">
+  <td class="py-1.5 pr-4 text-sm text-zinc-600 dark:text-zinc-400">{{ r.project or "—" }}</td>
+  <td class="py-1.5 pr-4">
     {% if r.disposition %}
-      {% with label=pres.disposition[r.disposition].label, color=pres.disposition[r.disposition].color %}
+      {% with disp=r.disposition, label=pres.disposition[r.disposition].label %}
         {% include "components/pill.html" %}
       {% endwith %}
     {% else %}
       <span class="text-zinc-400">—</span>
     {% endif %}
   </td>
-  <td class="py-2 pr-4 text-zinc-500 font-mono text-xs">{{ r.installed_at[:10] }}</td>
-  <td class="py-2 pr-4 text-right">
+  <td class="py-1.5 pr-4 text-right text-zinc-500 font-mono text-xs tabular-nums">{{ r.installed_at[:10] }}</td>
+  <td class="py-1.5 pr-4 text-right">
     <a class="btn text-xs" hx-post="/installs/{{ r.id }}/share" hx-swap="none">Share</a>
   </td>
 </tr>

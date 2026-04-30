@@ -1,39 +1,51 @@
 {% extends "base.html" %}
 {% from "components/card.html" import card %}
 {% block content %}
-<h1 class="text-xl font-semibold mb-4">Dashboard</h1>
+<h1 class="text-base font-medium tracking-tight text-zinc-700 dark:text-zinc-300 mb-5">Dashboard</h1>
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
   {% call card(title="By disposition") %}
-    <ul class="text-sm space-y-1">
+    <ul class="text-sm space-y-1.5">
       {% for d, n in by_disposition.items() %}
-        <li class="flex justify-between"><span>
-          {% if d in pres.disposition %}{{ pres.disposition[d].label }}{% else %}{{ d }}{% endif %}
-        </span><span class="font-mono">{{ n }}</span></li>
+        <li class="flex justify-between items-center">
+          <span class="text-zinc-600 dark:text-zinc-400">
+            {% if d in pres.disposition %}{{ pres.disposition[d].label }}{% else %}{{ d }}{% endif %}
+          </span>
+          <span class="font-mono text-xs tabular-nums text-zinc-800 dark:text-zinc-200">{{ n }}</span>
+        </li>
       {% endfor %}
     </ul>
   {% endcall %}
 
   {% call card(title="By manager") %}
-    <ul class="text-sm space-y-1">
+    <ul class="text-sm space-y-1.5">
       {% for m, n in by_manager.items() %}
-        <li class="flex justify-between"><span>{{ pres.get(m, {}).get("label", m) }}</span><span class="font-mono">{{ n }}</span></li>
+        <li class="flex justify-between items-center">
+          <span class="text-zinc-600 dark:text-zinc-400">{{ pres.get(m, {}).get("label", m) }}</span>
+          <span class="font-mono text-xs tabular-nums text-zinc-800 dark:text-zinc-200">{{ n }}</span>
+        </li>
       {% endfor %}
     </ul>
   {% endcall %}
 
   {% call card(title="By project (top 10)") %}
-    <ul class="text-sm space-y-1">
+    <ul class="text-sm space-y-1.5">
       {% for name, n in by_project %}
-        <li class="flex justify-between"><a class="hover:underline" href="/installs?project={{ name }}">{{ name }}</a><span class="font-mono">{{ n }}</span></li>
+        <li class="flex justify-between items-center">
+          <a class="hover:underline text-zinc-600 dark:text-zinc-400" href="/installs?project={{ name }}">{{ name }}</a>
+          <span class="font-mono text-xs tabular-nums text-zinc-800 dark:text-zinc-200">{{ n }}</span>
+        </li>
       {% endfor %}
     </ul>
   {% endcall %}
 
   {% call card(title="Installs per month") %}
-    <ul class="text-sm space-y-1 font-mono">
+    <ul class="text-sm space-y-1.5 font-mono">
       {% for m, n in per_month %}
-        <li class="flex justify-between"><span>{{ m }}</span><span>{{ n }}</span></li>
+        <li class="flex justify-between items-center">
+          <span class="text-zinc-500 dark:text-zinc-500 text-xs">{{ m }}</span>
+          <span class="tabular-nums text-zinc-800 dark:text-zinc-200 text-xs">{{ n }}</span>
+        </li>
       {% endfor %}
     </ul>
   {% endcall %}
@@ -42,11 +54,11 @@
     {% if not stale %}
       <p class="text-sm text-zinc-500">All clear.</p>
     {% else %}
-      <ul class="text-sm space-y-1">
+      <ul class="text-sm space-y-1.5">
         {% for r in stale %}
           <li class="row-stale pl-2">
-            <a class="hover:underline" href="/installs?incomplete=1#{{ r.id }}">{{ r.display_name or r.package_name or r.command }}</a>
-            <span class="text-xs text-zinc-500">— {{ r.disposition or "incomplete" }}, {{ r.installed_at[:10] }}</span>
+            <a class="hover:underline text-zinc-700 dark:text-zinc-300" href="/installs?incomplete=1#{{ r.id }}">{{ r.display_name or r.package_name or r.command }}</a>
+            <span class="text-xs text-zinc-400 dark:text-zinc-500 ml-1">— {{ r.disposition or "incomplete" }}, {{ r.installed_at[:10] }}</span>
           </li>
         {% endfor %}
       </ul>

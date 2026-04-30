@@ -2,11 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  /* Ensure Inter and JetBrains Mono are used as the sole typefaces */
+  html {
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
 @layer components {
-  .pill { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium; }
-  .card { @apply rounded-lg border border-zinc-200 dark:border-zinc-800 p-4 bg-white dark:bg-zinc-900; }
-  .input { @apply rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1 bg-white dark:bg-zinc-900; }
-  .btn { @apply rounded px-3 py-1 border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800; }
-  .btn-primary { @apply bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900; }
+  /* ── Pill ──────────────────────────────────────────────────────────── */
+  .pill {
+    @apply inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border;
+  }
+
+  /* ── Card ──────────────────────────────────────────────────────────── */
+  .card {
+    @apply rounded-lg border border-zinc-200 dark:border-zinc-800 p-5 bg-white dark:bg-zinc-900;
+  }
+
+  /* ── Form controls ─────────────────────────────────────────────────── */
+  .input {
+    @apply rounded-md border border-zinc-300 dark:border-zinc-700
+           px-2.5 py-1.5
+           bg-white dark:bg-zinc-900
+           text-sm text-zinc-900 dark:text-zinc-100
+           focus:outline-none focus:ring-2 focus:ring-zinc-400/50 dark:focus:ring-zinc-500/50
+           transition-colors duration-100;
+  }
+
+  /* ── Buttons ───────────────────────────────────────────────────────── */
+  .btn {
+    @apply inline-flex items-center rounded-md px-3 py-1.5 text-sm
+           border border-zinc-300 dark:border-zinc-700
+           hover:bg-zinc-50 dark:hover:bg-zinc-800
+           focus:outline-none focus:ring-2 focus:ring-zinc-400/50 dark:focus:ring-zinc-500/50
+           transition-colors duration-100;
+  }
+  .btn-primary {
+    @apply bg-zinc-900 text-white border-zinc-900 hover:bg-zinc-800
+           dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 dark:hover:bg-zinc-200;
+  }
+
+  /* ── Stale row indicator ───────────────────────────────────────────── */
   .row-stale { @apply border-l-4 border-amber-500; }
 }

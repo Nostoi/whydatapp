@@ -1,37 +1,43 @@
+{% set _disp_map = {
+  "doc":          "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800",
+  "setup":        "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-800",
+  "experimental": "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800",
+  "remove":       "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/40 dark:text-rose-300 dark:border-rose-800",
+  "ignore":       "bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700",
+} %}
 <form id="filters" hx-get="/installs/table" hx-target="#installs-table" hx-push-url="true"
-      class="flex flex-wrap gap-2 items-center mb-4 text-sm">
+      class="flex flex-wrap gap-2 items-center mb-5 text-sm">
   {% for d in ["doc","setup","experimental","remove","ignore"] %}
     {% set active = filters.disposition == d %}
     <button type="submit" name="disposition" value="{{ d if not active else '' }}"
-      class="pill border {{ 'border-zinc-700' if active else 'border-transparent' }}"
-      style="background-color: {{ pres.disposition[d].color }}1a; color: {{ pres.disposition[d].color }};">
+      class="pill {{ _disp_map[d] }} {{ 'ring-2 ring-offset-1 ring-current/50' if active else 'opacity-75 hover:opacity-100' }} transition-opacity duration-100">
       {{ pres.disposition[d].label }}
     </button>
   {% endfor %}
 
-  <select name="manager" class="input">
+  <select name="manager" class="input text-xs py-1">
     <option value="">All managers</option>
     {% for m in managers %}
       <option value="{{ m }}" {% if filters.manager == m %}selected{% endif %}>{{ m }}</option>
     {% endfor %}
   </select>
 
-  <select name="project" class="input">
+  <select name="project" class="input text-xs py-1">
     <option value="">All projects</option>
     {% for p in projects %}
       <option value="{{ p }}" {% if filters.project == p %}selected{% endif %}>{{ p }}</option>
     {% endfor %}
   </select>
 
-  <select name="device" class="input">
+  <select name="device" class="input text-xs py-1">
     <option value="">All devices</option>
     {% for d in devices %}
       <option value="{{ d.id }}" {% if filters.device_id == d.id %}selected{% endif %}>{{ d.label or d.hostname }}</option>
     {% endfor %}
   </select>
 
-  <label class="ml-2 flex items-center gap-1">
-    <input type="checkbox" name="incomplete" value="1" {% if filters.incomplete_only %}checked{% endif %}>
+  <label class="ml-1 flex items-center gap-1.5 text-xs text-zinc-500 cursor-pointer select-none">
+    <input type="checkbox" name="incomplete" value="1" {% if filters.incomplete_only %}checked{% endif %} class="rounded border-zinc-300 dark:border-zinc-600">
     incomplete only
   </label>
 
