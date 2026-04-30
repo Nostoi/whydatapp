@@ -149,6 +149,60 @@ The product was designed before it was built. The reference docs:
 
 Read the spec before proposing structural changes.
 
+## Publishing to PyPI
+
+Releases are automated by [`.github/workflows/release.yml`](../../.github/workflows/release.yml). It uses **Trusted Publishing** — no API tokens are stored in the repo or GitHub Secrets.
+
+### One-time setup (per project name)
+
+Done once when the project name is first claimed.
+
+1. **Confirm name availability** at `https://pypi.org/project/<name>/` and `https://test.pypi.org/project/<name>/`. A 404 means free.
+2. **Add pending Trusted Publishers** at https://pypi.org/manage/account/publishing/ and https://test.pypi.org/manage/account/publishing/. For each:
+   - PyPI Project Name: `why-cli`
+   - Owner: `Nostoi`
+   - Repository name: `whydatapp`
+   - Workflow filename: `release.yml`
+   - Environment name: `pypi` (real) / `testpypi` (test)
+3. **Create matching GitHub environments** under repo Settings → Environments: `pypi` and `testpypi`. No protection rules required, though "required reviewers" is a sensible safeguard for `pypi`.
+
+After the first successful publish, the "pending" publisher converts to a real one automatically.
+
+### Release flow (every version)
+
+1. Decide the bump per [`CLAUDE.md`](../../CLAUDE.md#bump-rules-semver-majorminorpatch). Update `pyproject.toml` and `src/why/__init__.py`. Update any docs the change touches.
+2. Commit with the version bump.
+3. Run the local gate (`pytest`, `ruff`, `mypy` — same as CI).
+4. Tag and push:
+   ```bash
+   git tag v1.0.2
+   git push origin v1.0.2
+   ```
+5. The `release.yml` workflow:
+   - Verifies the tag matches both version files (fails fast if they drift).
+   - Re-runs the full quality gate.
+   - Builds wheel + sdist.
+   - Publishes to PyPI via Trusted Publishing.
+
+### Dry-run on TestPyPI
+
+Trigger the workflow manually (Actions tab → release → "Run workflow") to publish to TestPyPI without tagging. Then verify install:
+
+```bash
+uv tool install \
+  --index-url https://test.pypi.org/simple/ \
+  --extra-index-url https://pypi.org/simple/ \
+  'why-cli[web]'
+```
+
+The `--extra-index-url` is needed because TestPyPI doesn't mirror dependencies (FastAPI, Typer, etc. live on real PyPI).
+
+### Filenames are immutable
+
+Once a wheel is on PyPI, that exact `why_cli-X.Y.Z-py3-none-any.whl` is locked forever. You can `yank` a release (hides it from new installs) but cannot delete it or re-upload the same version. Always TestPyPI first if you're unsure.
+
+If a release is broken: yank it, bump PATCH, fix, re-release.
+
 ## Roadmap
 
 In rough priority order:

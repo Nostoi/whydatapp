@@ -1,0 +1,86 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build wheel + sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Verify tag matches package version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="${GITHUB_REF#refs/tags/v}"
+          pkg=$(uv run python -c "import tomllib,sys; print(tomllib.loads(open('pyproject.toml').read())['project']['version'])")
+          init=$(uv run python -c "import re,sys; print(re.search(r'__version__\s*=\s*\"([^\"]+)\"', open('src/why/__init__.py').read()).group(1))")
+          echo "tag=$tag pyproject=$pkg __init__=$init"
+          if [ "$tag" != "$pkg" ] || [ "$tag" != "$init" ]; then
+            echo "::error::Tag $tag does not match pyproject ($pkg) or __init__ ($init). Bump first, then re-tag."
+            exit 1
+          fi
+
+      - name: Run quality gate
+        run: |
+          uv venv
+          uv pip install -e '.[dev,web]'
+          uv run pytest -q
+          uv run ruff check src tests
+          uv run mypy src/why
+
+      - name: Build distributions
+        run: uv build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish-testpypi:
+    name: Publish to TestPyPI
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/project/why-cli/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment:
+      name: pypi
+      url: https://pypi.org/project/why-cli/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
