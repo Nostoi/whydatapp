@@ -126,7 +126,7 @@ def match_install(command: str) -> MatchResult | None:
         return None
     manager, extractor = rule
     if head == "brew":
-        if len(tokens) < 3 or tokens[1] != "install":
+        if len(tokens) < 3 or tokens[1] not in ("install", "reinstall"):
             return None
         pkgs = extractor(tokens)
         if not pkgs:
@@ -150,7 +150,6 @@ class IgnoreContext:
     cwd: str
     exit_code: int
     interactive: bool
-    suppress_env: bool
     parent_process_name: str | None
     recent_duplicate: bool
     user_ignore_patterns: tuple[str, ...]
@@ -160,8 +159,6 @@ def should_ignore(ctx: IgnoreContext) -> bool:
     if ctx.exit_code != 0:
         return True
     if not ctx.interactive:
-        return True
-    if ctx.suppress_env:
         return True
     if ctx.parent_process_name and ctx.parent_process_name in IGNORED_PARENTS:
         return True

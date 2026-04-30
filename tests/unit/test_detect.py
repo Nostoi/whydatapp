@@ -8,6 +8,7 @@ from why.detect import IgnoreContext, match_install, should_ignore
 @pytest.mark.parametrize("cmd,manager,pkgs", [
     ("brew install ripgrep", "brew", ["ripgrep"]),
     ("brew install ripgrep fd", "brew", ["ripgrep", "fd"]),
+    ("brew reinstall ripgrep", "brew", ["ripgrep"]),
     ("npm install -g typescript", "npm", ["typescript"]),
     ("npm i -g typescript prettier", "npm", ["typescript", "prettier"]),
     ("npm install --global eslint", "npm", ["eslint"]),
@@ -54,7 +55,6 @@ def _ctx(**kw) -> IgnoreContext:
         cwd="/tmp",
         exit_code=0,
         interactive=True,
-        suppress_env=False,
         parent_process_name=None,
         recent_duplicate=False,
         user_ignore_patterns=(),
@@ -71,8 +71,16 @@ def test_ignore_when_non_interactive():
     assert should_ignore(_ctx(interactive=False))
 
 
-def test_ignore_when_suppress_env():
-    assert should_ignore(_ctx(suppress_env=True))
+def test_hook_does_not_self_ignore_when_why_suppress_set(monkeypatch):
+    """Regression: the shell hook calls 'WHY_SUPPRESS=1 why _hook ...' as
+    a shell-level recursion guard. Python must not interpret WHY_SUPPRESS
+    in its own environment as 'ignore me' — that silently cancelled
+    every capture in 1.0.x and 1.1.0."""
+    monkeypatch.setenv("WHY_SUPPRESS", "1")
+    monkeypatch.setenv("WHY_HOOK_FORCE_PROMPT", "1")
+    # If a future caller adds back a WHY_SUPPRESS check, this normal
+    # context (which omits any suppress_env field) must remain non-ignored.
+    assert not should_ignore(_ctx())
 
 
 def test_ignore_when_parent_is_tracked_installer():

@@ -1,5 +1,17 @@
 # Troubleshooting
 
+## I installed something but no prompt appeared (versions ≤ 1.1.0)
+
+Upgrade. `1.0.x` and `1.1.0` had a bug where the Python `_hook` process treated the shell-level recursion-guard env var (`WHY_SUPPRESS=1`) as a self-ignore signal, silently cancelling every capture. Fixed in **1.1.1**:
+
+```bash
+uv tool upgrade why-cli
+# or for editable installs from source:
+git pull
+```
+
+If you're on 1.1.1+ and still don't see the prompt, the section below applies.
+
 ## The hook isn't firing after I install something
 
 1. **Did you restart your shell?** The rc-file change only takes effect in new sessions. Either open a new terminal or `source ~/.zshrc` (or `~/.bashrc`, `~/.config/fish/config.fish`).

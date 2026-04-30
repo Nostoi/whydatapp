@@ -142,7 +142,7 @@ Beyond `ignore.toml`, the hook drops events when any of these are true:
 | Variable                  | Purpose                                                    |
 |---------------------------|------------------------------------------------------------|
 | `WHY_HOME`                | Override `~/.why` (used by tests and sandboxed installs).  |
-| `WHY_SUPPRESS=1`          | Internal — set by the hook to prevent recursive triggers.  |
+| `WHY_SUPPRESS=1`          | Internal — set by the shell hook around the `why _hook` invocation as a *shell-level* recursion guard. Python does not read it. |
 | `WHY_HOOK_FORCE_PROMPT=1` | Force interactive prompt path (used by integration tests). |
 
 ## Database

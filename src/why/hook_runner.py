@@ -44,12 +44,17 @@ def run_hook(*, command: str, cwd: str, exit_code: int) -> int:
             return 0
 
         db = ensure_ready()
+        # WHY_SUPPRESS is set by the shell hook *for our environment* as a
+        # shell-level recursion guard (see hook.zsh / hook.bash / hook.fish:
+        # the shell itself checks $WHY_SUPPRESS before re-entering precmd).
+        # We do NOT read it here — this Python process IS the hook, and
+        # treating its own env flag as an "ignore me" signal silently
+        # cancels every capture.
         ctx = IgnoreContext(
             command=command,
             cwd=cwd,
             exit_code=exit_code,
             interactive=sys.stdin.isatty() or os.environ.get("WHY_HOOK_FORCE_PROMPT") == "1",
-            suppress_env=os.environ.get("WHY_SUPPRESS") == "1",
             parent_process_name=_parent_process_name(),
             recent_duplicate=store.recent_duplicate_exists(
                 db, command=command, install_dir=cwd, within_seconds=60
