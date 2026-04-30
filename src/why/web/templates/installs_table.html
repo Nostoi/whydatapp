@@ -1,20 +1,68 @@
+{# ── Quick-filter tab strip ─────────────────────────────────────────────────── #}
+<nav class="flex gap-0 border-b mb-4 overflow-x-auto text-sm" style="border-color: var(--color-border);"
+     aria-label="Filter by disposition">
+  {% for tab in tabs %}
+    {% set is_active = tab.key == active_tab %}
+    <a href="/installs?{{ tab_link(tab.key) }}"
+       hx-get="/installs/table?{{ tab_link(tab.key) }}"
+       hx-target="#installs-table"
+       hx-push-url="true"
+       class="flex items-center gap-1.5 px-3 py-2 whitespace-nowrap transition-colors duration-100 border-b-2 -mb-px
+              {% if is_active %}font-medium border-current{% else %}border-transparent{% endif %}"
+       style="{% if is_active %}color: var(--color-brand);{% else %}color: var(--color-fg-muted);{% endif %}"
+       {% if is_active %}aria-current="page"{% endif %}>
+      {{ tab.label }}
+      <span class="tabular-nums text-xs px-1.5 py-0.5 rounded-full leading-none"
+            style="background-color: {% if is_active %}var(--color-brand-soft){% else %}var(--color-bg-muted){% endif %};
+                   color: {% if is_active %}var(--color-brand){% else %}var(--color-fg-faint){% endif %};">
+        {{ tab.count }}
+      </span>
+    </a>
+  {% endfor %}
+</nav>
+
 {% if not rows %}
-  {% set line = "No matching installs — adjust the filters or search to find what you're looking for." %}
+  {# Contextual empty state referencing the active tab #}
+  {% if active_tab == "stale" %}
+    {% set line = "No stale items — everything is up to date." %}
+  {% elif active_tab == "all" %}
+    {% set line = "No matching installs — adjust the filters or search." %}
+  {% else %}
+    {% set line = "No " ~ active_tab ~ " installs yet." %}
+  {% endif %}
   {% include "components/empty_state.html" %}
 {% else %}
+{# ── Desktop table ──────────────────────────────────────────────────────────── #}
 <div class="overflow-x-auto rounded-lg border hidden md:block" style="border-color: var(--color-border);">
-<table class="w-full text-sm">
+<table class="w-full text-sm" id="installs-tbl">
   <thead class="sticky top-0 z-10 text-left text-xs uppercase tracking-wide border-b"
          style="background-color: var(--color-bg-muted); color: var(--color-fg-faint); border-color: var(--color-border);">
     <tr>
+      {# Master checkbox column #}
+      <th class="py-2 pl-3 pr-2 w-8">
+        <input id="master-checkbox" type="checkbox" class="rounded"
+               style="accent-color: var(--color-brand);"
+               aria-label="Select all visible">
+      </th>
       {% for col, label in [("display_name","Name"),("manager","Manager"),("project","Project"),("disposition","Disposition"),("installed_at","Installed")] %}
-        <th class="py-2 pr-4 pl-3 font-medium {% if col == 'installed_at' %}text-right{% endif %}">
+        {% set is_sort_col = (filters.order_by == col) %}
+        <th class="py-2 pr-4 {% if col == 'installed_at' %}pl-0{% else %}pl-0{% endif %} font-medium
+                   {% if col == 'installed_at' %}text-right{% endif %}">
           <a href="?{{ sort_link(col) }}" hx-get="/installs/table?{{ sort_link(col) }}" hx-target="#installs-table" hx-push-url="true"
-             class="transition-colors duration-100 hover:underline"
-             style="color: inherit;">{{ label }}</a>
+             class="inline-flex items-center gap-1 transition-colors duration-100 hover:underline"
+             style="color: {% if is_sort_col %}var(--color-brand){% else %}inherit{% endif %};">
+            {{ label }}
+            {% if is_sort_col %}
+              {% if filters.order_dir == "desc" %}
+                <span aria-label="sorted descending">&#x25BE;</span>
+              {% else %}
+                <span aria-label="sorted ascending">&#x25B4;</span>
+              {% endif %}
+            {% endif %}
+          </a>
         </th>
       {% endfor %}
-      <th class="py-2 pr-3 pl-2"></th>
+      <th class="py-2 pr-3 pl-2 w-20"></th>
     </tr>
   </thead>
   <tbody class="divide-y" style="border-color: var(--color-border);">
@@ -25,7 +73,7 @@
 </table>
 </div>
 
-<!-- Mobile card view (visible only below md breakpoint) -->
+{# ── Mobile card view ───────────────────────────────────────────────────────── #}
 <div class="md:hidden space-y-3">
   {% for r in rows %}
     <div class="rounded-lg border p-4 {% if r.metadata_complete == 0 %}border-l-4{% endif %} transition-colors duration-100"

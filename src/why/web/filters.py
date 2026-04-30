@@ -20,6 +20,7 @@ class FilterState:
     order_dir: str
     limit: int
     offset: int
+    view: str | None = None
 
     def to_install_filters(self) -> InstallFilters:
         return InstallFilters(
@@ -58,4 +59,5 @@ def parse_query(qp: Mapping[str, str]) -> FilterState:
         order_dir=order_dir,
         limit=int(qp.get("limit") or 100),
         offset=int(qp.get("offset") or 0),
+        view=_opt("view"),
     )

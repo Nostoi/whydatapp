@@ -1,8 +1,128 @@
 {% extends "base.html" %}
 {% block content %}
 <h1 class="text-2xl md:text-3xl font-semibold tracking-tight mb-6 leading-tight" style="color: var(--color-brand);">Installs</h1>
+
+{# Hidden bulk-action form — populated by row checkboxes via form="bulk-form" #}
+<form id="bulk-form" method="post" style="display:none;"
+      hx-target="#installs-table" hx-push-url="false">
+  <input type="hidden" name="csrf_token" value="{{ request.cookies.get('why_csrf', '') if request else '' }}">
+</form>
+
 {% include "components/filter_bar.html" %}
 <div id="installs-table">
   {% include "installs_table.html" %}
 </div>
+
+{# Sticky bulk-action bar — shown when any checkbox is checked via data-selected-count #}
+<div id="bulk-bar"
+     class="fixed bottom-0 left-0 right-0 z-30 px-4 md:px-8 py-3 flex items-center gap-4 border-t text-sm"
+     style="background-color: var(--color-bg-elevated); border-color: var(--color-border-strong); box-shadow: 0 -2px 8px rgb(0 0 0 / 0.08); display: none !important;"
+     data-bulk-bar>
+  <span id="bulk-count" class="font-medium tabular-nums" style="color: var(--color-fg);">0 selected</span>
+  <div class="flex items-center gap-2 ml-auto">
+    <label class="text-xs font-medium" style="color: var(--color-fg-muted);">Set disposition:</label>
+    <select id="bulk-disposition" class="select text-xs py-1"
+            onchange="
+              if (!this.value) return;
+              const form = document.getElementById('bulk-form');
+              form.action = '/installs/bulk';
+              const disp = document.createElement('input');
+              disp.type = 'hidden'; disp.name = 'disposition'; disp.value = this.value;
+              form.appendChild(disp);
+              form.setAttribute('hx-post', '/installs/bulk');
+              htmx.process(form);
+              form.querySelector('[name=disposition]').remove();
+              htmx.trigger(form, 'submit');
+              this.value = '';
+            ">
+      <option value="">— disposition —</option>
+      <option value="doc">Doc</option>
+      <option value="setup">Setup</option>
+      <option value="experimental">Experimental</option>
+      <option value="remove">Remove</option>
+      <option value="ignore">Ignore</option>
+    </select>
+    <button type="button" class="btn text-xs"
+            style="background-color: var(--color-remove); color: var(--color-remove-fg); border-color: var(--color-remove-border);"
+            onclick="
+              if (!confirm('Delete selected installs?')) return;
+              const form = document.getElementById('bulk-form');
+              form.setAttribute('hx-post', '/installs/bulk/delete');
+              htmx.process(form);
+              htmx.trigger(form, 'submit');
+            ">
+      Delete
+    </button>
+    <button type="button" class="btn btn-ghost text-xs"
+            onclick="
+              document.querySelectorAll('input[name=selected]').forEach(cb => cb.checked = false);
+              document.getElementById('master-checkbox') && (document.getElementById('master-checkbox').checked = false);
+              window.__updateBulkBar && window.__updateBulkBar();
+            ">
+      Cancel
+    </button>
+  </div>
+</div>
+
+<script>
+(function () {
+  function updateBulkBar() {
+    const checked = document.querySelectorAll('input[name="selected"]:checked');
+    const bar = document.querySelector('[data-bulk-bar]');
+    const countEl = document.getElementById('bulk-count');
+    if (!bar) return;
+    const n = checked.length;
+    if (n > 0) {
+      bar.style.removeProperty('display');
+    } else {
+      bar.style.setProperty('display', 'none', 'important');
+    }
+    if (countEl) countEl.textContent = n + ' selected';
+
+    // Sync selected IDs into the bulk form
+    const form = document.getElementById('bulk-form');
+    if (form) {
+      form.querySelectorAll('input[name="selected"]').forEach(el => el.remove());
+      checked.forEach(cb => {
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = 'selected';
+        hidden.value = cb.value;
+        form.appendChild(hidden);
+      });
+    }
+
+    // Sync master checkbox indeterminate state
+    const master = document.getElementById('master-checkbox');
+    if (master) {
+      const all = document.querySelectorAll('input[name="selected"]');
+      master.indeterminate = n > 0 && n < all.length;
+      master.checked = all.length > 0 && n === all.length;
+    }
+  }
+
+  window.__updateBulkBar = updateBulkBar;
+
+  // Delegate checkbox change events (works after HTMX swaps)
+  document.addEventListener('change', function (e) {
+    if (e.target && (e.target.name === 'selected' || e.target.id === 'master-checkbox')) {
+      if (e.target.id === 'master-checkbox') {
+        document.querySelectorAll('input[name="selected"]').forEach(cb => {
+          cb.checked = e.target.checked;
+        });
+      }
+      updateBulkBar();
+    }
+  });
+
+  // Re-run after HTMX swaps table fragment
+  document.addEventListener('htmx:afterSwap', function (e) {
+    if (e.detail && e.detail.target && e.detail.target.id === 'installs-table') {
+      // Clear bar after bulk action completes
+      document.querySelectorAll('input[name="selected"]').forEach(cb => cb.checked = false);
+      updateBulkBar();
+    }
+  });
+})();
+</script>
 {% endblock %}

@@ -2,70 +2,167 @@
 {% from "components/card.html" import card %}
 {% block content %}
 <h1 class="text-2xl md:text-3xl font-semibold tracking-tight mb-8 leading-tight" style="color: var(--color-brand);">Dashboard</h1>
+
+{# ── Row 1: Hero stat bar ──────────────────────────────────────────────────── #}
+<div class="card mb-6">
+  <div class="grid grid-cols-3 divide-x text-center" style="border-color: var(--color-border);">
+    <div class="px-4 py-2">
+      <a href="/installs" class="block group">
+        <div class="stat-number group-hover:opacity-80 transition-opacity duration-100">{{ total_installs }}</div>
+        <div class="stat-label">Total installs</div>
+      </a>
+    </div>
+    <div class="px-4 py-2">
+      <div class="stat-number">{{ total_projects }}</div>
+      <div class="stat-label">Projects</div>
+    </div>
+    <div class="px-4 py-2">
+      <a href="/installs?view=stale" class="block group">
+        <div class="stat-number group-hover:opacity-80 transition-opacity duration-100"
+             style="{% if stale_count > 0 %}color: var(--color-accent-fg);{% endif %}">{{ stale_count }}</div>
+        <div class="stat-label">Stale items</div>
+      </a>
+    </div>
+  </div>
+</div>
+
+{# ── Row 2: By disposition (1 col) + Stale queue (2 col) ─────────────────── #}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+
+  <div class="md:col-span-1">
+    {% call card(title="By disposition") %}
+      <div class="space-y-1">
+        {% for d, n in by_disposition.items() %}
+          <a href="/installs?disposition={{ d }}"
+             class="flex items-center justify-between gap-2 px-2 py-1.5 rounded-md -mx-2 transition-colors duration-100"
+             style="color: var(--color-fg);"
+             onmouseover="this.style.backgroundColor='var(--color-bg-muted)'"
+             onmouseout="this.style.backgroundColor=''">
+            <span class="text-sm" style="color: var(--color-fg-muted);">
+              {% if d in pres.disposition %}{{ pres.disposition[d].label }}{% else %}{{ d }}{% endif %}
+            </span>
+            <span class="text-2xl font-semibold tabular-nums tracking-tight" style="color: var(--color-fg);">{{ n }}</span>
+          </a>
+        {% endfor %}
+      </div>
+    {% endcall %}
+  </div>
+
+  <div class="md:col-span-2">
+    {% call card(title="Stale review queue", subtitle="Incomplete · stale experimental · stale remove") %}
+      {% if not stale %}
+        <p class="text-sm leading-relaxed" style="color: var(--color-fg-muted);">All clear.</p>
+      {% else %}
+        <ul class="space-y-2">
+          {% for r in stale %}
+            <li class="row-stale pl-3">
+              <a class="text-sm font-medium hover:underline" href="/installs?incomplete=1#{{ r.id }}"
+                 style="color: var(--color-fg);">{{ r.display_name or r.package_name or r.command }}</a>
+              <span class="text-xs ml-1 leading-relaxed" style="color: var(--color-fg-faint);">— {{ r.disposition or "incomplete" }}, {{ r.installed_at[:10] }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endcall %}
+  </div>
+
+</div>
+
+{# ── Row 3: By manager + By project + Installs per month ─────────────────── #}
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-  {% call card(title="By disposition") %}
-    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-      {% for d, n in by_disposition.items() %}
-        <div class="flex flex-col">
-          <span class="stat-number">{{ n }}</span>
-          <span class="stat-label">
-            {% if d in pres.disposition %}{{ pres.disposition[d].label }}{% else %}{{ d }}{% endif %}
-          </span>
+  {# By manager — clickable rows #}
+  <div>
+    {% call card(title="By manager") %}
+      <div class="space-y-1">
+        {% for m, n in by_manager.items() %}
+          <a href="/installs?manager={{ m }}"
+             class="flex items-center justify-between gap-2 px-2 py-1.5 rounded-md -mx-2 transition-colors duration-100"
+             style="color: var(--color-fg);"
+             onmouseover="this.style.backgroundColor='var(--color-bg-muted)'"
+             onmouseout="this.style.backgroundColor=''">
+            <span class="text-sm" style="color: var(--color-fg-muted);">{{ pres.get(m, {}).get("label", m) }}</span>
+            <span class="text-2xl font-semibold tabular-nums tracking-tight" style="color: var(--color-fg);">{{ n }}</span>
+          </a>
+        {% endfor %}
+      </div>
+    {% endcall %}
+  </div>
+
+  {# By project — clickable rows #}
+  <div>
+    {% call card(title="By project (top 10)") %}
+      <div class="space-y-1">
+        {% for name, n in by_project %}
+          <a href="/installs?project={{ name }}"
+             class="flex items-center justify-between gap-2 px-2 py-1.5 rounded-md -mx-2 transition-colors duration-100"
+             style="color: var(--color-fg);"
+             onmouseover="this.style.backgroundColor='var(--color-bg-muted)'"
+             onmouseout="this.style.backgroundColor=''">
+            <span class="text-sm truncate" style="color: var(--color-fg-muted);">{{ name }}</span>
+            <span class="text-2xl font-semibold tabular-nums tracking-tight flex-shrink-0" style="color: var(--color-fg);">{{ n }}</span>
+          </a>
+        {% endfor %}
+      </div>
+    {% endcall %}
+  </div>
+
+  {# Installs per month — sparkline + table #}
+  <div>
+    {% call card(title="Installs per month") %}
+      {% if sparkline_points | length >= 2 %}
+        {# SVG sparkline #}
+        <div class="mb-3">
+          <svg viewBox="0 0 {{ sparkline_w }} {{ sparkline_h }}"
+               width="100%" height="{{ sparkline_h }}"
+               preserveAspectRatio="none"
+               aria-label="Installs per month sparkline"
+               role="img">
+            <polyline
+              fill="none"
+              stroke="var(--color-brand)"
+              stroke-width="2"
+              stroke-linejoin="round"
+              stroke-linecap="round"
+              points="{% for x, y in sparkline_points %}{{ x }},{{ y }} {% endfor %}"
+            />
+            {# Last point dot in accent color #}
+            {% set lx, ly = sparkline_points[-1] %}
+            <circle cx="{{ lx }}" cy="{{ ly }}" r="3.5"
+                    fill="var(--color-accent)" stroke="var(--color-bg-elevated)" stroke-width="1.5"/>
+          </svg>
         </div>
-      {% endfor %}
-    </div>
-  {% endcall %}
-
-  {% call card(title="By manager") %}
-    <div class="space-y-3">
-      {% for m, n in by_manager.items() %}
-        <div class="flex items-center justify-between gap-2">
-          <span class="text-sm leading-relaxed" style="color: var(--color-fg-muted);">{{ pres.get(m, {}).get("label", m) }}</span>
-          <span class="text-2xl font-semibold tabular-nums tracking-tight" style="color: var(--color-fg);">{{ n }}</span>
+        {% if latest_month %}
+          <div class="mb-3">
+            <div class="stat-number text-2xl">{{ latest_month[1] }}</div>
+            <div class="stat-label">{{ latest_month[0] }}</div>
+          </div>
+        {% endif %}
+      {% elif sparkline_points | length == 1 %}
+        {% set lx, ly = sparkline_points[0] %}
+        <div class="mb-3">
+          <svg viewBox="0 0 {{ sparkline_w }} {{ sparkline_h }}"
+               width="100%" height="{{ sparkline_h }}"
+               aria-label="Single month data point" role="img">
+            <circle cx="{{ lx }}" cy="{{ ly }}" r="4"
+                    fill="var(--color-accent)" stroke="var(--color-bg-elevated)" stroke-width="1.5"/>
+          </svg>
+          {% if latest_month %}
+            <div class="stat-number text-2xl mt-1">{{ latest_month[1] }}</div>
+            <div class="stat-label">{{ latest_month[0] }}</div>
+          {% endif %}
         </div>
-      {% endfor %}
-    </div>
-  {% endcall %}
-
-  {% call card(title="By project (top 10)") %}
-    <div class="space-y-3">
-      {% for name, n in by_project %}
-        <div class="flex items-center justify-between gap-2">
-          <a class="text-sm leading-relaxed hover:underline truncate" href="/installs?project={{ name }}"
-             style="color: var(--color-fg-muted);">{{ name }}</a>
-          <span class="text-2xl font-semibold tabular-nums tracking-tight flex-shrink-0" style="color: var(--color-fg);">{{ n }}</span>
-        </div>
-      {% endfor %}
-    </div>
-  {% endcall %}
-
-  {% call card(title="Installs per month") %}
-    <ul class="space-y-2 font-mono">
-      {% for m, n in per_month %}
-        <li class="flex items-center justify-between gap-2">
-          <span class="text-xs leading-relaxed" style="color: var(--color-fg-faint);">{{ m }}</span>
-          <span class="text-lg font-semibold tabular-nums" style="color: var(--color-fg);">{{ n }}</span>
-        </li>
-      {% endfor %}
-    </ul>
-  {% endcall %}
-
-  {% call card(title="Stale review queue", subtitle="Incomplete · stale experimental · stale remove") %}
-    {% if not stale %}
-      <p class="text-sm leading-relaxed" style="color: var(--color-fg-muted);">All clear.</p>
-    {% else %}
-      <ul class="space-y-2">
-        {% for r in stale %}
-          <li class="row-stale pl-3">
-            <a class="text-sm font-medium hover:underline" href="/installs?incomplete=1#{{ r.id }}"
-               style="color: var(--color-fg);">{{ r.display_name or r.package_name or r.command }}</a>
-            <span class="text-xs ml-1 leading-relaxed" style="color: var(--color-fg-faint);">— {{ r.disposition or "incomplete" }}, {{ r.installed_at[:10] }}</span>
+      {% endif %}
+      <ul class="space-y-1 font-mono">
+        {% for m, n in per_month %}
+          <li class="flex items-center justify-between gap-2">
+            <span class="text-xs leading-relaxed" style="color: var(--color-fg-faint);">{{ m }}</span>
+            <span class="text-sm font-semibold tabular-nums" style="color: var(--color-fg);">{{ n }}</span>
           </li>
         {% endfor %}
       </ul>
-    {% endif %}
-  {% endcall %}
+    {% endcall %}
+  </div>
 
 </div>
 {% endblock %}

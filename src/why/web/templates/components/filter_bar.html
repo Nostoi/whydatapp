@@ -1,14 +1,5 @@
 <form id="filters" hx-get="/installs/table" hx-target="#installs-table" hx-push-url="true"
-      class="flex flex-wrap gap-2 items-center mb-6 text-sm">
-  {% for d in ["doc","setup","experimental","remove","ignore"] %}
-    {% set active = filters.disposition == d %}
-    <button type="submit" name="disposition" value="{{ d if not active else '' }}"
-      class="pill pill-{{ d }} transition-opacity duration-100 {{ '' if active else 'opacity-75 hover:opacity-100' }}"
-      {% if active %}style="box-shadow: 0 0 0 2px var(--color-border-strong);"{% endif %}>
-      {{ pres.disposition[d].label }}
-    </button>
-  {% endfor %}
-
+      class="flex flex-wrap gap-2 items-center mb-4 text-sm">
   <div class="flex flex-wrap gap-2 w-full sm:w-auto">
     <select name="manager" class="input text-xs py-1 w-full sm:w-auto">
       <option value="">All managers</option>
@@ -36,5 +27,11 @@
     {% include "components/checkbox.html" %}
   {% endwith %}
 
+  {# Preserve active tab/disposition when changing secondary filters #}
+  {% if filters.view %}
+    <input type="hidden" name="view" value="{{ filters.view }}">
+  {% elif filters.disposition %}
+    <input type="hidden" name="disposition" value="{{ filters.disposition }}">
+  {% endif %}
   <input type="hidden" name="q" value="{{ filters.q or '' }}">
 </form>

@@ -248,3 +248,73 @@ def test_post_with_csrf_accepted(why_home: Path) -> None:
         },
     )
     assert r.status_code == 200
+
+
+# ── Bulk endpoint tests ────────────────────────────────────────────────────────
+
+def test_bulk_update_disposition(why_home: Path) -> None:
+    """POST /installs/bulk changes disposition for all selected IDs."""
+    db = ensure_ready()
+    user = store.get_solo_user(db)
+    device = store.get_solo_device(db)
+    inst1 = store.create_install(
+        db, user_id=user.id, device_id=device.id,
+        command="brew install bat", package_name="bat", manager="brew",
+        install_dir="/tmp", resolved_path=None, exit_code=0,
+    )
+    inst2 = store.create_install(
+        db, user_id=user.id, device_id=device.id,
+        command="brew install eza", package_name="eza", manager="brew",
+        install_dir="/tmp", resolved_path=None, exit_code=0,
+    )
+    c = _client(why_home)
+    token = c.cookies.get("why_csrf", "")
+    r = c.post(
+        "/installs/bulk",
+        data={
+            "selected": [str(inst1.id), str(inst2.id)],
+            "disposition": "setup",
+            "csrf_token": token,
+        },
+    )
+    assert r.status_code == 200
+    # Verify both rows updated in DB
+    assert store.get_install(db, inst1.id).disposition == "setup"
+    assert store.get_install(db, inst2.id).disposition == "setup"
+
+
+def test_bulk_delete(why_home: Path) -> None:
+    """POST /installs/bulk/delete soft-deletes all selected IDs."""
+    db = ensure_ready()
+    user = store.get_solo_user(db)
+    device = store.get_solo_device(db)
+    inst = store.create_install(
+        db, user_id=user.id, device_id=device.id,
+        command="brew install delta", package_name="delta", manager="brew",
+        install_dir="/tmp", resolved_path=None, exit_code=0,
+    )
+    c = _client(why_home)
+    token = c.cookies.get("why_csrf", "")
+    r = c.post(
+        "/installs/bulk/delete",
+        data={"selected": [str(inst.id)], "csrf_token": token},
+    )
+    assert r.status_code == 200
+    # Row still exists but is soft-deleted
+    deleted = store.get_install(db, inst.id)
+    assert deleted is not None
+    assert deleted.deleted == 1
+    # Deleted row should not appear in normal list
+    rows = store.list_installs(db, store.InstallFilters())
+    assert not any(row.id == inst.id for row in rows)
+
+
+def test_bulk_update_empty_selection_is_noop(why_home: Path) -> None:
+    """POST /installs/bulk with no IDs returns table without error."""
+    c = _client(why_home)
+    token = c.cookies.get("why_csrf", "")
+    r = c.post(
+        "/installs/bulk",
+        data={"disposition": "setup", "csrf_token": token},
+    )
+    assert r.status_code == 200
