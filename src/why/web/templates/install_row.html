@@ -1,7 +1,6 @@
-<tr id="row-{{ r.id }}" class="group transition-colors duration-100 {% if r.metadata_complete == 0 %}row-stale{% endif %}"
-    style="--hover-bg: var(--color-bg-muted);"
-    onmouseenter="this.style.backgroundColor='var(--color-bg-muted)'"
-    onmouseleave="this.style.backgroundColor=''">
+<tr id="row-{{ r.id }}" class="group transition-colors duration-100 cursor-pointer {% if r.metadata_complete == 0 %}row-stale{% endif %}"
+    data-edit-url="/installs/{{ r.id }}/edit"
+    data-hoverable-row="true">
   {# Checkbox — desktop only #}
   <td class="py-2 pl-3 pr-2 hidden md:table-cell w-8">
     <input type="checkbox" name="selected" value="{{ r.id }}" form="bulk-form"
@@ -34,8 +33,8 @@
   <td class="py-2 pr-4 text-right font-mono text-xs tabular-nums" style="color: var(--color-fg-muted);">{{ r.installed_at[:10] }}</td>
   <td class="py-2 pr-3 text-right w-20">
     {# Action reveal: hidden until row hover or focus-within #}
-    <div class="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-100">
-      <button class="btn text-xs" hx-post="/installs/{{ r.id }}/share" hx-swap="none">Share</button>
+    <div class="opacity-0 focus-within:opacity-100 transition-opacity duration-100" data-row-actions="true">
+      <button type="button" class="btn text-xs" data-share-url="/installs/{{ r.id }}/share">Share</button>
     </div>
   </td>
 </tr>

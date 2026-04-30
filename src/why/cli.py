@@ -5,6 +5,7 @@ import os
 import sys
 from pathlib import Path as _P
 
+import click
 import typer
 from rich.console import Console
 from rich.table import Table
@@ -17,7 +18,22 @@ from why.markdown import to_markdown
 from why.prompts import run_metadata_prompt
 from why.store import InstallFilters
 
-app = typer.Typer(add_completion=False, help="Track why you installed every tool.")
+
+class WhyGroup(typer.core.TyperGroup):
+    def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
+        if not args and self.no_args_is_help and not ctx.resilient_parsing:
+            click.echo(ctx.get_help(), color=ctx.color)
+            ctx.exit()
+        return super().parse_args(ctx, args)
+
+
+app = typer.Typer(
+    add_completion=False,
+    cls=WhyGroup,
+    invoke_without_command=True,
+    no_args_is_help=True,
+    help="Track why you installed every tool.",
+)
 console = Console()
 
 
@@ -27,11 +43,15 @@ def _version_callback(value: bool) -> None:
         raise typer.Exit()
 
 
-@app.callback()
+@app.callback(invoke_without_command=True, no_args_is_help=True)
 def main(
+    ctx: typer.Context,
     version: bool = typer.Option(False, "--version", callback=_version_callback, is_eager=True),
 ) -> None:
     """why?"""
+    if ctx.invoked_subcommand is None:
+        console.print(ctx.get_help())
+        raise typer.Exit()
 
 
 @app.command("list")

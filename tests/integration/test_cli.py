@@ -18,6 +18,16 @@ def test_version_command(why_home: Path) -> None:
     assert "why" in result.stdout
 
 
+def test_bare_command_shows_help(why_home: Path) -> None:
+    result = runner.invoke(app, [])
+    assert result.exit_code == 0
+    assert "Usage:" in result.stdout
+    assert "COMMAND [ARGS]" in result.stdout
+    assert "Missing command" not in result.stdout
+    assert "list" in result.stdout
+    assert "log" in result.stdout
+
+
 def test_list_command_on_empty_db(why_home: Path) -> None:
     result = runner.invoke(app, ["list"])
     assert result.exit_code == 0

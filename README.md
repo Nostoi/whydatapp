@@ -56,6 +56,7 @@ Full install instructions, including building from a wheel: **[Install guide](ht
 | Command           | What it does                                   |
 |-------------------|------------------------------------------------|
 | `why init`        | Interactive first-run setup                    |
+| `why`             | Show help and the available subcommands        |
 | `why log -- <cmd>`| Manually log an install                        |
 | `why review`      | Drain the skipped/incomplete review queue      |
 | `why list`        | Print installs as a table                      |

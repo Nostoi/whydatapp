@@ -7,6 +7,7 @@ Every subcommand of the `why` CLI, with examples.
 | Command              | What it does                                        |
 |----------------------|-----------------------------------------------------|
 | `why init`           | First-run interactive setup (also re-runs safely).  |
+| `why`                | Show the top-level help and command list.           |
 | `why log -- <cmd>`   | Manually log an install (used by hook + by you).    |
 | `why review`         | Drain the skipped/incomplete review queue.          |
 | `why list`           | Print installs as a table, with filters.            |
@@ -17,6 +18,17 @@ Every subcommand of the `why` CLI, with examples.
 | `why --version`      | Print the installed version.                        |
 
 ## How capture works
+
+## `why` — top-level help
+
+Running `why` with no subcommand prints the same top-level help you get from `why --help` and exits successfully:
+
+```bash
+why
+why --help
+```
+
+Use this when you want a quick reminder of the available subcommands and global flags.
 
 When the shell hook is installed, `why` watches every command you run interactively. After a command exits successfully, it checks: did this look like a user-intent install? If yes, and none of the [ignore rules](configuration.md#ignore-rules) match, it runs the capture flow.
 

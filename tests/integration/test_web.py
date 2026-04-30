@@ -169,6 +169,33 @@ def test_installs_page_has_edit_modal_skeleton(why_home: Path) -> None:
     assert "<dialog" in r.text
 
 
+def test_installs_page_rows_are_clickable_for_edit(why_home: Path) -> None:
+    iid = _seed_one(why_home)
+    c = _client(why_home)
+    r = c.get("/installs")
+    assert r.status_code == 200
+    assert f'data-edit-url="/installs/{iid}/edit"' in r.text
+
+
+def test_installs_page_has_share_feedback_ui(why_home: Path) -> None:
+    _seed_one(why_home)
+    c = _client(why_home)
+    r = c.get("/installs")
+    assert r.status_code == 200
+    assert 'id="share-toast"' in r.text
+    assert 'id="share-modal"' in r.text
+    assert 'data-share-url="/installs/1/share"' in r.text
+
+
+def test_installs_page_has_row_hover_hooks(why_home: Path) -> None:
+    _seed_one(why_home)
+    c = _client(why_home)
+    r = c.get("/installs")
+    assert r.status_code == 200
+    assert 'data-hoverable-row="true"' in r.text
+    assert 'data-row-actions="true"' in r.text
+
+
 def test_share_returns_markdown(why_home: Path) -> None:
     iid = _seed_one(why_home)
     c = _client(why_home)

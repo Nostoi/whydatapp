@@ -76,7 +76,9 @@
 {# ── Mobile card view ───────────────────────────────────────────────────────── #}
 <div class="md:hidden space-y-3">
   {% for r in rows %}
-    <div id="row-{{ r.id }}" class="rounded-lg border p-4 {% if r.metadata_complete == 0 %}border-l-4{% endif %} transition-colors duration-100"
+    <div id="row-{{ r.id }}" class="rounded-lg border p-4 cursor-pointer {% if r.metadata_complete == 0 %}border-l-4{% endif %} transition-colors duration-100"
+         data-edit-url="/installs/{{ r.id }}/edit"
+         data-hoverable-row="true"
          style="background-color: var(--color-bg-elevated); border-color: {% if r.metadata_complete == 0 %}var(--color-accent){% else %}var(--color-border){% endif %};">
       <div class="flex items-start justify-between gap-2 mb-2">
         <div class="min-w-0 flex-1">
@@ -110,8 +112,8 @@
           <dt class="font-medium uppercase tracking-wide" style="color: var(--color-fg-faint);">Installed</dt>
           <dd class="mt-0.5 font-mono tabular-nums" style="color: var(--color-fg-muted);">{{ r.installed_at[:10] }}</dd>
         </div>
-        <div class="flex items-end">
-          <button class="btn text-xs" hx-post="/installs/{{ r.id }}/share" hx-swap="none">Share</button>
+        <div class="flex items-end" data-row-actions="true">
+          <button type="button" class="btn text-xs" data-share-url="/installs/{{ r.id }}/share">Share</button>
         </div>
       </dl>
     </div>

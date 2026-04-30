@@ -8,6 +8,33 @@
         style="background-color: var(--color-bg-elevated); border-color: var(--color-border); color: var(--color-fg);">
 </dialog>
 
+<dialog id="share-modal"
+        class="rounded-xl border p-0 w-full max-w-xl shadow-2xl backdrop:bg-black/40 backdrop:backdrop-blur-sm"
+        style="background-color: var(--color-bg-elevated); border-color: var(--color-border); color: var(--color-fg);">
+  <header class="flex items-center justify-between gap-3 px-5 py-4 border-b"
+          style="border-color: var(--color-border);">
+    <div class="min-w-0 flex-1">
+      <h2 class="text-sm font-semibold truncate" style="color: var(--color-fg);">Share install</h2>
+      <p class="text-xs mt-0.5" style="color: var(--color-fg-faint);">Clipboard access was unavailable, so the share text is shown here.</p>
+    </div>
+    <button type="button"
+            onclick="document.getElementById('share-modal').close()"
+            class="btn btn-ghost text-xs shrink-0"
+            aria-label="Close">✕</button>
+  </header>
+  <div class="px-5 py-4 grid gap-3">
+    <textarea id="share-modal-text"
+              class="input min-h-48 font-mono text-xs"
+              readonly
+              aria-label="Share markdown"></textarea>
+    <div class="flex justify-end gap-2">
+      <button type="button" class="btn"
+              onclick="document.getElementById('share-modal').close()">Close</button>
+      <button type="button" class="btn btn-primary" id="share-modal-copy">Copy</button>
+    </div>
+  </div>
+</dialog>
+
 {# Hidden bulk-action form — populated by row checkboxes via form="bulk-form" #}
 <form id="bulk-form" method="post" style="display:none;"
       hx-target="#installs-table" hx-push-url="false">
@@ -70,13 +97,51 @@
   </div>
 </div>
 
+<div id="share-toast"
+     class="fixed top-4 right-4 z-40 max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg transition-opacity duration-150"
+     style="display:none; background-color: var(--color-bg-elevated); border-color: var(--color-border-strong); color: var(--color-fg);">
+</div>
+
 <script>
 (function () {
+  const interactiveSelector = 'a, button, input, select, textarea, label, summary, [role="button"]';
+  let lastPointerX = null;
+  let lastPointerY = null;
+
+  function eachHoverableRow(fn) {
+    document.querySelectorAll('[data-hoverable-row="true"]').forEach(fn);
+  }
+
+  function setRowHoverState(row, isActive) {
+    if (!row) return;
+    row.dataset.rowHoverActive = isActive ? 'true' : 'false';
+    row.style.backgroundColor = isActive ? 'var(--color-bg-muted)' : '';
+    row.querySelectorAll('[data-row-actions="true"]').forEach(function (actions) {
+      actions.style.opacity = isActive ? '1' : '';
+    });
+  }
+
+  function clearAllRowHoverState() {
+    eachHoverableRow(function (row) {
+      setRowHoverState(row, false);
+    });
+  }
+
+  function recomputeRowHoverState() {
+    clearAllRowHoverState();
+    if (lastPointerX === null || lastPointerY === null) return;
+    if (document.getElementById('edit-modal')?.open || document.getElementById('share-modal')?.open) return;
+    const el = document.elementFromPoint(lastPointerX, lastPointerY);
+    const row = el && el.closest ? el.closest('[data-hoverable-row="true"]') : null;
+    if (row) setRowHoverState(row, true);
+  }
+
   // ── Edit modal helpers ───────────────────────────────────────────────────
   // Open the dialog after HTMX swaps content into #edit-modal
   document.addEventListener('htmx:afterSwap', function (e) {
     if (e.detail && e.detail.target && e.detail.target.id === 'edit-modal') {
       var modal = document.getElementById('edit-modal');
+      clearAllRowHoverState();
       if (modal && !modal.open) modal.showModal();
     }
   });
@@ -85,7 +150,126 @@
   document.addEventListener('closeEditModal', function () {
     var modal = document.getElementById('edit-modal');
     if (modal && modal.open) modal.close();
+    window.requestAnimationFrame(recomputeRowHoverState);
   });
+
+  const editModal = document.getElementById('edit-modal');
+  if (editModal) {
+    editModal.addEventListener('close', function () {
+      window.requestAnimationFrame(recomputeRowHoverState);
+    });
+  }
+
+  const shareModal = document.getElementById('share-modal');
+  if (shareModal) {
+    shareModal.addEventListener('close', function () {
+      window.requestAnimationFrame(recomputeRowHoverState);
+    });
+  }
+
+  function showShareToast(message, isError) {
+    const toast = document.getElementById('share-toast');
+    if (!toast) return;
+    toast.textContent = message;
+    toast.style.display = 'block';
+    toast.style.opacity = '1';
+    toast.style.borderColor = isError ? 'var(--color-remove-border)' : 'var(--color-border-strong)';
+    toast.style.color = isError ? 'var(--color-remove-fg)' : 'var(--color-fg)';
+    toast.style.backgroundColor = isError ? 'var(--color-remove)' : 'var(--color-bg-elevated)';
+    window.clearTimeout(window.__shareToastTimer);
+    window.__shareToastTimer = window.setTimeout(function () {
+      toast.style.opacity = '0';
+      window.setTimeout(function () {
+        toast.style.display = 'none';
+      }, 150);
+    }, 2200);
+  }
+
+  function openShareModal(text) {
+    const modal = document.getElementById('share-modal');
+    const area = document.getElementById('share-modal-text');
+    if (!modal || !area) return;
+    area.value = text;
+    modal.showModal();
+    area.focus();
+    area.select();
+  }
+
+  async function copyShareText(text) {
+    if (!navigator.clipboard || !navigator.clipboard.writeText) {
+      throw new Error('clipboard unavailable');
+    }
+    await navigator.clipboard.writeText(text);
+  }
+
+  document.addEventListener('pointermove', function (e) {
+    lastPointerX = e.clientX;
+    lastPointerY = e.clientY;
+    recomputeRowHoverState();
+  });
+
+  document.addEventListener('pointerleave', function (e) {
+    if (e.target === document.documentElement) {
+      clearAllRowHoverState();
+    }
+  }, true);
+
+  document.addEventListener('click', function (e) {
+    const shareButton = e.target.closest('[data-share-url]');
+    if (shareButton) {
+      e.preventDefault();
+      e.stopPropagation();
+      const url = shareButton.getAttribute('data-share-url');
+      const csrf = document.querySelector('meta[name="csrf-token"]');
+      fetch(url, {
+        method: 'POST',
+        headers: csrf ? { 'X-CSRF-Token': csrf.getAttribute('content') } : {},
+      })
+        .then(async function (response) {
+          const text = await response.text();
+          if (!response.ok) throw new Error(text || 'share failed');
+          try {
+            await copyShareText(text);
+            showShareToast('Share markdown copied to clipboard.', false);
+          } catch (_err) {
+            openShareModal(text);
+            showShareToast('Share markdown ready to copy.', false);
+          }
+        })
+        .catch(function (err) {
+          showShareToast(err.message || 'Share failed.', true);
+        });
+      return;
+    }
+
+    const interactive = e.target.closest(interactiveSelector);
+    if (interactive) return;
+    const row = e.target.closest('[data-edit-url]');
+    if (!row) return;
+    const url = row.getAttribute('data-edit-url');
+    if (!url) return;
+    clearAllRowHoverState();
+    htmx.ajax('GET', url, {
+      target: '#edit-modal',
+      swap: 'innerHTML',
+    });
+  });
+
+  const shareModalCopy = document.getElementById('share-modal-copy');
+  if (shareModalCopy) {
+    shareModalCopy.addEventListener('click', async function () {
+      const area = document.getElementById('share-modal-text');
+      if (!area) return;
+      try {
+        await copyShareText(area.value);
+        showShareToast('Share markdown copied to clipboard.', false);
+      } catch (_err) {
+        area.focus();
+        area.select();
+        showShareToast('Clipboard blocked. Copy from the modal.', true);
+      }
+    });
+  }
 
   // ── Bulk bar helpers ─────────────────────────────────────────────────────
   function updateBulkBar() {
