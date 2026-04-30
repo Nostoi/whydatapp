@@ -48,7 +48,7 @@ For Tailwind iteration:
 make css-watch    # rebuilds src/why/web/static/css/tailwind.css on template change
 ```
 
-The committed `tailwind.css` is what ships in the wheel. Rebuild and commit it whenever you change classes used in templates.
+The committed `tailwind.css` is what ships in the wheel. **Rebuild and commit it whenever you add or change utility classes in templates** — Tailwind purges to only the classes it sees in the templates at build time, so a stale CSS file means classes silently do nothing in the browser. The release workflow rebuilds CSS in CI before `uv build` and refuses to ship if utility classes are missing, so you can't accidentally publish a release with stale CSS — but local dev installs (`uv tool install --from . --editable`) use whatever's committed.
 
 ## Building the wheel
 

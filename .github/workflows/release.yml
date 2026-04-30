@@ -40,6 +40,22 @@ jobs:
           uv run ruff check src tests
           uv run mypy src/why
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build Tailwind CSS
+        run: |
+          npx --yes tailwindcss@3 -i src/why/web/static/css/tailwind.src.css \
+                                  -o src/why/web/static/css/tailwind.css --minify
+          # Sanity check: refuse to ship a CSS without utility classes.
+          # This catches the "templates didn't exist when CSS was last
+          # built locally" trap.
+          if ! grep -q '\.flex' src/why/web/static/css/tailwind.css; then
+            echo "::error::tailwind.css is missing utility classes — build failed."
+            exit 1
+          fi
+
       - name: Build distributions
         run: uv build
 
