@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-xl font-semibold mb-4">Review</h1>
+{% if not current %}
+  <p class="text-sm text-zinc-500">Review queue is empty.</p>
+{% else %}
+<p class="text-xs text-zinc-500 mb-3">{{ remaining }} pending</p>
+<section class="card max-w-2xl">
+  <p class="text-xs text-zinc-500 mb-2">Captured</p>
+  <pre class="font-mono text-sm mb-1">{{ current.command }}</pre>
+  <p class="text-xs text-zinc-500 mb-4">{{ current.install_dir }} · {{ current.installed_at }}</p>
+
+  <form method="post" action="/review/{{ current.id }}" class="grid grid-cols-2 gap-3 text-sm">
+    <label class="flex flex-col">
+      <span class="text-xs text-zinc-500">Disposition</span>
+      <select class="input" name="disposition" required>
+        {% for d in ["doc","setup","experimental","remove","ignore"] %}
+          <option value="{{ d }}">{{ pres.disposition[d].label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="flex flex-col">
+      <span class="text-xs text-zinc-500">Display name</span>
+      <input class="input" name="display_name" value="{{ current.package_name or '' }}">
+    </label>
+    <label class="flex flex-col col-span-2">
+      <span class="text-xs text-zinc-500">What does it do</span>
+      <input class="input" name="what_it_does">
+    </label>
+    <label class="flex flex-col">
+      <span class="text-xs text-zinc-500">Project</span>
+      <input class="input" name="project">
+    </label>
+    <label class="flex flex-col">
+      <span class="text-xs text-zinc-500">Notes</span>
+      <input class="input" name="notes">
+    </label>
+    <label class="flex flex-col col-span-2">
+      <span class="text-xs text-zinc-500">Why install</span>
+      <textarea class="input" name="why" rows="3"></textarea>
+    </label>
+    <input type="hidden" name="csrf_token" value="{{ request.cookies.get('why_csrf', '') if request else '' }}">
+    <div class="col-span-2 flex gap-2 justify-end">
+      <button class="btn" type="submit" name="skip" value="1">Skip</button>
+      <button class="btn btn-primary" type="submit">Save &amp; next</button>
+    </div>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

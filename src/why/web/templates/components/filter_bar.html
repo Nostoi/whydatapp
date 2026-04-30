@@ -1,0 +1,39 @@
+<form id="filters" hx-get="/installs/table" hx-target="#installs-table" hx-push-url="true"
+      class="flex flex-wrap gap-2 items-center mb-4 text-sm">
+  {% for d in ["doc","setup","experimental","remove","ignore"] %}
+    {% set active = filters.disposition == d %}
+    <button type="submit" name="disposition" value="{{ d if not active else '' }}"
+      class="pill border {{ 'border-zinc-700' if active else 'border-transparent' }}"
+      style="background-color: {{ pres.disposition[d].color }}1a; color: {{ pres.disposition[d].color }};">
+      {{ pres.disposition[d].label }}
+    </button>
+  {% endfor %}
+
+  <select name="manager" class="input">
+    <option value="">All managers</option>
+    {% for m in managers %}
+      <option value="{{ m }}" {% if filters.manager == m %}selected{% endif %}>{{ m }}</option>
+    {% endfor %}
+  </select>
+
+  <select name="project" class="input">
+    <option value="">All projects</option>
+    {% for p in projects %}
+      <option value="{{ p }}" {% if filters.project == p %}selected{% endif %}>{{ p }}</option>
+    {% endfor %}
+  </select>
+
+  <select name="device" class="input">
+    <option value="">All devices</option>
+    {% for d in devices %}
+      <option value="{{ d.id }}" {% if filters.device_id == d.id %}selected{% endif %}>{{ d.label or d.hostname }}</option>
+    {% endfor %}
+  </select>
+
+  <label class="ml-2 flex items-center gap-1">
+    <input type="checkbox" name="incomplete" value="1" {% if filters.incomplete_only %}checked{% endif %}>
+    incomplete only
+  </label>
+
+  <input type="hidden" name="q" value="{{ filters.q or '' }}">
+</form>

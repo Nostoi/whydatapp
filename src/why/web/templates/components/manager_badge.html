@@ -1,0 +1,4 @@
+{% set m = pres.get(manager) or {"icon": "📦", "color": "#6b7280", "label": manager} %}
+<span class="pill" style="background-color: {{ m.color }}1a; color: {{ m.color }};">
+  <span class="mr-1">{{ m.icon }}</span>{{ m.label }}
+</span>

@@ -1,0 +1,44 @@
+<tr id="edit-{{ r.id }}">
+  <td colspan="6" class="py-3 px-4 bg-zinc-50 dark:bg-zinc-900">
+    <form hx-post="/installs/{{ r.id }}" hx-target="closest tr" hx-swap="outerHTML"
+          class="grid grid-cols-2 gap-3 text-sm">
+      <label class="flex flex-col">
+        <span class="text-xs text-zinc-500">Display name</span>
+        <input class="input" name="display_name" value="{{ r.display_name or '' }}">
+      </label>
+      <label class="flex flex-col">
+        <span class="text-xs text-zinc-500">Project</span>
+        <input class="input" name="project" value="{{ r.project or '' }}" list="projects">
+      </label>
+      <label class="flex flex-col col-span-2">
+        <span class="text-xs text-zinc-500">What does it do</span>
+        <input class="input" name="what_it_does" value="{{ r.what_it_does or '' }}">
+      </label>
+      <label class="flex flex-col col-span-2">
+        <span class="text-xs text-zinc-500">Why install</span>
+        <textarea class="input" name="why" rows="2">{{ r.why or '' }}</textarea>
+      </label>
+      <label class="flex flex-col">
+        <span class="text-xs text-zinc-500">Disposition</span>
+        <select class="input" name="disposition">
+          {% for d in ["doc","setup","experimental","remove","ignore"] %}
+            <option value="{{ d }}" {% if r.disposition == d %}selected{% endif %}>{{ pres.disposition[d].label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="flex flex-col">
+        <span class="text-xs text-zinc-500">Notes</span>
+        <input class="input" name="notes" value="{{ r.notes or '' }}">
+      </label>
+      <input type="hidden" name="metadata_complete" value="1">
+      <input type="hidden" name="csrf_token" value="{{ request.cookies.get('why_csrf', '') if request else '' }}">
+      <div class="col-span-2 flex gap-2 justify-end">
+        <a class="btn" hx-get="/installs/{{ r.id }}/row" hx-target="closest tr" hx-swap="outerHTML">Cancel</a>
+        <button class="btn btn-primary" type="submit">Save</button>
+      </div>
+    </form>
+    <datalist id="projects">
+      {% for p in projects %}<option value="{{ p }}">{% endfor %}
+    </datalist>
+  </td>
+</tr>

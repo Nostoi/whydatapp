@@ -1,0 +1,69 @@
+[brew]
+icon = "🍺"
+color = "#f59e0b"
+label = "Homebrew"
+
+[npm]
+icon = "📦"
+color = "#dc2626"
+label = "npm"
+
+[pnpm]
+icon = "📦"
+color = "#ea580c"
+label = "pnpm"
+
+[yarn]
+icon = "🧶"
+color = "#2563eb"
+label = "Yarn"
+
+[bun]
+icon = "🍞"
+color = "#fbbf24"
+label = "Bun"
+
+[pip]
+icon = "🐍"
+color = "#3b82f6"
+label = "pip"
+
+[pipx]
+icon = "🐍"
+color = "#1d4ed8"
+label = "pipx"
+
+[uv]
+icon = "🟪"
+color = "#7c3aed"
+label = "uv tool"
+
+[cargo]
+icon = "📦"
+color = "#a16207"
+label = "Cargo"
+
+[git]
+icon = "🌿"
+color = "#6b7280"
+label = "git clone"
+
+[disposition.doc]
+color = "#2563eb"
+label = "Doc"
+
+[disposition.setup]
+color = "#16a34a"
+label = "Setup"
+
+[disposition.experimental]
+color = "#d97706"
+label = "Experimental"
+
+[disposition.remove]
+color = "#dc2626"
+label = "Remove"
+
+[disposition.ignore]
+color = "#6b7280"
+label = "Ignore"
