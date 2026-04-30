@@ -31,7 +31,7 @@ why init                          # interactive setup; edits your shell rc
 ```bash
 git clone https://github.com/Nostoi/whydatapp.git
 cd whydatapp
-uv tool install --from . 'why-cli[web]'
+uv tool install --editable '.[web]'
 why init
 ```
 

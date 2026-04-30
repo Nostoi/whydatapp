@@ -30,15 +30,21 @@ uv tool upgrade why-cli           # or: pipx upgrade why-cli
 ```bash
 git clone https://github.com/Nostoi/whydatapp.git
 cd whydatapp
-uv tool install --from . 'why-cli[web]'
+uv tool install --editable '.[web]'   # editable: live-reflects your edits
 why init
 ```
 
 `pipx` works the same way:
 
 ```bash
-pipx install '.[web]'
+pipx install --editable '.[web]'
 why init
+```
+
+If you don't need the web UI, drop the extra:
+
+```bash
+uv tool install --editable .
 ```
 
 ## Option C — From a locally built wheel
@@ -47,7 +53,9 @@ why init
 git clone https://github.com/Nostoi/whydatapp.git
 cd whydatapp
 uv build                          # produces dist/why_cli-*.whl
-uv tool install --from ./dist/why_cli-1.0.5-py3-none-any.whl 'why-cli[web]'
+uv tool install ./dist/why_cli-1.2.0-py3-none-any.whl
+# To include the web extra from a wheel:
+uv tool install './dist/why_cli-1.2.0-py3-none-any.whl[web]'
 why init
 ```
 
