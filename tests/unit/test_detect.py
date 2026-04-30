@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from why.detect import match_install, MatchResult
+from why.detect import IgnoreContext, match_install, should_ignore
 
 
 @pytest.mark.parametrize("cmd,manager,pkgs", [
@@ -46,8 +46,6 @@ def test_matches_tier1(cmd: str, manager: str, pkgs: list[str]) -> None:
 def test_no_match_for_non_install_or_dependency_restore(cmd: str) -> None:
     assert match_install(cmd) is None
 
-
-from why.detect import IgnoreContext, should_ignore
 
 
 def _ctx(**kw) -> IgnoreContext:

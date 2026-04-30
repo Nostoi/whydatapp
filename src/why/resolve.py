@@ -52,13 +52,19 @@ def resolve_path(*, manager: str, package: str, cwd: str) -> str | None:
     """Best-effort resolution of where the install landed. Never raises."""
     try:
         match manager:
-            case "brew":  return _resolve_brew(package)
-            case "cargo": return _resolve_cargo(package)
-            case "pipx":  return _resolve_pipx(package)
-            case "uv":    return _resolve_uv_tool(package)
+            case "brew":
+                return _resolve_brew(package)
+            case "cargo":
+                return _resolve_cargo(package)
+            case "pipx":
+                return _resolve_pipx(package)
+            case "uv":
+                return _resolve_uv_tool(package)
             case "npm" | "pnpm" | "yarn" | "bun":
                 return _resolve_npm_global(package)
-            case "git":   return _resolve_git(package, cwd)
-            case _:       return None
+            case "git":
+                return _resolve_git(package, cwd)
+            case _:
+                return None
     except Exception:
         return None

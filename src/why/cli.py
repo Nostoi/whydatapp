@@ -1,11 +1,20 @@
 from __future__ import annotations
 
+import json
+import os
+import sys
+from pathlib import Path as _P
+
 import typer
 from rich.console import Console
 from rich.table import Table
 
 from why import __version__, store
 from why.bootstrap import ensure_ready
+from why.detect import match_install
+from why.project_infer import infer_project
+from why.prompts import run_metadata_prompt
+from why.resolve import resolve_path
 from why.store import InstallFilters
 
 app = typer.Typer(add_completion=False, help="Track why you installed every tool.")
@@ -63,18 +72,9 @@ def list_cmd(
     console.print(t)
 
 
-import os
-import sys
-
-from why.detect import match_install
-from why.project_infer import infer_project
-from why.prompts import run_metadata_prompt
-from why.resolve import resolve_path
-
-
 @app.command("log")
 def log_cmd(
-    cmd: list[str] = typer.Argument(..., help="The install command, after `--`."),
+    cmd: list[str] = typer.Argument(..., help="The install command, after `--`."),  # noqa: B008
     cwd: str = typer.Option(None, help="Override cwd; defaults to current directory."),
 ) -> None:
     """Log an install interactively. Used by the shell hook and for manual entries."""
@@ -147,10 +147,6 @@ def log_cmd(
     console.print(f"  [green]✓[/green] logged (id={inst.id}).")
 
 
-import json
-from pathlib import Path as _P
-
-
 @app.command("review")
 def review_cmd() -> None:
     """Drain the skipped/incomplete queue, one entry at a time."""
@@ -202,7 +198,7 @@ def _to_md(inst: store.Install) -> str:
 @app.command("export")
 def export_cmd(
     fmt: str = typer.Option("md", "--format"),
-    out: _P = typer.Option(..., "--out"),
+    out: _P = typer.Option(..., "--out"),  # noqa: B008
     disposition: str | None = typer.Option(None),
     project: str | None = typer.Option(None),
 ) -> None:

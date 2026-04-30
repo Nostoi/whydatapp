@@ -167,7 +167,4 @@ def should_ignore(ctx: IgnoreContext) -> bool:
         return True
     if ctx.recent_duplicate:
         return True
-    for p in ctx.user_ignore_patterns:
-        if re.search(p, ctx.command):
-            return True
-    return False
+    return any(re.search(p, ctx.command) for p in ctx.user_ignore_patterns)

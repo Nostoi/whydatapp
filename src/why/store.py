@@ -2,15 +2,15 @@ from __future__ import annotations
 
 import sqlite3
 import uuid
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Iterator
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def _new_id() -> str:
@@ -198,7 +198,7 @@ _UPDATABLE = {
 }
 
 
-def update_install(db: Path, install_id: int, **fields) -> Install:
+def update_install(db: Path, install_id: int, **fields: object) -> Install:
     bad = set(fields) - _UPDATABLE
     if bad:
         raise ValueError(f"unknown fields: {bad}")
@@ -230,13 +230,17 @@ def list_installs(db: Path, f: InstallFilters) -> list[Install]:
     if not f.include_deleted:
         where.append("deleted=0")
     if f.disposition:
-        where.append("disposition=?"); params.append(f.disposition)
+        where.append("disposition=?")
+        params.append(f.disposition)
     if f.project:
-        where.append("project=?"); params.append(f.project)
+        where.append("project=?")
+        params.append(f.project)
     if f.manager:
-        where.append("manager=?"); params.append(f.manager)
+        where.append("manager=?")
+        params.append(f.manager)
     if f.device_id:
-        where.append("device_id=?"); params.append(f.device_id)
+        where.append("device_id=?")
+        params.append(f.device_id)
     if f.incomplete_only:
         where.append("metadata_complete=0")
     sql = "SELECT * FROM installs"
@@ -338,6 +342,8 @@ def stale_review_queue(db: Path) -> list[Install]:
 def list_skipped(db: Path) -> list[Install]:
     with _conn(db) as c:
         rows = c.execute(
-            "SELECT * FROM installs WHERE deleted=0 AND metadata_complete=0 ORDER BY installed_at ASC"
+            "SELECT * FROM installs"
+            " WHERE deleted=0 AND metadata_complete=0"
+            " ORDER BY installed_at ASC"
         ).fetchall()
     return [_row_to_install(r) for r in rows]

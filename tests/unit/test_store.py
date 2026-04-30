@@ -6,6 +6,7 @@ import pytest
 
 from why import store
 from why.schema import migrate
+from why.store import Install, InstallFilters
 
 
 @pytest.fixture
@@ -24,7 +25,7 @@ def test_create_and_get_user(db: Path) -> None:
 
 
 def test_create_and_get_device(db: Path) -> None:
-    user = store.create_user(db, display_name="mark")
+    store.create_user(db, display_name="mark")
     device = store.create_device(db, hostname="mbp", label="work")
     fetched = store.get_device(db, device.id)
     assert fetched.hostname == "mbp"
@@ -36,8 +37,6 @@ def test_upsert_project_dedupes(db: Path) -> None:
     store.upsert_project(db, "whydatapp")
     assert store.list_projects(db) == ["whydatapp"]
 
-
-from why.store import Install, InstallFilters
 
 
 def _make_install(db: Path, **overrides) -> Install:
