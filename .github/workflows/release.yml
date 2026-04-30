@@ -35,7 +35,6 @@ jobs:
 
       - name: Run quality gate
         run: |
-          uv venv
           uv pip install -e '.[dev,web]'
           uv run pytest -q
           uv run ruff check src tests
