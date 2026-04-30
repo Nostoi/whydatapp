@@ -120,3 +120,11 @@ def test_post_updates_row(why_home: Path) -> None:
     inst = store.get_install(db, iid)
     assert inst.why == "speed v2"
     assert inst.disposition == "experimental"
+
+
+def test_share_returns_markdown(why_home: Path) -> None:
+    iid = _seed_one(why_home)
+    c = _client(why_home)
+    r = c.post(f"/installs/{iid}/share")
+    assert r.status_code == 200
+    assert "**ripgrep**" in r.text

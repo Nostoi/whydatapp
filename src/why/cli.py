@@ -11,6 +11,7 @@ from rich.table import Table
 
 from why import __version__, store
 from why.bootstrap import ensure_ready
+from why.markdown import to_markdown
 from why.detect import match_install
 from why.project_infer import infer_project
 from why.prompts import run_metadata_prompt
@@ -182,19 +183,6 @@ def review_cmd() -> None:
         console.print(f"  [green]✓[/green] reviewed (id={inst.id}).")
 
 
-def _to_md(inst: store.Install) -> str:
-    name = inst.display_name or inst.package_name or "(unnamed)"
-    parts = [f"**{name}** — `{inst.command}`"]
-    if inst.what_it_does:
-        parts.append(inst.what_it_does)
-    parts.append(
-        f"Installed {inst.installed_at} in `{inst.install_dir}`"
-    )
-    if inst.why:
-        parts.append(f"Why: {inst.why}")
-    return "\n".join(parts) + "\n"
-
-
 @app.command("export")
 def export_cmd(
     fmt: str = typer.Option("md", "--format"),
@@ -209,7 +197,7 @@ def export_cmd(
         InstallFilters(disposition=disposition, project=project, limit=10_000),
     )
     if fmt == "md":
-        out.write_text("\n".join(_to_md(r) for r in rows))
+        out.write_text("\n".join(to_markdown(r) for r in rows))
     elif fmt == "json":
         out.write_text(json.dumps([r.__dict__ for r in rows], indent=2, default=str))
     else:

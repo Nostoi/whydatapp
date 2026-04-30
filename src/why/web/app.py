@@ -20,4 +20,7 @@ def create_app() -> FastAPI:
 
     from why.web.routes.installs import router as installs_router
     app.include_router(installs_router)
+
+    from why.web.routes.share import router as share_router
+    app.include_router(share_router)
     return app
