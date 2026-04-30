@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 import socket
+import sys
 
 import typer
 from rich.console import Console
@@ -17,6 +19,40 @@ from why.shells.installer import (
 
 _TIER1 = ("brew", "npm", "pnpm", "yarn", "bun", "pip", "pipx", "uv", "cargo", "git")
 _TIER2 = ("gem", "go", "apt", "mas", "vscode", "docker")
+
+
+def _offer_shell_reload(console: Console) -> None:
+    """Optional opt-in: replace the current shell with a fresh login shell so
+    the just-installed hook is live without a manual restart.
+
+    Skipped silently when:
+      - stdin is not a TTY (scripts, CI, Docker setup)
+      - $SHELL is unset or unreachable
+      - the user declines (default)
+      - WHY_INIT_NO_RELOAD=1 is set (CI / test escape hatch)
+    """
+    if os.environ.get("WHY_INIT_NO_RELOAD") == "1":
+        return
+    if not sys.stdin.isatty() or not sys.stdout.isatty():
+        return
+    shell = os.environ.get("SHELL")
+    if not shell or not os.path.exists(shell):
+        return
+
+    console.print(
+        "\n[dim]Reloading your shell now activates the hook immediately.\n"
+        "This replaces the current shell — any background jobs and unsaved\n"
+        "env in this session will be lost.[/dim]"
+    )
+    if not typer.confirm("Reload your shell now?", default=False):
+        return
+
+    try:
+        os.execvp(shell, [shell, "-l"])
+    except OSError as e:
+        # Don't crash the wizard if exec fails for any reason; fall back
+        # to the standard "restart your shell" message above.
+        console.print(f"  [yellow]could not reload shell ({e}); restart manually[/yellow]")
 
 
 def run_wizard(console: Console) -> int:
@@ -62,8 +98,6 @@ def run_wizard(console: Console) -> int:
 
     if cfg["web"]["autostart"]:
         try:
-            import sys
-
             from why.autostart import install_linux_systemd, install_macos_launchd
             why_bin = "why"
             if sys.platform == "darwin":
@@ -78,4 +112,6 @@ def run_wizard(console: Console) -> int:
         "\n[bold green]Done.[/bold green] Try: [bold]brew install ripgrep[/bold]"
         " (or any tracked manager)."
     )
+
+    _offer_shell_reload(console)
     return 0

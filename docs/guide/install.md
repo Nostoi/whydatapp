@@ -75,8 +75,9 @@ why init
    # <<< why-cli hook <<<
    ```
 7. Creates `~/.why/` with `data.db`, `config.toml`, the shell hook script, and a backups directory.
+8. **Offers to reload your shell** so the hook activates immediately. This is opt-in and skipped silently in non-TTY contexts (scripts, CI, Dockerfiles). Answering `y` runs `exec $SHELL -l`, replacing the current shell with a fresh login shell — any background jobs and unsaved env in this session are lost. Set `WHY_INIT_NO_RELOAD=1` to suppress the prompt entirely.
 
-After it finishes, restart your shell (or `source ~/.zshrc`) and try a small install — e.g. `brew install ripgrep`.
+If you decline the reload (or skip it in a script), restart your shell or run `source ~/.zshrc` before your first `brew install ripgrep` — the hook won't fire until your shell re-sources its rc file.
 
 ## Uninstall
 

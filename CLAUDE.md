@@ -126,6 +126,25 @@ Before every push, in addition to the version bump and the test/lint gate:
 
 If a code change is genuinely doc-neutral (internal refactor, test-only change, dependency bump that doesn't touch behavior), state that in the commit message: `docs: none (internal refactor)`. Skipping the docs check silently is not allowed.
 
+## Install / update friction is a feature
+
+whydatApp is a developer tool that lives or dies on whether someone bothers to set it up. **Treat install and update friction as a bug class.** Every step a user has to remember, every "now run this command" footnote, every restart-your-shell line is a place where someone gives up.
+
+Concrete rules:
+
+- **Default to "we'll do it for you," not "tell the user to do it."** Where the OS lets us (file edits, autostart units, hook installation), do the work and tell the user it happened. Where the OS forbids it (a child process can't modify its parent shell's env), offer the closest opt-in we can and explain the trade-off honestly.
+- **Idempotence is mandatory.** `why init`, `why uninstall`, every config writer must be safe to re-run. Re-running on a half-failed prior run must converge to the right state, not double-write or crash.
+- **Detect the user's environment; don't ask.** Shell, hostname, project name, OS, package managers present — infer first, prompt only when ambiguous or risky.
+- **Never assume a TTY.** Every interactive prompt has a non-TTY fallback (skip silently or use a sane default). Scripts, Dockerfiles, and CI must be able to call `why init`, `why log`, `why review` without hanging.
+- **Provide an env-var escape hatch for every "interactive thing."** Examples: `WHY_HOME`, `WHY_HOOK_FORCE_PROMPT`, `WHY_INIT_NO_RELOAD`. Document them in `docs/guide/configuration.md`.
+- **One command should be enough.** `uv tool install 'why-cli[web]' && why init` is the contract. Anything that adds steps (re-source, restart, set env, edit config) is a regression — fix the tool, don't document the workaround.
+- **Upgrades must not require manual fixup.** Schema migrations run automatically with backups; `~/.why/config.toml` keys are deep-merged over current defaults so new keys appear without user action; new shell-hook content lands when `why init` is re-run, but old hooks should keep working until then.
+- **Restart-your-shell is the most expensive friction.** It's the difference between "I tried it" and "I use it." If we can avoid it (auto-source where possible, opt-in `exec $SHELL -l` after `why init`), we should. If we can't, make the message dead-obvious and offer the path.
+- **Don't break someone's terminal.** Auto-restart, auto-`exec`, auto-anything-that-replaces-the-current-process is opt-in only, behind a clearly worded prompt that explains what state will be lost.
+- **Failure modes need recovery, not just error messages.** "Hook failed" should log to `~/.why/hook.log` and exit 0 (terminal not broken). "Migration failed" should restore from the auto-backup in `~/.why/backups/`. "uv build failed" should print the wheel path that did succeed. Surface a path forward, not just the problem.
+
+When considering any UX change, ask: "does this add a step the user has to remember?" If yes, find a way to make the tool remember instead.
+
 ## Code conventions
 
 - Python 3.11+. `uv` for env + builds. `ruff` + `mypy --strict` must stay clean.

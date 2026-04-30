@@ -142,6 +142,7 @@ Beyond `ignore.toml`, the hook drops events when any of these are true:
 | Variable                  | Purpose                                                    |
 |---------------------------|------------------------------------------------------------|
 | `WHY_HOME`                | Override `~/.why` (used by tests and sandboxed installs).  |
+| `WHY_INIT_NO_RELOAD=1`    | Disable the post-`why init` shell-reload prompt. Useful for scripts, Dockerfiles, and any non-interactive context where exec'ing a fresh shell would be wrong. |
 | `WHY_SUPPRESS=1`          | Internal — set by the shell hook around the `why _hook` invocation as a *shell-level* recursion guard. Python does not read it. |
 | `WHY_HOOK_FORCE_PROMPT=1` | Force interactive prompt path (used by integration tests). |
 
