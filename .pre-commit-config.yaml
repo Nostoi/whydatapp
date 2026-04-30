@@ -1,0 +1,24 @@
+# Pre-commit hooks for whydatApp.
+# Setup once per clone: `pip install pre-commit && pre-commit install`
+# Runs automatically on every `git commit`.
+repos:
+  - repo: local
+    hooks:
+      - id: rebuild-tailwind-css
+        name: Rebuild tailwind.css when templates change
+        entry: scripts/rebuild-css-if-templates-changed.sh
+        language: system
+        pass_filenames: false
+        # Only fire when one of these paths is staged. The script also
+        # double-checks via `git diff --cached`, so this is just a fast
+        # filter, not the source of truth.
+        files: ^src/why/web/(templates/|static/css/tailwind\.src\.css)
+        stages: [pre-commit]
+
+      - id: ruff
+        name: ruff
+        entry: uv run ruff check src tests
+        language: system
+        pass_filenames: false
+        types_or: [python]
+        stages: [pre-commit]

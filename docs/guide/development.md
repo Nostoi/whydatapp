@@ -13,6 +13,11 @@ git clone https://github.com/Nostoi/whydatapp.git
 cd whydatapp
 uv venv
 uv pip install -e '.[dev,web]'
+
+# Install pre-commit hooks (recommended — auto-rebuilds tailwind.css
+# and runs ruff before every commit):
+pip install pre-commit
+pre-commit install
 ```
 
 Run an isolated `why init` against a sandbox home (so you don't touch your real `~/.why/`):
@@ -48,7 +53,13 @@ For Tailwind iteration:
 make css-watch    # rebuilds src/why/web/static/css/tailwind.css on template change
 ```
 
-The committed `tailwind.css` is what ships in the wheel. **Rebuild and commit it whenever you add or change utility classes in templates** — Tailwind purges to only the classes it sees in the templates at build time, so a stale CSS file means classes silently do nothing in the browser. The release workflow rebuilds CSS in CI before `uv build` and refuses to ship if utility classes are missing, so you can't accidentally publish a release with stale CSS — but local dev installs (`uv tool install --from . --editable`) use whatever's committed.
+The committed `tailwind.css` is what ships in the wheel and what every dev install uses. **Three layers protect against shipping stale CSS:**
+
+1. **pre-commit hook** (recommended; see Setup above). Auto-rebuilds + re-stages the CSS whenever you commit a change under `src/why/web/templates/`. Zero-touch.
+2. **CI guard.** The release workflow rebuilds the CSS before `uv build` and fails the release if `.flex` isn't in the output. Catches anything that slipped past pre-commit.
+3. **Manual fallback.** If you used `--no-verify` or skipped pre-commit setup, run `make css && git add src/why/web/static/css/tailwind.css` before pushing.
+
+Layer 1 is the only one that helps local users running editable installs from your branch — CI only fires for releases, so don't rely on it during development.
 
 ## Building the wheel
 

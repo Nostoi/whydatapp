@@ -27,10 +27,27 @@ If a single push contains changes that would warrant different bumps, take the h
    uv run ruff check src tests
    uv run mypy src/why
    ```
-4. Commit the version bump as part of the change (don't make it a standalone "chore: bump version" commit unless the only thing changing is the version).
-5. Push.
+4. **CSS for template changes is automatic if you've installed pre-commit.** First-time setup:
+   ```
+   pip install pre-commit
+   pre-commit install
+   ```
+   After that, any commit touching `src/why/web/templates/**` (or `tailwind.src.css`) triggers `scripts/rebuild-css-if-templates-changed.sh`, which rebuilds `src/why/web/static/css/tailwind.css` and re-stages it before the commit completes. If you skip the hook (`git commit --no-verify`) or work without pre-commit, run it yourself: `make css && git add src/why/web/static/css/tailwind.css`.
+
+   Why this matters: Tailwind purges to only the utility classes it sees in templates at build time. A stale `tailwind.css` means new classes (e.g. `flex`, `gap-2`, `bg-zinc-50`) silently do nothing in the browser, even though tests, ruff, and mypy all pass — there is no automated coverage of browser styling. CI rebuilds the CSS and refuses to ship a release without `.flex` in the output, but **dev installs from source use the committed file**, so leaving it stale poisons every local user.
+5. Commit the version bump as part of the change (don't make it a standalone "chore: bump version" commit unless the only thing changing is the version).
+6. Push.
 
 If you forget the bump and the push already happened, push a follow-up that bumps PATCH at minimum.
+
+### What our test suite does NOT cover
+
+These things have no automated check; verify them by hand whenever the change plausibly affects them:
+
+- **Browser-rendered styling.** The Jinja templates render in tests via `TestClient`, but no browser actually loads the result. If you change template classes, also rebuild `tailwind.css` (see step 4) and eyeball the page in a real browser at `127.0.0.1:7873` (or `--lan` for a phone).
+- **Real shell-hook behavior in production.** Integration tests invoke `_hook` via Typer's `CliRunner`, which does not inherit env vars set by a shell wrapper (e.g. `WHY_SUPPRESS=1`). Bugs that depend on the hook's actual production env (shell, parent PID, env-var inheritance) can pass tests and still break in zsh/bash/fish. After non-trivial hook changes, install locally and run a real install to confirm the prompt fires.
+- **Autostart units actually loading.** `tests/unit/test_autostart.py` only checks that the generated plist/unit text is correct; it does not run `launchctl load` or `systemctl --user enable`.
+- **The shipped wheel.** `uv build` succeeds doesn't mean the wheel contains the right files. After packaging changes (force-include, new dirs under `src/why/`), `unzip -l dist/why_cli-*.whl` and confirm templates, static, shells, migrations, and presentation.toml are all present.
 
 ## Documentation
 
