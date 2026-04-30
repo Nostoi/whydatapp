@@ -239,3 +239,15 @@ def delete_cmd(
             raise typer.Exit(code=0)
     store.soft_delete_install(db, install_id)
     console.print(f"[green]✓[/green] deleted (soft) id={install_id}.")
+
+
+@app.command("_hook", hidden=True)
+def hook_cmd(
+    cmd: str = typer.Option(...),
+    cwd: str = typer.Option(...),
+    code: int = typer.Option(...),
+) -> None:
+    """Internal: invoked by the shell hook. Always exits 0."""
+    from why.hook_runner import run_hook
+    rc = run_hook(command=cmd, cwd=cwd, exit_code=code)
+    raise typer.Exit(code=rc)

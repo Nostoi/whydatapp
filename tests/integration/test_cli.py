@@ -72,3 +72,30 @@ def test_delete_soft(why_home: Path) -> None:
     assert result.exit_code == 0
     listed_after = runner.invoke(app, ["list"])
     assert "ripgrep" not in listed_after.stdout
+
+
+def test_hook_no_match_silent(why_home: Path) -> None:
+    result = runner.invoke(app, ["_hook", "--cmd", "ls -la", "--cwd", "/tmp", "--code", "0"])
+    assert result.exit_code == 0
+    assert result.stdout == ""
+
+
+def test_hook_nonzero_exit_silent(why_home: Path) -> None:
+    result = runner.invoke(
+        app, ["_hook", "--cmd", "brew install x", "--cwd", "/tmp", "--code", "1"]
+    )
+    assert result.exit_code == 0
+    assert result.stdout == ""
+
+
+def test_hook_matched_runs_prompt(why_home: Path, monkeypatch) -> None:
+    monkeypatch.setenv("WHY_HOOK_FORCE_PROMPT", "1")
+    answers = "\n".join(["1", "ripgrep", "g", "p", "w", ""]) + "\n"
+    result = runner.invoke(
+        app,
+        ["_hook", "--cmd", "brew install ripgrep", "--cwd", "/tmp", "--code", "0"],
+        input=answers,
+    )
+    assert result.exit_code == 0
+    listed = runner.invoke(app, ["list"])
+    assert "ripgrep" in listed.stdout
