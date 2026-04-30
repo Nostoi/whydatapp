@@ -32,3 +32,20 @@ def test_static_css_served(why_home: Path) -> None:
     c = _client(why_home)
     r = c.get("/static/css/tailwind.css")
     assert r.status_code == 200
+
+
+from why.web.templates_env import make_env
+
+
+def test_pill_partial_renders():
+    env = make_env()
+    html = env.get_template("components/pill.html").render(label="Doc", color="#2563eb")
+    assert "Doc" in html
+    assert "#2563eb" in html
+
+
+def test_manager_badge_falls_back_when_unknown():
+    env = make_env()
+    html = env.get_template("components/manager_badge.html").render(manager="custom", pres={})
+    assert "custom" in html
+    assert "📦" in html
