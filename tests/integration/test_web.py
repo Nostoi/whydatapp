@@ -90,3 +90,33 @@ def test_filter_excludes_other_managers(why_home: Path) -> None:
     c = _client(why_home)
     r = c.get("/installs/table?manager=npm")
     assert "ripgrep" not in r.text
+
+
+def test_edit_panel_returned_for_row(why_home: Path) -> None:
+    iid = _seed_one(why_home)
+    c = _client(why_home)
+    r = c.get(f"/installs/{iid}/edit")
+    assert r.status_code == 200
+    assert "what does it do" in r.text.lower()
+
+
+def test_post_updates_row(why_home: Path) -> None:
+    iid = _seed_one(why_home)
+    c = _client(why_home)
+    r = c.post(
+        f"/installs/{iid}",
+        data={
+            "display_name": "rg",
+            "what_it_does": "ripgrep",
+            "project": "p",
+            "why": "speed v2",
+            "disposition": "experimental",
+            "notes": "",
+            "metadata_complete": "1",
+        },
+    )
+    assert r.status_code == 200
+    db = ensure_ready()
+    inst = store.get_install(db, iid)
+    assert inst.why == "speed v2"
+    assert inst.disposition == "experimental"

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse
 
 from why import store
@@ -62,3 +62,55 @@ def installs_page(request: Request, db=Depends(get_db), pres=Depends(get_present
 def installs_table(request: Request, db=Depends(get_db), pres=Depends(get_presentation)):
     ctx = _common_ctx(request, db, pres)
     return HTMLResponse(_env.get_template("installs_table.html").render(**ctx))
+
+
+def _row_ctx(db, pres, install_id: int) -> dict | None:
+    r = store.get_install(db, install_id)
+    if not r:
+        return None
+    return {"r": r, "pres": pres, "projects": store.list_projects(db), "manager": r.manager}
+
+
+@router.get("/installs/{install_id}/edit", response_class=HTMLResponse)
+def install_edit(install_id: int, db=Depends(get_db), pres=Depends(get_presentation)):
+    ctx = _row_ctx(db, pres, install_id)
+    if ctx is None:
+        return HTMLResponse("Not found", status_code=404)
+    return HTMLResponse(_env.get_template("install_edit.html").render(**ctx))
+
+
+@router.get("/installs/{install_id}/row", response_class=HTMLResponse)
+def install_row(install_id: int, db=Depends(get_db), pres=Depends(get_presentation)):
+    ctx = _row_ctx(db, pres, install_id)
+    if ctx is None:
+        return HTMLResponse("Not found", status_code=404)
+    return HTMLResponse(_env.get_template("install_row.html").render(**ctx))
+
+
+@router.post("/installs/{install_id}", response_class=HTMLResponse)
+def install_update(
+    install_id: int,
+    display_name: str = Form(""),
+    what_it_does: str = Form(""),
+    project: str = Form(""),
+    why: str = Form(""),
+    disposition: str = Form(""),
+    notes: str = Form(""),
+    metadata_complete: str = Form("1"),
+    db=Depends(get_db),
+    pres=Depends(get_presentation),
+):
+    if project:
+        store.upsert_project(db, project)
+    store.update_install(
+        db, install_id,
+        display_name=display_name or None,
+        what_it_does=what_it_does or None,
+        project=project or None,
+        why=why or None,
+        disposition=disposition or None,
+        notes=notes or None,
+        metadata_complete=int(metadata_complete or 0),
+    )
+    ctx = _row_ctx(db, pres, install_id)
+    return HTMLResponse(_env.get_template("install_row.html").render(**ctx))
