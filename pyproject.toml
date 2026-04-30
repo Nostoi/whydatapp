@@ -1,6 +1,6 @@
 [project]
 name = "why-cli"
-version = "1.0.0"
+version = "1.0.3"
 description = "Track why you installed every tool on your machine."
 readme = "README.md"
 requires-python = ">=3.11"
