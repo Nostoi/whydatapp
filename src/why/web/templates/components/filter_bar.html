@@ -1,5 +1,5 @@
 <form id="filters" hx-get="/installs/table" hx-target="#installs-table" hx-push-url="true"
-      class="flex flex-wrap gap-2 items-center mb-5 text-sm">
+      class="flex flex-wrap gap-2 items-center mb-6 text-sm">
   {% for d in ["doc","setup","experimental","remove","ignore"] %}
     {% set active = filters.disposition == d %}
     <button type="submit" name="disposition" value="{{ d if not active else '' }}"
@@ -9,26 +9,28 @@
     </button>
   {% endfor %}
 
-  <select name="manager" class="input text-xs py-1">
-    <option value="">All managers</option>
-    {% for m in managers %}
-      <option value="{{ m }}" {% if filters.manager == m %}selected{% endif %}>{{ m }}</option>
-    {% endfor %}
-  </select>
+  <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+    <select name="manager" class="input text-xs py-1 w-full sm:w-auto">
+      <option value="">All managers</option>
+      {% for m in managers %}
+        <option value="{{ m }}" {% if filters.manager == m %}selected{% endif %}>{{ m }}</option>
+      {% endfor %}
+    </select>
 
-  <select name="project" class="input text-xs py-1">
-    <option value="">All projects</option>
-    {% for p in projects %}
-      <option value="{{ p }}" {% if filters.project == p %}selected{% endif %}>{{ p }}</option>
-    {% endfor %}
-  </select>
+    <select name="project" class="input text-xs py-1 w-full sm:w-auto">
+      <option value="">All projects</option>
+      {% for p in projects %}
+        <option value="{{ p }}" {% if filters.project == p %}selected{% endif %}>{{ p }}</option>
+      {% endfor %}
+    </select>
 
-  <select name="device" class="input text-xs py-1">
-    <option value="">All devices</option>
-    {% for d in devices %}
-      <option value="{{ d.id }}" {% if filters.device_id == d.id %}selected{% endif %}>{{ d.label or d.hostname }}</option>
-    {% endfor %}
-  </select>
+    <select name="device" class="input text-xs py-1 w-full sm:w-auto">
+      <option value="">All devices</option>
+      {% for d in devices %}
+        <option value="{{ d.id }}" {% if filters.device_id == d.id %}selected{% endif %}>{{ d.label or d.hostname }}</option>
+      {% endfor %}
+    </select>
+  </div>
 
   {% with name="incomplete", value="1", checked=filters.incomplete_only, label_text="incomplete only" %}
     {% include "components/checkbox.html" %}

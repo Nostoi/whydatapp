@@ -1,8 +1,8 @@
 <tr id="edit-{{ r.id }}">
-  <td colspan="6" class="py-3 px-4 border-l-4"
+  <td colspan="6" class="py-4 px-4 border-l-4"
       style="background-color: var(--color-bg-muted); border-color: var(--color-brand);">
     <form hx-post="/installs/{{ r.id }}" hx-target="closest tr" hx-swap="outerHTML"
-          class="grid grid-cols-2 gap-3 text-sm">
+          class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
       <label class="flex flex-col gap-1">
         <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Display name</span>
         <input class="input" name="display_name" value="{{ r.display_name or '' }}">
@@ -11,11 +11,11 @@
         <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Project</span>
         <input class="input" name="project" value="{{ r.project or '' }}" list="projects">
       </label>
-      <label class="flex flex-col gap-1 col-span-2">
+      <label class="flex flex-col gap-1 md:col-span-2">
         <span class="text-xs font-medium" style="color: var(--color-fg-muted);">What does it do</span>
         <input class="input" name="what_it_does" value="{{ r.what_it_does or '' }}">
       </label>
-      <label class="flex flex-col gap-1 col-span-2">
+      <label class="flex flex-col gap-1 md:col-span-2">
         <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Why install</span>
         <textarea class="input" name="why" rows="2">{{ r.why or '' }}</textarea>
       </label>
@@ -33,7 +33,7 @@
       </label>
       <input type="hidden" name="metadata_complete" value="1">
       <input type="hidden" name="csrf_token" value="{{ request.cookies.get('why_csrf', '') if request else '' }}">
-      <div class="col-span-2 flex gap-2 justify-end">
+      <div class="md:col-span-2 flex gap-2 justify-end">
         <a class="btn" hx-get="/installs/{{ r.id }}/row" hx-target="closest tr" hx-swap="outerHTML">Cancel</a>
         <button class="btn btn-primary" type="submit">Save</button>
       </div>

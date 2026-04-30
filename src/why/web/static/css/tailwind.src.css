@@ -1,3 +1,23 @@
+/* ── Font faces — declared ABOVE @tailwind directives so they are never purged ── */
+
+/* Plus Jakarta Sans — variable upright (weight 200–800) */
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('/static/fonts/PlusJakartaSans-Variable.woff2') format('woff2');
+}
+
+/* JetBrains Mono — variable upright (weight 100–800) */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url('/static/fonts/JetBrainsMono-Variable.woff2') format('woff2');
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -149,7 +169,7 @@
     background-color: var(--color-bg-elevated);
     border: 1px solid var(--color-border);
     border-radius: 0.5rem;   /* rounded-lg */
-    padding: 1.25rem;        /* p-5 */
+    padding: 1.5rem 2rem;    /* p-6 md:p-8 feel — generous default */
     box-shadow: var(--shadow-sm);
   }
 
@@ -239,5 +259,36 @@
     color: var(--color-brand);
     background-color: var(--color-brand-soft);
     font-weight: 500;
+  }
+
+  /* ── Stat number (big dashboard counts) ──────────────────────────────── */
+  .stat-number {
+    @apply text-4xl md:text-5xl font-semibold tabular-nums tracking-tight leading-none;
+    color: var(--color-fg);
+  }
+  .stat-label {
+    @apply text-xs font-medium uppercase tracking-wide mt-1;
+    color: var(--color-fg-faint);
+  }
+
+  /* ── Mobile card row (table-as-cards on narrow viewports) ─────────────── */
+  /* These are applied to <tr>/<td> elements for mobile card presentation */
+  @media (max-width: 767px) {
+    .table-card-row {
+      display: block;
+      background-color: var(--color-bg-elevated);
+      border: 1px solid var(--color-border);
+      border-radius: 0.5rem;
+      margin-bottom: 0.75rem;
+      padding: 1rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .table-card-cell {
+      display: block;
+      padding: 0.125rem 0;
+    }
+    .table-card-cell:not(:last-child) {
+      border-bottom: none;
+    }
   }
 }

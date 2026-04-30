@@ -2,7 +2,7 @@
   {% set line = "No matching installs — adjust the filters or search to find what you're looking for." %}
   {% include "components/empty_state.html" %}
 {% else %}
-<div class="overflow-x-auto rounded-lg border" style="border-color: var(--color-border);">
+<div class="overflow-x-auto rounded-lg border hidden md:block" style="border-color: var(--color-border);">
 <table class="w-full text-sm">
   <thead class="sticky top-0 z-10 text-left text-xs uppercase tracking-wide border-b"
          style="background-color: var(--color-bg-muted); color: var(--color-fg-faint); border-color: var(--color-border);">
@@ -23,5 +23,50 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
+
+<!-- Mobile card view (visible only below md breakpoint) -->
+<div class="md:hidden space-y-3">
+  {% for r in rows %}
+    <div class="rounded-lg border p-4 {% if r.metadata_complete == 0 %}border-l-4{% endif %} transition-colors duration-100"
+         style="background-color: var(--color-bg-elevated); border-color: {% if r.metadata_complete == 0 %}var(--color-accent){% else %}var(--color-border){% endif %};">
+      <div class="flex items-start justify-between gap-2 mb-2">
+        <div class="min-w-0 flex-1">
+          <a href="/installs/{{ r.id }}/edit" hx-get="/installs/{{ r.id }}/edit"
+             hx-target="closest div[class*='rounded-lg']" hx-swap="outerHTML"
+             class="font-semibold leading-snug hover:underline block" style="color: var(--color-fg);">
+            {{ r.display_name or r.package_name or "—" }}
+          </a>
+          <div class="text-xs font-mono mt-0.5 truncate" style="color: var(--color-fg-faint);">{{ r.command }}</div>
+        </div>
+        {% if r.disposition %}
+          {% with tone=r.disposition, label=pres.disposition[r.disposition].label %}
+            {% include "components/pill.html" %}
+          {% endwith %}
+        {% endif %}
+      </div>
+      <dl class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs mt-3">
+        <div>
+          <dt class="font-medium uppercase tracking-wide" style="color: var(--color-fg-faint);">Manager</dt>
+          <dd class="mt-0.5">
+            {% with manager=r.manager %}
+              {% include "components/manager_badge.html" %}
+            {% endwith %}
+          </dd>
+        </div>
+        <div>
+          <dt class="font-medium uppercase tracking-wide" style="color: var(--color-fg-faint);">Project</dt>
+          <dd class="mt-0.5" style="color: var(--color-fg-muted);">{{ r.project or "—" }}</dd>
+        </div>
+        <div>
+          <dt class="font-medium uppercase tracking-wide" style="color: var(--color-fg-faint);">Installed</dt>
+          <dd class="mt-0.5 font-mono tabular-nums" style="color: var(--color-fg-muted);">{{ r.installed_at[:10] }}</dd>
+        </div>
+        <div class="flex items-end">
+          <button class="btn text-xs" hx-post="/installs/{{ r.id }}/share" hx-swap="none">Share</button>
+        </div>
+      </dl>
+    </div>
+  {% endfor %}
 </div>
 {% endif %}

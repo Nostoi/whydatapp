@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 {% block content %}
-<h1 class="text-base font-medium tracking-tight mb-5" style="color: var(--color-brand);">Review</h1>
+<h1 class="text-2xl md:text-3xl font-semibold tracking-tight mb-6 leading-tight" style="color: var(--color-brand);">Review</h1>
 {% if not current %}
-  <p class="text-sm" style="color: var(--color-fg-muted);">Review queue is empty — nothing to triage.</p>
+  <p class="text-sm leading-relaxed" style="color: var(--color-fg-muted);">Review queue is empty — nothing to triage.</p>
 {% else %}
-<p class="text-xs mb-4" style="color: var(--color-fg-faint);">{{ remaining }} pending</p>
+<p class="text-xs mb-5" style="color: var(--color-fg-faint);">{{ remaining }} pending</p>
 <section class="card max-w-2xl">
-  <p class="text-xs font-medium uppercase tracking-wide mb-1.5" style="color: var(--color-fg-faint);">Captured</p>
-  <pre class="font-mono text-sm mb-1" style="color: var(--color-fg);">{{ current.command }}</pre>
-  <p class="text-xs mb-5" style="color: var(--color-fg-faint);">{{ current.install_dir }} · {{ current.installed_at }}</p>
+  <p class="text-xs font-medium uppercase tracking-wide mb-2" style="color: var(--color-fg-faint);">Captured</p>
+  <pre class="font-mono text-sm mb-1 leading-relaxed" style="color: var(--color-fg);">{{ current.command }}</pre>
+  <p class="text-xs mb-6 leading-relaxed" style="color: var(--color-fg-faint);">{{ current.install_dir }} · {{ current.installed_at }}</p>
 
-  <form method="post" action="/review/{{ current.id }}" class="grid grid-cols-2 gap-3 text-sm">
+  <form method="post" action="/review/{{ current.id }}" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
     <label class="flex flex-col gap-1">
       <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Disposition</span>
       <select class="input" name="disposition" required>
@@ -23,7 +23,7 @@
       <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Display name</span>
       <input class="input" name="display_name" value="{{ current.package_name or '' }}">
     </label>
-    <label class="flex flex-col gap-1 col-span-2">
+    <label class="flex flex-col gap-1 md:col-span-2">
       <span class="text-xs font-medium" style="color: var(--color-fg-muted);">What does it do</span>
       <input class="input" name="what_it_does">
     </label>
@@ -35,12 +35,12 @@
       <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Notes</span>
       <input class="input" name="notes">
     </label>
-    <label class="flex flex-col gap-1 col-span-2">
+    <label class="flex flex-col gap-1 md:col-span-2">
       <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Why install</span>
       <textarea class="input" name="why" rows="3"></textarea>
     </label>
     <input type="hidden" name="csrf_token" value="{{ request.cookies.get('why_csrf', '') if request else '' }}">
-    <div class="col-span-2 flex gap-2 justify-end">
+    <div class="md:col-span-2 flex gap-2 justify-end">
       <button class="btn" type="submit" name="skip" value="1">Skip</button>
       <button class="btn btn-primary" type="submit">Save &amp; next</button>
     </div>
