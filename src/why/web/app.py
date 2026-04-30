@@ -26,4 +26,7 @@ def create_app() -> FastAPI:
 
     from why.web.routes.export import router as export_router
     app.include_router(export_router)
+
+    from why.web.routes.dashboard import router as dashboard_router
+    app.include_router(dashboard_router)
     return app

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% from "components/card.html" import card %}
+{% block content %}
+<h1 class="text-xl font-semibold mb-4">Dashboard</h1>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+  {% call card(title="By disposition") %}
+    <ul class="text-sm space-y-1">
+      {% for d, n in by_disposition.items() %}
+        <li class="flex justify-between"><span>
+          {% if d in pres.disposition %}{{ pres.disposition[d].label }}{% else %}{{ d }}{% endif %}
+        </span><span class="font-mono">{{ n }}</span></li>
+      {% endfor %}
+    </ul>
+  {% endcall %}
+
+  {% call card(title="By manager") %}
+    <ul class="text-sm space-y-1">
+      {% for m, n in by_manager.items() %}
+        <li class="flex justify-between"><span>{{ pres.get(m, {}).get("label", m) }}</span><span class="font-mono">{{ n }}</span></li>
+      {% endfor %}
+    </ul>
+  {% endcall %}
+
+  {% call card(title="By project (top 10)") %}
+    <ul class="text-sm space-y-1">
+      {% for name, n in by_project %}
+        <li class="flex justify-between"><a class="hover:underline" href="/installs?project={{ name }}">{{ name }}</a><span class="font-mono">{{ n }}</span></li>
+      {% endfor %}
+    </ul>
+  {% endcall %}
+
+  {% call card(title="Installs per month") %}
+    <ul class="text-sm space-y-1 font-mono">
+      {% for m, n in per_month %}
+        <li class="flex justify-between"><span>{{ m }}</span><span>{{ n }}</span></li>
+      {% endfor %}
+    </ul>
+  {% endcall %}
+
+  {% call card(title="Stale review queue", subtitle="Incomplete · stale experimental · stale remove") %}
+    {% if not stale %}
+      <p class="text-sm text-zinc-500">All clear.</p>
+    {% else %}
+      <ul class="text-sm space-y-1">
+        {% for r in stale %}
+          <li class="row-stale pl-2">
+            <a class="hover:underline" href="/installs?incomplete=1#{{ r.id }}">{{ r.display_name or r.package_name or r.command }}</a>
+            <span class="text-xs text-zinc-500">— {{ r.disposition or "incomplete" }}, {{ r.installed_at[:10] }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endcall %}
+
+</div>
+{% endblock %}

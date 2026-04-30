@@ -146,3 +146,26 @@ def test_export_json(why_home: Path) -> None:
     assert r.status_code == 200
     assert r.headers["content-type"].startswith("application/json")
     assert "ripgrep" in r.text
+
+
+def test_dashboard_renders(why_home: Path) -> None:
+    _seed_one(why_home)
+    c = _client(why_home)
+    r = c.get("/dashboard")
+    assert r.status_code == 200
+    assert "By disposition" in r.text or "Disposition" in r.text
+    assert "By manager" in r.text or "Manager" in r.text
+    assert "Stale review" in r.text
+
+
+def test_stale_review_shows_skipped(why_home: Path) -> None:
+    db = ensure_ready()
+    user = store.get_solo_user(db); device = store.get_solo_device(db)
+    store.create_install(
+        db, user_id=user.id, device_id=device.id,
+        command="brew install fd", package_name="fd", manager="brew",
+        install_dir="/tmp", resolved_path=None, exit_code=0,
+    )
+    c = _client(why_home)
+    r = c.get("/dashboard")
+    assert "fd" in r.text
