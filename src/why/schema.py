@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import shutil
 import sqlite3
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from importlib import resources
 from pathlib import Path
 
@@ -29,7 +29,7 @@ def current_version(db_path: Path) -> int:
 
 def _backup(db_path: Path, backups_dir: Path) -> None:
     backups_dir.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     shutil.copy2(db_path, backups_dir / f"data.{stamp}.db")
 
 

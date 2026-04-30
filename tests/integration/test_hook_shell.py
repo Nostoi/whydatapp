@@ -37,7 +37,8 @@ def test_hook_captures_real_install(tmp_path: Path, monkeypatch):
     source {why}/hook.zsh
     WHY_LAST_CMD='brew install ripgrep'
     WHY_LAST_PWD={tmp_path}
-    WHY_SUPPRESS=1 why _hook --cmd "$WHY_LAST_CMD" --cwd "$WHY_LAST_PWD" --code 0 < /dev/null > /dev/null 2>&1 || true
+    WHY_SUPPRESS=1 why _hook --cmd "$WHY_LAST_CMD" --cwd "$WHY_LAST_PWD" \
+        --code 0 < /dev/null > /dev/null 2>&1 || true
     """
     subprocess.run(
         ["zsh", "-i", "-c", script],

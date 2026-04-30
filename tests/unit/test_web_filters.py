@@ -1,4 +1,4 @@
-from why.web.filters import parse_query, FilterState
+from why.web.filters import parse_query
 
 
 def test_defaults():

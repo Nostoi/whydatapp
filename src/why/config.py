@@ -8,7 +8,6 @@ import tomli_w
 
 from why.paths import config_path, ensure_home, why_home
 
-
 DEFAULT_CONFIG: dict[str, Any] = {
     "device": {"id": "", "label": ""},
     "user":   {"id": "", "display_name": "", "email": ""},

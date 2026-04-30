@@ -15,7 +15,6 @@ from why.shells.installer import (
     rc_file_for,
 )
 
-
 _TIER1 = ("brew", "npm", "pnpm", "yarn", "bun", "pip", "pipx", "uv", "cargo", "git")
 _TIER2 = ("gem", "go", "apt", "mas", "vscode", "docker")
 
@@ -35,7 +34,9 @@ def run_wizard(console: Console) -> int:
     for m in _TIER1:
         cfg["managers"][m] = typer.confirm(f"  Track {m}?", default=True)
 
-    if typer.confirm("\nEnable Tier-2 managers (gem, go, apt, mas, vscode, docker)?", default=False):
+    if typer.confirm(
+        "\nEnable Tier-2 managers (gem, go, apt, mas, vscode, docker)?", default=False
+    ):
         for m in _TIER2:
             cfg["managers"][m] = typer.confirm(f"  Track {m}?", default=False)
 
@@ -62,6 +63,7 @@ def run_wizard(console: Console) -> int:
     if cfg["web"]["autostart"]:
         try:
             import sys
+
             from why.autostart import install_linux_systemd, install_macos_launchd
             why_bin = "why"
             if sys.platform == "darwin":
@@ -72,5 +74,8 @@ def run_wizard(console: Console) -> int:
         except Exception as e:
             console.print(f"  [yellow]autostart failed: {e}[/yellow]")
 
-    console.print("\n[bold green]Done.[/bold green] Try: [bold]brew install ripgrep[/bold] (or any tracked manager).")
+    console.print(
+        "\n[bold green]Done.[/bold green] Try: [bold]brew install ripgrep[/bold]"
+        " (or any tracked manager)."
+    )
     return 0

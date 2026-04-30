@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from why.paths import why_home, db_path, log_path, config_path
+from why.paths import config_path, db_path, log_path
 
 
 def test_why_home_uses_env_override(why_home: Path) -> None:

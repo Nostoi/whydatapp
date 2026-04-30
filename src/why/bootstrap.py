@@ -6,7 +6,7 @@ from pathlib import Path
 
 from why import store
 from why.config import load_config, write_config
-from why.paths import db_path, ensure_home, why_home
+from why.paths import db_path, ensure_home
 from why.schema import migrate
 
 

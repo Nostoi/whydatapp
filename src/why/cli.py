@@ -260,6 +260,7 @@ def uninstall_cmd() -> None:
     """Remove the shell hook and (optionally) the ~/.why directory."""
     import shutil
     import sys
+
     from why.paths import why_home as _wh
     from why.shells.installer import detect_shell, rc_file_for, remove_from_rc
 

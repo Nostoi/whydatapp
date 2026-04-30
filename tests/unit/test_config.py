@@ -5,10 +5,10 @@ from pathlib import Path
 from why.config import (
     DEFAULT_CONFIG,
     load_config,
-    write_config,
+    load_custom_patterns,
     load_presentation,
     load_user_ignore_patterns,
-    load_custom_patterns,
+    write_config,
 )
 
 

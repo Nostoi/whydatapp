@@ -5,7 +5,6 @@ import io
 from why.prompts import (
     DispositionChoice,
     parse_disposition_input,
-    PromptResult,
     run_metadata_prompt,
 )
 

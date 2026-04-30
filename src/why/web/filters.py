@@ -1,10 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Mapping
 
 from why.store import InstallFilters
-
 
 _ALLOWED_ORDER = {"installed_at", "manager", "project", "disposition", "display_name", "id"}
 

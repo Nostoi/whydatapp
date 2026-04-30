@@ -4,10 +4,10 @@ from pathlib import Path
 import pytest
 
 from why.autostart import (
-    install_macos_launchd,
-    uninstall_macos_launchd,
     install_linux_systemd,
+    install_macos_launchd,
     uninstall_linux_systemd,
+    uninstall_macos_launchd,
 )
 
 
