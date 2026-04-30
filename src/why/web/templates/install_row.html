@@ -1,29 +1,32 @@
-<tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-900/60 transition-colors duration-100 {% if r.metadata_complete == 0 %}row-stale{% endif %}">
+<tr class="transition-colors duration-100 {% if r.metadata_complete == 0 %}row-stale{% endif %}"
+    style="--hover-bg: var(--color-bg-muted);"
+    onmouseenter="this.style.backgroundColor='var(--color-bg-muted)'"
+    onmouseleave="this.style.backgroundColor=''">
   <td class="py-1.5 pr-4 pl-3">
     <a href="/installs/{{ r.id }}/edit" hx-get="/installs/{{ r.id }}/edit"
        hx-target="closest tr" hx-swap="outerHTML"
-       class="font-medium hover:underline">
+       class="font-medium hover:underline" style="color: var(--color-fg);">
       {{ r.display_name or r.package_name or "—" }}
     </a>
-    <div class="text-xs text-zinc-400 dark:text-zinc-500 font-mono truncate max-w-xs">{{ r.command }}</div>
+    <div class="text-xs font-mono truncate max-w-xs" style="color: var(--color-fg-faint);">{{ r.command }}</div>
   </td>
   <td class="py-1.5 pr-4">
     {% with manager=r.manager %}
       {% include "components/manager_badge.html" %}
     {% endwith %}
   </td>
-  <td class="py-1.5 pr-4 text-sm text-zinc-600 dark:text-zinc-400">{{ r.project or "—" }}</td>
+  <td class="py-1.5 pr-4 text-sm" style="color: var(--color-fg-muted);">{{ r.project or "—" }}</td>
   <td class="py-1.5 pr-4">
     {% if r.disposition %}
-      {% with disp=r.disposition, label=pres.disposition[r.disposition].label %}
+      {% with tone=r.disposition, label=pres.disposition[r.disposition].label %}
         {% include "components/pill.html" %}
       {% endwith %}
     {% else %}
-      <span class="text-zinc-400">—</span>
+      <span style="color: var(--color-fg-faint);">—</span>
     {% endif %}
   </td>
-  <td class="py-1.5 pr-4 text-right text-zinc-500 font-mono text-xs tabular-nums">{{ r.installed_at[:10] }}</td>
+  <td class="py-1.5 pr-4 text-right font-mono text-xs tabular-nums" style="color: var(--color-fg-muted);">{{ r.installed_at[:10] }}</td>
   <td class="py-1.5 pr-4 text-right">
-    <a class="btn text-xs" hx-post="/installs/{{ r.id }}/share" hx-swap="none">Share</a>
+    <button class="btn text-xs" hx-post="/installs/{{ r.id }}/share" hx-swap="none">Share</button>
   </td>
 </tr>

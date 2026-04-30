@@ -1,0 +1,27 @@
+{#
+  Select primitive — native dropdown.
+
+  Parameters:
+    name       — field name (required)
+    options    — list of (value, label) tuples (required)
+    selected   — currently selected value (optional)
+    label_text — visible label (optional)
+    extra_class— additional classes on the <select> (optional)
+    attrs      — raw HTML attributes (optional)
+#}
+{% if label_text %}
+<label class="flex flex-col gap-1">
+  <span class="text-xs font-medium" style="color: var(--color-fg-muted);">{{ label_text }}</span>
+  <select class="input {{ extra_class or '' }}" name="{{ name }}" {{ attrs or "" }}>
+    {% for val, lbl in options %}
+      <option value="{{ val }}" {% if selected == val %}selected{% endif %}>{{ lbl }}</option>
+    {% endfor %}
+  </select>
+</label>
+{% else %}
+<select class="input {{ extra_class or '' }}" name="{{ name }}" {{ attrs or "" }}>
+  {% for val, lbl in options %}
+    <option value="{{ val }}" {% if selected == val %}selected{% endif %}>{{ lbl }}</option>
+  {% endfor %}
+</select>
+{% endif %}

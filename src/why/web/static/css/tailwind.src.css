@@ -2,8 +2,124 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Design tokens ──────────────────────────────────────────────────────── */
+/* Brand palette (sampled from logo):
+     teal   #27abb1   elephant body + "App" text
+     navy   #142a38   outline + "whydat" text
+     cream  #fefaed   soft off-white (dark-logo text fill)
+     accent #fcc636   tongue / attention
+*/
+
+:root {
+  /* Surface */
+  --color-bg:          #f8fafc;
+  --color-bg-muted:    #f1f5f9;
+  --color-bg-elevated: #ffffff;
+
+  /* Foreground */
+  --color-fg:          #0f172a;
+  --color-fg-muted:    #475569;
+  --color-fg-faint:    #94a3b8;
+
+  /* Borders */
+  --color-border:        #e2e8f0;
+  --color-border-strong: #cbd5e1;
+
+  /* Brand (teal) */
+  --color-brand:      #27abb1;
+  --color-brand-deep: #142a38;
+  --color-brand-fg:   #ffffff;
+  --color-brand-soft: #e6f7f8;
+
+  /* Accent (yellow — attention only) */
+  --color-accent:      #fcc636;
+  --color-accent-fg:   #78350f;
+  --color-accent-soft: #fef9c3;
+
+  /* Disposition: doc (blue) */
+  --color-doc:      #dbeafe;
+  --color-doc-fg:   #1d4ed8;
+  --color-doc-border: #bfdbfe;
+
+  /* Disposition: setup (green) */
+  --color-setup:      #d1fae5;
+  --color-setup-fg:   #065f46;
+  --color-setup-border: #a7f3d0;
+
+  /* Disposition: experimental (amber) */
+  --color-experimental:      #fef3c7;
+  --color-experimental-fg:   #92400e;
+  --color-experimental-border: #fde68a;
+
+  /* Disposition: remove (red) */
+  --color-remove:      #fee2e2;
+  --color-remove-fg:   #991b1b;
+  --color-remove-border: #fecaca;
+
+  /* Disposition: ignore (gray) */
+  --color-ignore:      #f1f5f9;
+  --color-ignore-fg:   #64748b;
+  --color-ignore-border: #e2e8f0;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Surface — deep navy base ties UI to the logo */
+    --color-bg:          #142a38;
+    --color-bg-muted:    #1a3346;
+    --color-bg-elevated: #1e3a50;
+
+    /* Foreground */
+    --color-fg:       #fefaed;
+    --color-fg-muted: #94a3b8;
+    --color-fg-faint: #475569;
+
+    /* Borders */
+    --color-border:        #243d50;
+    --color-border-strong: #2e5068;
+
+    /* Brand */
+    --color-brand:      #27abb1;
+    --color-brand-deep: #142a38;
+    --color-brand-fg:   #ffffff;
+    --color-brand-soft: #0e2d35;
+
+    /* Accent */
+    --color-accent:      #fcc636;
+    --color-accent-fg:   #fefaed;
+    --color-accent-soft: #3d2d00;
+
+    /* Disposition: doc */
+    --color-doc:        #1e3a5f;
+    --color-doc-fg:     #93c5fd;
+    --color-doc-border: #1d4ed8;
+
+    /* Disposition: setup */
+    --color-setup:        #0e3d2e;
+    --color-setup-fg:     #6ee7b7;
+    --color-setup-border: #065f46;
+
+    /* Disposition: experimental */
+    --color-experimental:        #3d2800;
+    --color-experimental-fg:     #fcd34d;
+    --color-experimental-border: #92400e;
+
+    /* Disposition: remove */
+    --color-remove:        #3d1515;
+    --color-remove-fg:     #fca5a5;
+    --color-remove-border: #991b1b;
+
+    /* Disposition: ignore */
+    --color-ignore:        #1e3346;
+    --color-ignore-fg:     #64748b;
+    --color-ignore-border: #243d50;
+  }
+}
+
 @layer base {
-  /* Ensure Inter and JetBrains Mono are used as the sole typefaces */
   html {
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
@@ -12,39 +128,116 @@
 }
 
 @layer components {
-  /* ── Pill ──────────────────────────────────────────────────────────── */
+  /* ── Pill ──────────────────────────────────────────────────────────────
+     Base shape. Tone modifier classes set the colors via tokens.          */
   .pill {
     @apply inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border;
   }
 
-  /* ── Card ──────────────────────────────────────────────────────────── */
+  /* Tone variants using CSS tokens */
+  .pill-doc          { background-color: var(--color-doc); color: var(--color-doc-fg); border-color: var(--color-doc-border); }
+  .pill-setup        { background-color: var(--color-setup); color: var(--color-setup-fg); border-color: var(--color-setup-border); }
+  .pill-experimental { background-color: var(--color-experimental); color: var(--color-experimental-fg); border-color: var(--color-experimental-border); }
+  .pill-remove       { background-color: var(--color-remove); color: var(--color-remove-fg); border-color: var(--color-remove-border); }
+  .pill-ignore       { background-color: var(--color-ignore); color: var(--color-ignore-fg); border-color: var(--color-ignore-border); }
+  .pill-brand        { background-color: var(--color-brand-soft); color: var(--color-brand); border-color: var(--color-brand); }
+  .pill-accent       { background-color: var(--color-accent-soft); color: var(--color-accent-fg); border-color: var(--color-accent); }
+  .pill-neutral      { background-color: var(--color-bg-muted); color: var(--color-fg-muted); border-color: var(--color-border); }
+
+  /* ── Card ──────────────────────────────────────────────────────────────── */
   .card {
-    @apply rounded-lg border border-zinc-200 dark:border-zinc-800 p-5 bg-white dark:bg-zinc-900;
+    background-color: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;   /* rounded-lg */
+    padding: 1.25rem;        /* p-5 */
+    box-shadow: var(--shadow-sm);
   }
 
-  /* ── Form controls ─────────────────────────────────────────────────── */
+  /* ── Form controls ────────────────────────────────────────────────────── */
   .input {
-    @apply rounded-md border border-zinc-300 dark:border-zinc-700
-           px-2.5 py-1.5
-           bg-white dark:bg-zinc-900
-           text-sm text-zinc-900 dark:text-zinc-100
-           focus:outline-none focus:ring-2 focus:ring-zinc-400/50 dark:focus:ring-zinc-500/50
+    @apply rounded-md border px-2.5 py-1.5 text-sm
+           focus:outline-none focus:ring-2
            transition-colors duration-100;
+    background-color: var(--color-bg-elevated);
+    border-color:     var(--color-border-strong);
+    color:            var(--color-fg);
+  }
+  .input::placeholder { color: var(--color-fg-faint); }
+  .input:focus {
+    border-color: var(--color-brand);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand) 20%, transparent);
+    outline: none;
   }
 
-  /* ── Buttons ───────────────────────────────────────────────────────── */
+  .select {
+    @apply rounded-md border px-2.5 py-1.5 text-sm
+           focus:outline-none
+           transition-colors duration-100;
+    background-color: var(--color-bg-elevated);
+    border-color:     var(--color-border-strong);
+    color:            var(--color-fg);
+  }
+  .select:focus {
+    border-color: var(--color-brand);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand) 20%, transparent);
+    outline: none;
+  }
+
+  /* ── Buttons ──────────────────────────────────────────────────────────── */
   .btn {
     @apply inline-flex items-center rounded-md px-3 py-1.5 text-sm
-           border border-zinc-300 dark:border-zinc-700
-           hover:bg-zinc-50 dark:hover:bg-zinc-800
-           focus:outline-none focus:ring-2 focus:ring-zinc-400/50 dark:focus:ring-zinc-500/50
+           focus:outline-none
            transition-colors duration-100;
+    border: 1px solid var(--color-border-strong);
+    background-color: var(--color-bg-elevated);
+    color: var(--color-fg-muted);
   }
-  .btn-primary {
-    @apply bg-zinc-900 text-white border-zinc-900 hover:bg-zinc-800
-           dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 dark:hover:bg-zinc-200;
+  .btn:hover {
+    background-color: var(--color-bg-muted);
+    color: var(--color-fg);
+  }
+  .btn:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand) 25%, transparent);
   }
 
-  /* ── Stale row indicator ───────────────────────────────────────────── */
-  .row-stale { @apply border-l-4 border-amber-500; }
+  .btn-primary {
+    background-color: var(--color-brand);
+    border-color:     var(--color-brand);
+    color:            var(--color-brand-fg);
+  }
+  .btn-primary:hover {
+    background-color: color-mix(in srgb, var(--color-brand) 85%, black);
+    border-color:     color-mix(in srgb, var(--color-brand) 85%, black);
+    color:            var(--color-brand-fg);
+  }
+
+  .btn-ghost {
+    background-color: transparent;
+    border-color: transparent;
+    color: var(--color-fg-muted);
+  }
+  .btn-ghost:hover {
+    background-color: var(--color-bg-muted);
+    color: var(--color-fg);
+  }
+
+  /* ── Stale row indicator ──────────────────────────────────────────────── */
+  .row-stale {
+    border-left: 4px solid var(--color-accent);
+  }
+
+  /* ── Nav link ─────────────────────────────────────────────────────────── */
+  .nav-link {
+    @apply px-3 py-1.5 rounded-md text-sm transition-colors duration-100;
+    color: var(--color-fg-muted);
+  }
+  .nav-link:hover {
+    color: var(--color-fg);
+    background-color: var(--color-bg-muted);
+  }
+  .nav-link.active {
+    color: var(--color-brand);
+    background-color: var(--color-brand-soft);
+    font-weight: 500;
+  }
 }

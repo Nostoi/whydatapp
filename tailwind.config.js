@@ -3,19 +3,43 @@ module.exports = {
     "./src/why/web/templates/**/*.html",
   ],
   safelist: [
-    // Disposition pill classes — must be safelisted because they are
-    // constructed dynamically by the disposition_classes() macro.
-    'bg-blue-100', 'text-blue-700', 'dark:bg-blue-900/40', 'dark:text-blue-300', 'border-blue-200', 'dark:border-blue-800',
-    'bg-emerald-100', 'text-emerald-700', 'dark:bg-emerald-900/40', 'dark:text-emerald-300', 'border-emerald-200', 'dark:border-emerald-800',
-    'bg-amber-100', 'text-amber-700', 'dark:bg-amber-900/40', 'dark:text-amber-300', 'border-amber-200', 'dark:border-amber-800',
-    'bg-rose-100', 'text-rose-700', 'dark:bg-rose-900/40', 'dark:text-rose-300', 'border-rose-200', 'dark:border-rose-800',
-    'bg-zinc-100', 'text-zinc-600', 'dark:bg-zinc-800', 'dark:text-zinc-400', 'border-zinc-200', 'dark:border-zinc-700',
+    // Pill tone classes — dynamically constructed as `pill-{{ tone }}` in pill.html
+    // and `pill-{{ d }}` in filter_bar.html; Tailwind v3 purges @layer components too.
+    'pill-doc', 'pill-setup', 'pill-experimental', 'pill-remove', 'pill-ignore',
+    'pill-brand', 'pill-accent', 'pill-neutral',
   ],
   theme: {
     extend: {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+      },
+      colors: {
+        brand: {
+          DEFAULT: 'var(--color-brand)',
+          deep:    'var(--color-brand-deep)',
+          soft:    'var(--color-brand-soft)',
+          fg:      'var(--color-brand-fg)',
+        },
+        accent: {
+          DEFAULT: 'var(--color-accent)',
+          soft:    'var(--color-accent-soft)',
+          fg:      'var(--color-accent-fg)',
+        },
+        surface: {
+          bg:       'var(--color-bg)',
+          muted:    'var(--color-bg-muted)',
+          elevated: 'var(--color-bg-elevated)',
+        },
+        content: {
+          DEFAULT: 'var(--color-fg)',
+          muted:   'var(--color-fg-muted)',
+          faint:   'var(--color-fg-faint)',
+        },
+        border: {
+          DEFAULT: 'var(--color-border)',
+          strong:  'var(--color-border-strong)',
+        },
       },
     },
   },

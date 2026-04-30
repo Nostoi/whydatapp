@@ -1,0 +1,17 @@
+{#
+  Button primitive.
+
+  Parameters:
+    label    — button text (required)
+    variant  — "primary" | "ghost" | "default" (default: "default")
+    size     — "sm" | "md" (default: "md")
+    type     — HTML button type (default: "button")
+    attrs    — raw HTML attribute string (optional, e.g. hx-post="...")
+    icon     — optional icon/emoji prefix
+#}
+{% set _size_cls = "text-xs px-2 py-1" if size == "sm" else "text-sm px-3 py-1.5" %}
+{% set _variant_cls = "btn-primary" if variant == "primary" else ("btn-ghost" if variant == "ghost" else "") %}
+<button type="{{ type or 'button' }}" class="btn {{ _variant_cls }} {{ _size_cls }}" {{ attrs or "" }}>
+  {%- if icon %}<span class="mr-1">{{ icon }}</span>{% endif -%}
+  {{ label }}
+</button>

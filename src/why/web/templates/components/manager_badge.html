@@ -1,4 +1,15 @@
+{#
+  Manager badge.
+
+  Parameters:
+    manager — manager key (e.g. "brew", "npm")
+    pres    — presentation dict (from config.pres)
+
+  Colors are driven by presentation.toml and passed to the pill `color`
+  fallback, so manager-specific colors remain user-configurable while
+  the badge shape stays consistent with the pill primitive.
+#}
 {% set m = pres.get(manager) or {"icon": "📦", "color": "#6b7280", "label": manager} %}
-<span class="pill" style="background-color: {{ m.color }}1a; color: {{ m.color }};">
-  <span class="mr-1">{{ m.icon }}</span>{{ m.label }}
-</span>
+{% with label="<span class=\"mr-1\">" ~ m.icon ~ "</span>" ~ m.label, color=m.color %}
+  {% include "components/pill.html" %}
+{% endwith %}

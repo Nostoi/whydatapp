@@ -1,0 +1,23 @@
+{#
+  Input primitive — single-line text input.
+
+  Parameters:
+    name       — field name (required)
+    value      — current value (optional)
+    label_text — visible label (optional; omit for unlabelled inputs)
+    placeholder— placeholder text (optional)
+    extra_class— additional classes on the wrapper (optional)
+    attrs      — raw HTML attributes for <input> (optional)
+#}
+{% if label_text %}
+<label class="flex flex-col gap-1 {{ extra_class or '' }}">
+  <span class="text-xs font-medium" style="color: var(--color-fg-muted);">{{ label_text }}</span>
+  <input class="input" name="{{ name }}" value="{{ value or '' }}"
+         {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+         {{ attrs or "" }}>
+</label>
+{% else %}
+<input class="input {{ extra_class or '' }}" name="{{ name }}" value="{{ value or '' }}"
+       {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+       {{ attrs or "" }}>
+{% endif %}

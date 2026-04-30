@@ -1,0 +1,17 @@
+{#
+  Checkbox primitive.
+
+  Parameters:
+    name       — field name (required)
+    value      — submit value (default: "1")
+    checked    — boolean (optional)
+    label_text — visible label (required for usability)
+    extra_class— additional classes on the wrapper label (optional)
+#}
+<label class="flex items-center gap-1.5 text-xs cursor-pointer select-none {{ extra_class or '' }}"
+       style="color: var(--color-fg-muted);">
+  <input type="checkbox" name="{{ name }}" value="{{ value or '1' }}"
+         {% if checked %}checked{% endif %}
+         class="rounded border" style="border-color: var(--color-border-strong);">
+  {{ label_text }}
+</label>

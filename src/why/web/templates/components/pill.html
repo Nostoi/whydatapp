@@ -1,22 +1,24 @@
-{# Disposition pill.
-   Callers pass:
-     label     — display text
-     disp      — disposition key ("doc"|"setup"|"experimental"|"remove"|"ignore"); optional
-     color     — hex fallback for non-disposition pills (manager badges, etc.)
-     extra_class — any additional Tailwind classes
+{#
+  Pill primitive.
 
-   When `disp` is present the pill uses Tailwind classes for proper dark-mode support.
-   When only `color` is present it falls back to the inline-style approach.
+  Parameters:
+    label       — display text (required)
+    tone        — one of: doc | setup | experimental | remove | ignore |
+                          brand | accent | neutral
+                  Uses CSS token classes (.pill-<tone>).
+                  Omit (or leave empty) to use `color` fallback.
+    color       — hex fallback for runtime-colored pills (manager badges).
+                  Used only when `tone` is absent/empty.
+    extra_class — additional Tailwind utility classes (optional)
+
+  The `tone` system is the canonical disposition-to-style mapping.
+  Manager badges pass `color` directly (sourced from presentation.toml).
 #}
-{% set _disp_map = {
-  "doc":          "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800",
-  "setup":        "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-800",
-  "experimental": "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800",
-  "remove":       "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/40 dark:text-rose-300 dark:border-rose-800",
-  "ignore":       "bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700",
-} %}
-{% if disp and disp in _disp_map %}
-<span class="pill {{ _disp_map[disp] }} {{ extra_class or '' }}">{{ label }}</span>
-{% else %}
+{% set _valid_tones = ["doc","setup","experimental","remove","ignore","brand","accent","neutral"] %}
+{% if tone and tone in _valid_tones %}
+<span class="pill pill-{{ tone }} {{ extra_class or '' }}">{{ label }}</span>
+{% elif color %}
 <span class="pill border-transparent {{ extra_class or '' }}" style="background-color: {{ color }}1a; color: {{ color }};">{{ label }}</span>
+{% else %}
+<span class="pill pill-neutral {{ extra_class or '' }}">{{ label }}</span>
 {% endif %}

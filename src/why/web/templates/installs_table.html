@@ -2,20 +2,22 @@
   {% set line = "No matching installs — adjust the filters or search to find what you're looking for." %}
   {% include "components/empty_state.html" %}
 {% else %}
-<div class="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
+<div class="overflow-x-auto rounded-lg border" style="border-color: var(--color-border);">
 <table class="w-full text-sm">
-  <thead class="sticky top-0 z-10 bg-zinc-50 dark:bg-zinc-950 text-left text-xs text-zinc-500 uppercase tracking-wide border-b border-zinc-200 dark:border-zinc-800">
+  <thead class="sticky top-0 z-10 text-left text-xs uppercase tracking-wide border-b"
+         style="background-color: var(--color-bg-muted); color: var(--color-fg-faint); border-color: var(--color-border);">
     <tr>
       {% for col, label in [("display_name","Name"),("manager","Manager"),("project","Project"),("disposition","Disposition"),("installed_at","Installed")] %}
         <th class="py-2 pr-4 pl-3 font-medium {% if col == 'installed_at' %}text-right{% endif %}">
           <a href="?{{ sort_link(col) }}" hx-get="/installs/table?{{ sort_link(col) }}" hx-target="#installs-table" hx-push-url="true"
-             class="hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors duration-100">{{ label }}</a>
+             class="transition-colors duration-100 hover:underline"
+             style="color: inherit;">{{ label }}</a>
         </th>
       {% endfor %}
       <th class="py-2 pr-3 pl-2"></th>
     </tr>
   </thead>
-  <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/60">
+  <tbody class="divide-y" style="border-color: var(--color-border);">
     {% for r in rows %}
       {% include "install_row.html" %}
     {% endfor %}

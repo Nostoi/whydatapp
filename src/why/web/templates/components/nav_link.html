@@ -1,0 +1,15 @@
+{#
+  Nav link primitive.
+
+  Parameters:
+    href        — link target (required)
+    label       — link text (required)
+    active      — boolean, adds active styling (optional)
+    badge_count — integer; renders a pill badge if > 0 (optional)
+#}
+<a href="{{ href }}" class="nav-link {% if active %}active{% endif %}">
+  {{- label -}}
+  {%- if badge_count %}
+    &nbsp;<span class="pill pill-accent">{{ badge_count }}</span>
+  {%- endif -%}
+</a>

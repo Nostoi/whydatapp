@@ -9,8 +9,9 @@
   <script src="/static/js/htmx.min.js" defer></script>
   <meta name="csrf-token" content="{{ request.cookies.get('why_csrf', '') if request else '' }}">
 </head>
-<body class="bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans min-h-screen flex flex-col">
-  <header class="border-b border-zinc-200 dark:border-zinc-800 px-6 py-2.5 flex items-center gap-6 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm sticky top-0 z-20">
+<body class="min-h-screen flex flex-col font-sans" style="background-color: var(--color-bg); color: var(--color-fg);">
+  <header class="sticky top-0 z-20 px-6 py-2.5 flex items-center gap-6 border-b backdrop-blur-sm"
+          style="background-color: color-mix(in srgb, var(--color-bg-elevated) 85%, transparent); border-color: var(--color-border);">
     <a href="/installs" class="flex items-center gap-2 flex-shrink-0">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="/static/img/whydatapp-dark.png">
@@ -20,29 +21,27 @@
     </a>
     <nav class="flex gap-1 text-sm" aria-label="Main">
       {%- set active_path = request.url.path if request else '' -%}
-      <a href="/installs"
-         class="px-3 py-1.5 rounded-md transition-colors duration-100 {% if active_path in ('/', '/installs') %}text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 font-medium{% else %}text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50{% endif %}">
-        Installs
-      </a>
-      <a href="/dashboard"
-         class="px-3 py-1.5 rounded-md transition-colors duration-100 {% if active_path == '/dashboard' %}text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 font-medium{% else %}text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50{% endif %}">
-        Dashboard
-      </a>
-      <a href="/review"
-         class="px-3 py-1.5 rounded-md transition-colors duration-100 {% if active_path == '/review' %}text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 font-medium{% else %}text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50{% endif %}">
-        Review{% if review_count %}&nbsp;<span class="pill bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800">{{ review_count }}</span>{% endif %}
-      </a>
+      {% with href="/installs", label="Installs", active=(active_path in ('/', '/installs')) %}
+        {% include "components/nav_link.html" %}
+      {% endwith %}
+      {% with href="/dashboard", label="Dashboard", active=(active_path == '/dashboard') %}
+        {% include "components/nav_link.html" %}
+      {% endwith %}
+      {% with href="/review", label="Review", active=(active_path == '/review'), badge_count=review_count %}
+        {% include "components/nav_link.html" %}
+      {% endwith %}
     </nav>
     <form action="/installs" method="get" class="ml-auto">
       <input type="text" name="q" value="{{ q or '' }}" placeholder="Search installs…"
-             class="input w-64 text-sm placeholder:text-zinc-400">
+             class="input w-64 text-sm">
     </form>
   </header>
   <main class="flex-1 px-6 py-8 max-w-screen-xl mx-auto w-full">
     {% block content %}{% endblock %}
   </main>
-  <footer class="px-6 py-3 text-xs text-zinc-500 border-t border-zinc-200 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/60">
-    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400">
+  <footer class="px-6 py-3 text-xs border-t" style="border-color: var(--color-border); background-color: color-mix(in srgb, var(--color-bg-elevated) 60%, transparent); color: var(--color-fg-faint);">
+    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border"
+          style="background-color: var(--color-bg-muted); border-color: var(--color-border);">
       🔒 localhost · no network
     </span>
   </footer>

@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 {% from "components/card.html" import card %}
 {% block content %}
-<h1 class="text-base font-medium tracking-tight text-zinc-700 dark:text-zinc-300 mb-5">Dashboard</h1>
+<h1 class="text-base font-medium tracking-tight mb-5" style="color: var(--color-brand);">Dashboard</h1>
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
   {% call card(title="By disposition") %}
     <ul class="text-sm space-y-1.5">
       {% for d, n in by_disposition.items() %}
         <li class="flex justify-between items-center">
-          <span class="text-zinc-600 dark:text-zinc-400">
+          <span style="color: var(--color-fg-muted);">
             {% if d in pres.disposition %}{{ pres.disposition[d].label }}{% else %}{{ d }}{% endif %}
           </span>
-          <span class="font-mono text-xs tabular-nums text-zinc-800 dark:text-zinc-200">{{ n }}</span>
+          <span class="font-mono text-xs tabular-nums" style="color: var(--color-fg);">{{ n }}</span>
         </li>
       {% endfor %}
     </ul>
@@ -21,8 +21,8 @@
     <ul class="text-sm space-y-1.5">
       {% for m, n in by_manager.items() %}
         <li class="flex justify-between items-center">
-          <span class="text-zinc-600 dark:text-zinc-400">{{ pres.get(m, {}).get("label", m) }}</span>
-          <span class="font-mono text-xs tabular-nums text-zinc-800 dark:text-zinc-200">{{ n }}</span>
+          <span style="color: var(--color-fg-muted);">{{ pres.get(m, {}).get("label", m) }}</span>
+          <span class="font-mono text-xs tabular-nums" style="color: var(--color-fg);">{{ n }}</span>
         </li>
       {% endfor %}
     </ul>
@@ -32,8 +32,9 @@
     <ul class="text-sm space-y-1.5">
       {% for name, n in by_project %}
         <li class="flex justify-between items-center">
-          <a class="hover:underline text-zinc-600 dark:text-zinc-400" href="/installs?project={{ name }}">{{ name }}</a>
-          <span class="font-mono text-xs tabular-nums text-zinc-800 dark:text-zinc-200">{{ n }}</span>
+          <a class="hover:underline" href="/installs?project={{ name }}"
+             style="color: var(--color-fg-muted);">{{ name }}</a>
+          <span class="font-mono text-xs tabular-nums" style="color: var(--color-fg);">{{ n }}</span>
         </li>
       {% endfor %}
     </ul>
@@ -43,8 +44,8 @@
     <ul class="text-sm space-y-1.5 font-mono">
       {% for m, n in per_month %}
         <li class="flex justify-between items-center">
-          <span class="text-zinc-500 dark:text-zinc-500 text-xs">{{ m }}</span>
-          <span class="tabular-nums text-zinc-800 dark:text-zinc-200 text-xs">{{ n }}</span>
+          <span class="text-xs" style="color: var(--color-fg-faint);">{{ m }}</span>
+          <span class="tabular-nums text-xs" style="color: var(--color-fg);">{{ n }}</span>
         </li>
       {% endfor %}
     </ul>
@@ -52,13 +53,14 @@
 
   {% call card(title="Stale review queue", subtitle="Incomplete · stale experimental · stale remove") %}
     {% if not stale %}
-      <p class="text-sm text-zinc-500">All clear.</p>
+      <p class="text-sm" style="color: var(--color-fg-muted);">All clear.</p>
     {% else %}
       <ul class="text-sm space-y-1.5">
         {% for r in stale %}
           <li class="row-stale pl-2">
-            <a class="hover:underline text-zinc-700 dark:text-zinc-300" href="/installs?incomplete=1#{{ r.id }}">{{ r.display_name or r.package_name or r.command }}</a>
-            <span class="text-xs text-zinc-400 dark:text-zinc-500 ml-1">— {{ r.disposition or "incomplete" }}, {{ r.installed_at[:10] }}</span>
+            <a class="hover:underline" href="/installs?incomplete=1#{{ r.id }}"
+               style="color: var(--color-fg);">{{ r.display_name or r.package_name or r.command }}</a>
+            <span class="text-xs ml-1" style="color: var(--color-fg-faint);">— {{ r.disposition or "incomplete" }}, {{ r.installed_at[:10] }}</span>
           </li>
         {% endfor %}
       </ul>

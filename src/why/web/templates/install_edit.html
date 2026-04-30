@@ -1,25 +1,26 @@
 <tr id="edit-{{ r.id }}">
-  <td colspan="6" class="py-3 px-4 bg-zinc-50/80 dark:bg-zinc-900/80 border-l-2 border-zinc-300 dark:border-zinc-600">
+  <td colspan="6" class="py-3 px-4 border-l-4"
+      style="background-color: var(--color-bg-muted); border-color: var(--color-brand);">
     <form hx-post="/installs/{{ r.id }}" hx-target="closest tr" hx-swap="outerHTML"
           class="grid grid-cols-2 gap-3 text-sm">
       <label class="flex flex-col gap-1">
-        <span class="text-xs font-medium text-zinc-500">Display name</span>
+        <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Display name</span>
         <input class="input" name="display_name" value="{{ r.display_name or '' }}">
       </label>
       <label class="flex flex-col gap-1">
-        <span class="text-xs font-medium text-zinc-500">Project</span>
+        <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Project</span>
         <input class="input" name="project" value="{{ r.project or '' }}" list="projects">
       </label>
       <label class="flex flex-col gap-1 col-span-2">
-        <span class="text-xs font-medium text-zinc-500">What does it do</span>
+        <span class="text-xs font-medium" style="color: var(--color-fg-muted);">What does it do</span>
         <input class="input" name="what_it_does" value="{{ r.what_it_does or '' }}">
       </label>
       <label class="flex flex-col gap-1 col-span-2">
-        <span class="text-xs font-medium text-zinc-500">Why install</span>
+        <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Why install</span>
         <textarea class="input" name="why" rows="2">{{ r.why or '' }}</textarea>
       </label>
       <label class="flex flex-col gap-1">
-        <span class="text-xs font-medium text-zinc-500">Disposition</span>
+        <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Disposition</span>
         <select class="input" name="disposition">
           {% for d in ["doc","setup","experimental","remove","ignore"] %}
             <option value="{{ d }}" {% if r.disposition == d %}selected{% endif %}>{{ pres.disposition[d].label }}</option>
@@ -27,7 +28,7 @@
         </select>
       </label>
       <label class="flex flex-col gap-1">
-        <span class="text-xs font-medium text-zinc-500">Notes</span>
+        <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Notes</span>
         <input class="input" name="notes" value="{{ r.notes or '' }}">
       </label>
       <input type="hidden" name="metadata_complete" value="1">
