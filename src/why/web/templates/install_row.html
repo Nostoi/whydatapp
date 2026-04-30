@@ -2,12 +2,12 @@
     data-edit-url="/installs/{{ r.id }}/edit"
     data-hoverable-row="true">
   {# Checkbox — desktop only #}
-  <td class="py-2 pl-3 pr-2 hidden md:table-cell w-8">
+  <td class="py-2 pl-3 pr-2 hidden md:table-cell w-8 cursor-pointer">
     <input type="checkbox" name="selected" value="{{ r.id }}" form="bulk-form"
            class="rounded" style="accent-color: var(--color-brand);"
            aria-label="Select {{ r.display_name or r.package_name or r.id }}">
   </td>
-  <td class="py-2 pr-4 pl-3">
+  <td class="py-2 pr-4 pl-3 cursor-pointer">
     <a href="/installs/{{ r.id }}/edit" hx-get="/installs/{{ r.id }}/edit"
        hx-target="#edit-modal" hx-swap="innerHTML"
        class="font-medium hover:underline" style="color: var(--color-fg);">
@@ -15,13 +15,13 @@
     </a>
     <div class="text-xs font-mono truncate max-w-xs leading-relaxed" style="color: var(--color-fg-faint);">{{ r.command }}</div>
   </td>
-  <td class="py-2 pr-4">
+  <td class="py-2 pr-4 cursor-pointer">
     {% with manager=r.manager %}
       {% include "components/manager_badge.html" %}
     {% endwith %}
   </td>
-  <td class="py-2 pr-4 text-sm leading-relaxed" style="color: var(--color-fg-muted);">{{ r.project or "—" }}</td>
-  <td class="py-2 pr-4">
+  <td class="py-2 pr-4 text-sm leading-relaxed cursor-pointer" style="color: var(--color-fg-muted);">{{ r.project or "—" }}</td>
+  <td class="py-2 pr-4 cursor-pointer">
     {% if r.disposition %}
       {% with tone=r.disposition, label=pres.disposition[r.disposition].label %}
         {% include "components/pill.html" %}
@@ -30,8 +30,8 @@
       <span style="color: var(--color-fg-faint);">—</span>
     {% endif %}
   </td>
-  <td class="py-2 pr-4 text-right font-mono text-xs tabular-nums" style="color: var(--color-fg-muted);">{{ r.installed_at[:10] }}</td>
-  <td class="py-2 pr-3 text-right w-20">
+  <td class="py-2 pr-4 text-right font-mono text-xs tabular-nums cursor-pointer" style="color: var(--color-fg-muted);">{{ r.installed_at[:10] }}</td>
+  <td class="py-2 pr-3 text-right w-20 cursor-pointer">
     {# Action reveal: hidden until row hover or focus-within #}
     <div class="opacity-0 focus-within:opacity-100 transition-opacity duration-100" data-row-actions="true">
       <button type="button" class="btn text-xs" data-share-url="/installs/{{ r.id }}/share">Share</button>

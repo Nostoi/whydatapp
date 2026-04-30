@@ -150,20 +150,29 @@
   document.addEventListener('closeEditModal', function () {
     var modal = document.getElementById('edit-modal');
     if (modal && modal.open) modal.close();
-    window.requestAnimationFrame(recomputeRowHoverState);
+    window.requestAnimationFrame(function () {
+      document.body.focus && document.body.focus({ preventScroll: true });
+      recomputeRowHoverState();
+    });
   });
 
   const editModal = document.getElementById('edit-modal');
   if (editModal) {
     editModal.addEventListener('close', function () {
-      window.requestAnimationFrame(recomputeRowHoverState);
+      window.requestAnimationFrame(function () {
+        document.body.focus && document.body.focus({ preventScroll: true });
+        recomputeRowHoverState();
+      });
     });
   }
 
   const shareModal = document.getElementById('share-modal');
   if (shareModal) {
     shareModal.addEventListener('close', function () {
-      window.requestAnimationFrame(recomputeRowHoverState);
+      window.requestAnimationFrame(function () {
+        document.body.focus && document.body.focus({ preventScroll: true });
+        recomputeRowHoverState();
+      });
     });
   }
 
@@ -202,13 +211,25 @@
     await navigator.clipboard.writeText(text);
   }
 
-  document.addEventListener('pointermove', function (e) {
+  document.addEventListener('mousemove', function (e) {
     lastPointerX = e.clientX;
     lastPointerY = e.clientY;
     recomputeRowHoverState();
   });
 
-  document.addEventListener('pointerleave', function (e) {
+  document.addEventListener('mouseover', function (e) {
+    const row = e.target.closest && e.target.closest('[data-hoverable-row="true"]');
+    if (row) setRowHoverState(row, true);
+  });
+
+  document.addEventListener('mouseout', function (e) {
+    const row = e.target.closest && e.target.closest('[data-hoverable-row="true"]');
+    if (!row) return;
+    if (row.contains(e.relatedTarget)) return;
+    setRowHoverState(row, false);
+  });
+
+  document.addEventListener('mouseleave', function (e) {
     if (e.target === document.documentElement) {
       clearAllRowHoverState();
     }
