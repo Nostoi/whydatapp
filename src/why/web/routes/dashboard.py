@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from pathlib import Path
+from typing import Any
+
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 
@@ -12,8 +15,12 @@ _env = make_env()
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
-def dashboard(request: Request, db=Depends(get_db), pres=Depends(get_presentation)):
-    ctx = {
+def dashboard(  # noqa: B008
+    request: Request,
+    db: Path = Depends(get_db),  # noqa: B008
+    pres: dict[str, Any] = Depends(get_presentation),  # noqa: B008
+) -> HTMLResponse:
+    ctx: dict[str, Any] = {
         "by_disposition": store.stats_by_disposition(db),
         "by_manager": store.stats_by_manager(db),
         "by_project": store.stats_by_project(db, limit=10),

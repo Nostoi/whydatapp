@@ -7,7 +7,8 @@ from why.markdown import to_markdown
 
 def test_markdown_includes_command_and_why(why_home: Path) -> None:
     db = ensure_ready()
-    user = store.get_solo_user(db); device = store.get_solo_device(db)
+    user = store.get_solo_user(db)
+    device = store.get_solo_device(db)
     inst = store.create_install(
         db, user_id=user.id, device_id=device.id,
         command="brew install ripgrep", package_name="ripgrep", manager="brew",

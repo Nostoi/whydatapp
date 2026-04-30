@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import APIRouter, Depends
 from fastapi.responses import PlainTextResponse
 
@@ -11,7 +13,10 @@ router = APIRouter()
 
 
 @router.post("/installs/{install_id}/share", response_class=PlainTextResponse)
-def share(install_id: int, db=Depends(get_db)) -> PlainTextResponse:
+def share(
+    install_id: int,
+    db: Path = Depends(get_db),  # noqa: B008
+) -> PlainTextResponse:
     inst = store.get_install(db, install_id)
     if not inst:
         return PlainTextResponse("Not found", status_code=404)

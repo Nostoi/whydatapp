@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
@@ -14,9 +15,9 @@ router = APIRouter()
 
 @router.get("/export")
 def export(
-    ids: str = Query(""),
-    format: str = Query("md"),
-    db=Depends(get_db),
+    ids: str = Query(""),  # noqa: B008
+    format: str = Query("md"),  # noqa: B008
+    db: Path = Depends(get_db),  # noqa: B008
 ) -> Response:
     if not ids:
         return Response("ids required", status_code=400)

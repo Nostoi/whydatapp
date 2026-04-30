@@ -4,8 +4,10 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from why import store
 from why.bootstrap import ensure_ready
 from why.web.app import create_app
+from why.web.templates_env import make_env
 
 
 def _client(why_home: Path) -> TestClient:
@@ -36,9 +38,6 @@ def test_static_css_served(why_home: Path) -> None:
     assert r.status_code == 200
 
 
-from why.web.templates_env import make_env
-
-
 def test_pill_partial_renders():
     env = make_env()
     html = env.get_template("components/pill.html").render(label="Doc", color="#2563eb")
@@ -53,12 +52,10 @@ def test_manager_badge_falls_back_when_unknown():
     assert "📦" in html
 
 
-from why import store
-
-
 def _seed_one(why_home: Path) -> int:
     db = ensure_ready()
-    user = store.get_solo_user(db); device = store.get_solo_device(db)
+    user = store.get_solo_user(db)
+    device = store.get_solo_device(db)
     inst = store.create_install(
         db, user_id=user.id, device_id=device.id,
         command="brew install ripgrep", package_name="ripgrep", manager="brew",
@@ -166,7 +163,8 @@ def test_dashboard_renders(why_home: Path) -> None:
 
 def test_stale_review_shows_skipped(why_home: Path) -> None:
     db = ensure_ready()
-    user = store.get_solo_user(db); device = store.get_solo_device(db)
+    user = store.get_solo_user(db)
+    device = store.get_solo_device(db)
     store.create_install(
         db, user_id=user.id, device_id=device.id,
         command="brew install fd", package_name="fd", manager="brew",
@@ -185,7 +183,8 @@ def test_review_redirects_when_empty(why_home: Path) -> None:
 
 def test_review_shows_first_pending(why_home: Path) -> None:
     db = ensure_ready()
-    user = store.get_solo_user(db); device = store.get_solo_device(db)
+    user = store.get_solo_user(db)
+    device = store.get_solo_device(db)
     store.create_install(
         db, user_id=user.id, device_id=device.id,
         command="brew install fd", package_name="fd", manager="brew",
@@ -200,7 +199,8 @@ def test_review_shows_first_pending(why_home: Path) -> None:
 
 def test_review_post_saves_and_advances(why_home: Path) -> None:
     db = ensure_ready()
-    user = store.get_solo_user(db); device = store.get_solo_device(db)
+    user = store.get_solo_user(db)
+    device = store.get_solo_device(db)
     inst = store.create_install(
         db, user_id=user.id, device_id=device.id,
         command="brew install fd", package_name="fd", manager="brew",
@@ -226,8 +226,6 @@ def test_review_post_saves_and_advances(why_home: Path) -> None:
 
 def test_post_without_csrf_rejected(why_home: Path) -> None:
     iid = _seed_one(why_home)
-    from fastapi.testclient import TestClient
-    from why.web.app import create_app
     raw = TestClient(create_app(), raise_server_exceptions=False)
     r = raw.post(f"/installs/{iid}", data={"display_name": "x"})
     assert r.status_code == 403
