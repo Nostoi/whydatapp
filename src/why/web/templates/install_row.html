@@ -1,4 +1,4 @@
-<tr class="group transition-colors duration-100 {% if r.metadata_complete == 0 %}row-stale{% endif %}"
+<tr id="row-{{ r.id }}" class="group transition-colors duration-100 {% if r.metadata_complete == 0 %}row-stale{% endif %}"
     style="--hover-bg: var(--color-bg-muted);"
     onmouseenter="this.style.backgroundColor='var(--color-bg-muted)'"
     onmouseleave="this.style.backgroundColor=''">
@@ -10,7 +10,7 @@
   </td>
   <td class="py-2 pr-4 pl-3">
     <a href="/installs/{{ r.id }}/edit" hx-get="/installs/{{ r.id }}/edit"
-       hx-target="closest tr" hx-swap="outerHTML"
+       hx-target="#edit-modal" hx-swap="innerHTML"
        class="font-medium hover:underline" style="color: var(--color-fg);">
       {{ r.display_name or r.package_name or "—" }}
     </a>

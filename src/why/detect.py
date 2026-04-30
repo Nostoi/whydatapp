@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import shlex
 from dataclasses import dataclass
@@ -112,6 +113,45 @@ _HEAD = {
 }
 
 
+_SELF_NAMES = frozenset({"why-cli", "why_cli", "whydatapp"})
+
+# Managers where self/source-install filtering applies
+_SELF_FILTER_MANAGERS = frozenset({"uv", "pipx", "pip", "cargo"})
+
+
+def is_self_or_source_install(manager: str, packages: list[str]) -> bool:
+    """Return True if this install should be filtered out as a self or source install.
+
+    Filters:
+    - Local path args (starting with `.`, `/`, or containing `[` like `.[web]`)
+    - Wheel or tarball filenames
+    - git+ URLs
+    - Package names matching whydatApp itself (why-cli, why_cli, whydatapp)
+    - WHY_NO_SELF_LOG=1 env escape hatch (drops all captures from this function)
+    """
+    if os.environ.get("WHY_NO_SELF_LOG") == "1":
+        return True
+    if manager not in _SELF_FILTER_MANAGERS:
+        return False
+    if not packages:
+        return False
+    first = packages[0]
+    # Local path checks
+    if first.startswith(".") or first.startswith("/"):
+        return True
+    if "[" in first:
+        return True
+    # Wheel or tarball
+    if first.endswith(".whl") or first.endswith(".tar.gz") or first.endswith(".tgz"):
+        return True
+    # git+ URL
+    if first.startswith("git+"):
+        return True
+    # Self-name check (case-insensitive, normalized)
+    normalized = first.lower().split("[")[0]  # strip extras like ruff[fix]
+    return normalized in _SELF_NAMES
+
+
 def match_install(command: str) -> MatchResult | None:
     """Return a MatchResult if the command is a user-intent install. Else None."""
     try:
@@ -134,6 +174,8 @@ def match_install(command: str) -> MatchResult | None:
         return MatchResult(manager=manager, packages=pkgs)
     pkgs = extractor(tokens)
     if not pkgs:
+        return None
+    if is_self_or_source_install(manager, pkgs):
         return None
     return MatchResult(manager=manager, packages=pkgs)
 

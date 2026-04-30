@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from why.detect import IgnoreContext, match_install, should_ignore
+from why.detect import IgnoreContext, is_self_or_source_install, match_install, should_ignore
 
 
 @pytest.mark.parametrize("cmd,manager,pkgs", [
@@ -47,6 +47,38 @@ def test_matches_tier1(cmd: str, manager: str, pkgs: list[str]) -> None:
 def test_no_match_for_non_install_or_dependency_restore(cmd: str) -> None:
     assert match_install(cmd) is None
 
+
+
+@pytest.mark.parametrize("cmd", [
+    "uv tool install --editable '.[web]'",
+    "uv tool install --editable .",
+    "uv tool install why-cli",
+    "uv tool install 'why-cli[web]'",
+    "pipx install why-cli",
+    "pipx install --editable .",
+    "pip install ./dist/why_cli-1.2.0-py3-none-any.whl",
+    "pip install /Users/me/projects/whydatapp",
+    "pip install git+https://github.com/Nostoi/whydatapp",
+    "uv tool install whydatapp",
+    "uv tool install WHY_CLI",
+])
+def test_self_or_source_installs_are_dropped(cmd):
+    assert match_install(cmd) is None, f"should drop self/source install: {cmd}"
+
+
+def test_is_self_or_source_install_helper_direct():
+    assert is_self_or_source_install("uv", [".[web]"])
+    assert is_self_or_source_install("pip", ["/absolute/path"])
+    assert is_self_or_source_install("pipx", ["why-cli"])
+    assert is_self_or_source_install("cargo", ["why_cli"])
+    assert not is_self_or_source_install("uv", ["ruff"])
+    assert not is_self_or_source_install("brew", [".[web]"])  # brew not in filter set
+
+
+def test_why_no_self_log_escape_hatch(monkeypatch):
+    monkeypatch.setenv("WHY_NO_SELF_LOG", "1")
+    # Even a normal install returns True (should be dropped) when env is set
+    assert is_self_or_source_install("uv", ["ruff"])
 
 
 def _ctx(**kw) -> IgnoreContext:

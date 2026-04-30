@@ -2,6 +2,12 @@
 {% block content %}
 <h1 class="text-2xl md:text-3xl font-semibold tracking-tight mb-6 leading-tight" style="color: var(--color-brand);">Installs</h1>
 
+{# Edit modal — opened via HTMX swap into #edit-modal, closed by HX-Trigger:closeEditModal #}
+<dialog id="edit-modal"
+        class="rounded-xl border p-0 w-full max-w-lg shadow-2xl backdrop:bg-black/40 backdrop:backdrop-blur-sm"
+        style="background-color: var(--color-bg-elevated); border-color: var(--color-border); color: var(--color-fg);">
+</dialog>
+
 {# Hidden bulk-action form — populated by row checkboxes via form="bulk-form" #}
 <form id="bulk-form" method="post" style="display:none;"
       hx-target="#installs-table" hx-push-url="false">
@@ -66,6 +72,22 @@
 
 <script>
 (function () {
+  // ── Edit modal helpers ───────────────────────────────────────────────────
+  // Open the dialog after HTMX swaps content into #edit-modal
+  document.addEventListener('htmx:afterSwap', function (e) {
+    if (e.detail && e.detail.target && e.detail.target.id === 'edit-modal') {
+      var modal = document.getElementById('edit-modal');
+      if (modal && !modal.open) modal.showModal();
+    }
+  });
+
+  // Close the dialog when the server fires closeEditModal via HX-Trigger
+  document.addEventListener('closeEditModal', function () {
+    var modal = document.getElementById('edit-modal');
+    if (modal && modal.open) modal.close();
+  });
+
+  // ── Bulk bar helpers ─────────────────────────────────────────────────────
   function updateBulkBar() {
     const checked = document.querySelectorAll('input[name="selected"]:checked');
     const bar = document.querySelector('[data-bulk-bar]');

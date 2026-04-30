@@ -1,45 +1,58 @@
-<tr id="edit-{{ r.id }}">
-  <td colspan="6" class="py-4 px-4 border-l-4"
-      style="background-color: var(--color-bg-muted); border-color: var(--color-brand);">
-    <form hx-post="/installs/{{ r.id }}" hx-target="closest tr" hx-swap="outerHTML"
-          class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-      <label class="flex flex-col gap-1">
-        <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Display name</span>
-        <input class="input" name="display_name" value="{{ r.display_name or '' }}">
-      </label>
-      <label class="flex flex-col gap-1">
-        <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Project</span>
-        <input class="input" name="project" value="{{ r.project or '' }}" list="projects">
-      </label>
-      <label class="flex flex-col gap-1 md:col-span-2">
-        <span class="text-xs font-medium" style="color: var(--color-fg-muted);">What does it do</span>
-        <input class="input" name="what_it_does" value="{{ r.what_it_does or '' }}">
-      </label>
-      <label class="flex flex-col gap-1 md:col-span-2">
-        <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Why install</span>
-        <textarea class="input" name="why" rows="2">{{ r.why or '' }}</textarea>
-      </label>
-      <label class="flex flex-col gap-1">
-        <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Disposition</span>
-        <select class="input" name="disposition">
-          {% for d in ["doc","setup","experimental","remove","ignore"] %}
-            <option value="{{ d }}" {% if r.disposition == d %}selected{% endif %}>{{ pres.disposition[d].label }}</option>
-          {% endfor %}
-        </select>
-      </label>
-      <label class="flex flex-col gap-1">
-        <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Notes</span>
-        <input class="input" name="notes" value="{{ r.notes or '' }}">
-      </label>
-      <input type="hidden" name="metadata_complete" value="1">
-      <input type="hidden" name="csrf_token" value="{{ request.cookies.get('why_csrf', '') if request else '' }}">
-      <div class="md:col-span-2 flex gap-2 justify-end">
-        <a class="btn" hx-get="/installs/{{ r.id }}/row" hx-target="closest tr" hx-swap="outerHTML">Cancel</a>
-        <button class="btn btn-primary" type="submit">Save</button>
-      </div>
-    </form>
-    <datalist id="projects">
-      {% for p in projects %}<option value="{{ p }}">{% endfor %}
-    </datalist>
-  </td>
-</tr>
+{# Edit modal content — rendered as innerHTML of <dialog id="edit-modal"> #}
+<header class="flex items-center justify-between gap-3 px-5 py-4 border-b"
+        style="border-color: var(--color-border);">
+  <div class="min-w-0 flex-1">
+    <h2 class="text-sm font-semibold truncate" style="color: var(--color-fg);">Edit install</h2>
+    <p class="text-xs font-mono truncate mt-0.5" style="color: var(--color-fg-faint);">{{ r.command }}</p>
+  </div>
+  <button type="button"
+          onclick="document.getElementById('edit-modal').close()"
+          class="btn btn-ghost text-xs shrink-0"
+          aria-label="Close">✕</button>
+</header>
+
+<form hx-post="/installs/{{ r.id }}"
+      hx-target="#row-{{ r.id }}"
+      hx-swap="outerHTML"
+      class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm px-5 py-4">
+  <label class="flex flex-col gap-1">
+    <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Display name</span>
+    <input class="input" name="display_name" value="{{ r.display_name or '' }}">
+  </label>
+  <label class="flex flex-col gap-1">
+    <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Project</span>
+    <input class="input" name="project" value="{{ r.project or '' }}" list="edit-modal-projects">
+  </label>
+  <label class="flex flex-col gap-1 md:col-span-2">
+    <span class="text-xs font-medium" style="color: var(--color-fg-muted);">What does it do</span>
+    <input class="input" name="what_it_does" value="{{ r.what_it_does or '' }}">
+  </label>
+  <label class="flex flex-col gap-1 md:col-span-2">
+    <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Why install</span>
+    <textarea class="input" name="why" rows="2">{{ r.why or '' }}</textarea>
+  </label>
+  <label class="flex flex-col gap-1">
+    <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Disposition</span>
+    <select class="input" name="disposition">
+      {% for d in ["doc","setup","experimental","remove","ignore"] %}
+        <option value="{{ d }}" {% if r.disposition == d %}selected{% endif %}>{{ pres.disposition[d].label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="flex flex-col gap-1">
+    <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Notes</span>
+    <input class="input" name="notes" value="{{ r.notes or '' }}">
+  </label>
+  <input type="hidden" name="metadata_complete" value="1">
+  <input type="hidden" name="csrf_token" value="{{ request.cookies.get('why_csrf', '') if request else '' }}">
+  <div class="md:col-span-2 flex gap-2 justify-end pt-1">
+    <button type="button"
+            onclick="document.getElementById('edit-modal').close()"
+            class="btn">Cancel</button>
+    <button class="btn btn-primary" type="submit">Save</button>
+  </div>
+</form>
+
+<datalist id="edit-modal-projects">
+  {% for p in projects %}<option value="{{ p }}">{% endfor %}
+</datalist>

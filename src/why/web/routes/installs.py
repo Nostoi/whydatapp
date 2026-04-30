@@ -223,4 +223,7 @@ def install_update(
     ctx = _row_ctx(db, pres, install_id)
     if ctx is None:
         return HTMLResponse("Not found", status_code=404)
-    return HTMLResponse(_env.get_template("install_row.html").render(request=request, **ctx))
+    return HTMLResponse(
+        _env.get_template("install_row.html").render(request=request, **ctx),
+        headers={"HX-Trigger": "closeEditModal"},
+    )

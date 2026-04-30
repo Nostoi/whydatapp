@@ -52,6 +52,19 @@ def test_manager_badge_falls_back_when_unknown():
     assert "📦" in html
 
 
+def test_manager_badge_does_not_render_raw_html(why_home: Path) -> None:
+    _seed_one(why_home)
+    c = _client(why_home)
+    r = c.get("/installs")
+    assert r.status_code == 200
+    # The bug: when the label was pre-built as HTML and passed to the pill,
+    # autoescape would emit e.g. &lt;span class="mr-1"&gt;🍺&lt;/span&gt;Homebrew
+    # as visible text. Confirm no escaped HTML tags appear.
+    assert '&lt;span' not in r.text
+    # The icon span is correctly emitted as real HTML markup — check it renders
+    assert '<span class="mr-1">🍺</span>' in r.text
+
+
 def _seed_one(why_home: Path) -> int:
     db = ensure_ready()
     user = store.get_solo_user(db)
@@ -96,6 +109,12 @@ def test_edit_panel_returned_for_row(why_home: Path) -> None:
     c = _client(why_home)
     r = c.get(f"/installs/{iid}/edit")
     assert r.status_code == 200
+    # Modal fragment: must have a form posting to the install URL
+    assert f'action="/installs/{iid}"' not in r.text  # form uses hx-post, not action attr
+    assert f'hx-post="/installs/{iid}"' in r.text
+    # Must have a close button
+    assert "edit-modal" in r.text and "close()" in r.text
+    # Must have the fields
     assert "what does it do" in r.text.lower()
 
 
@@ -116,10 +135,38 @@ def test_post_updates_row(why_home: Path) -> None:
         },
     )
     assert r.status_code == 200
+    # Response includes updated row markup
+    assert "rg" in r.text
+    # Response signals modal close
+    assert "HX-Trigger" in r.headers
+    assert "closeEditModal" in r.headers["HX-Trigger"]
     db = ensure_ready()
     inst = store.get_install(db, iid)
     assert inst.why == "speed v2"
     assert inst.disposition == "experimental"
+
+
+def test_install_update_signals_modal_close(why_home: Path) -> None:
+    iid = _seed_one(why_home)
+    c = _client(why_home)
+    c.get("/installs")  # prime CSRF cookie
+    token = c.cookies.get("why_csrf")
+    r = c.post(f"/installs/{iid}", data={
+        "display_name": "rg", "what_it_does": "g", "project": "p",
+        "why": "speed v3", "disposition": "doc", "notes": "",
+        "metadata_complete": "1", "csrf_token": token,
+    })
+    assert r.status_code == 200
+    assert "HX-Trigger" in r.headers
+    assert "closeEditModal" in r.headers["HX-Trigger"]
+
+
+def test_installs_page_has_edit_modal_skeleton(why_home: Path) -> None:
+    c = _client(why_home)
+    r = c.get("/installs")
+    assert r.status_code == 200
+    assert 'id="edit-modal"' in r.text
+    assert "<dialog" in r.text
 
 
 def test_share_returns_markdown(why_home: Path) -> None:

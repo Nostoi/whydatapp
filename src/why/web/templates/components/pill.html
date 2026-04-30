@@ -16,9 +16,9 @@
 #}
 {% set _valid_tones = ["doc","setup","experimental","remove","ignore","brand","accent","neutral"] %}
 {% if tone and tone in _valid_tones %}
-<span class="pill pill-{{ tone }} {{ extra_class or '' }}">{{ label }}</span>
+<span class="pill pill-{{ tone }} {{ extra_class or '' }}">{% if icon %}<span class="mr-1">{{ icon }}</span>{% endif %}{{ label }}</span>
 {% elif color %}
-<span class="pill border-transparent {{ extra_class or '' }}" style="background-color: {{ color }}1a; color: {{ color }};">{{ label }}</span>
+<span class="pill border-transparent {{ extra_class or '' }}" style="background-color: {{ color }}1a; color: {{ color }};">{% if icon %}<span class="mr-1">{{ icon }}</span>{% endif %}{{ label }}</span>
 {% else %}
-<span class="pill pill-neutral {{ extra_class or '' }}">{{ label }}</span>
+<span class="pill pill-neutral {{ extra_class or '' }}">{% if icon %}<span class="mr-1">{{ icon }}</span>{% endif %}{{ label }}</span>
 {% endif %}

@@ -10,6 +10,6 @@
   the badge shape stays consistent with the pill primitive.
 #}
 {% set m = pres.get(manager) or {"icon": "📦", "color": "#6b7280", "label": manager} %}
-{% with label="<span class=\"mr-1\">" ~ m.icon ~ "</span>" ~ m.label, color=m.color %}
+{% with icon=m.icon, label=m.label, color=m.color %}
   {% include "components/pill.html" %}
 {% endwith %}
