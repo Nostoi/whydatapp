@@ -1,0 +1,23 @@
+from __future__ import annotations
+
+from importlib import resources
+from pathlib import Path
+
+from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
+
+
+def create_app() -> FastAPI:
+    app = FastAPI(title="why?", docs_url=None, redoc_url=None)
+
+    static_dir = Path(str(resources.files("why.web").joinpath("static")))
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+    @app.get("/")
+    def root() -> RedirectResponse:
+        return RedirectResponse(url="/installs", status_code=307)
+
+    from why.web.routes.installs import router as installs_router
+    app.include_router(installs_router)
+    return app

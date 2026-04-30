@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>why?</title>
+  <link rel="stylesheet" href="/static/css/tailwind.css">
+  <script src="/static/js/htmx.min.js" defer></script>
+</head>
+<body class="bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans">
+  <header class="border-b border-zinc-200 dark:border-zinc-800 px-6 py-3 flex items-center gap-6">
+    <a href="/installs" class="font-semibold">why?</a>
+    <nav class="flex gap-4 text-sm">
+      <a href="/installs" class="hover:underline">Installs</a>
+      <a href="/dashboard" class="hover:underline">Dashboard</a>
+      <a href="/review" class="hover:underline">Review{% if review_count %} <span class="pill bg-amber-100 text-amber-900">{{ review_count }}</span>{% endif %}</a>
+    </nav>
+    <form action="/installs" method="get" class="ml-auto">
+      <input type="text" name="q" value="{{ q or '' }}" placeholder="🔍 search..." class="input w-72">
+    </form>
+  </header>
+  <main class="px-6 py-6">
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="px-6 py-3 text-xs text-zinc-500 border-t border-zinc-200 dark:border-zinc-800">
+    🔒 localhost · no network
+  </footer>
+</body>
+</html>
