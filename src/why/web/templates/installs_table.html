@@ -1,0 +1,22 @@
+{% if not rows %}
+  {% include "components/empty_state.html" %}
+{% else %}
+<table class="w-full text-sm">
+  <thead class="text-left text-zinc-500 border-b border-zinc-200 dark:border-zinc-800">
+    <tr>
+      {% for col, label in [("display_name","Name"),("manager","Manager"),("project","Project"),("disposition","Disposition"),("installed_at","Installed")] %}
+        <th class="py-2 pr-4">
+          <a href="?{{ sort_link(col) }}" hx-get="/installs/table?{{ sort_link(col) }}" hx-target="#installs-table" hx-push-url="true"
+             class="hover:underline">{{ label }}</a>
+        </th>
+      {% endfor %}
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in rows %}
+      {% include "install_row.html" %}
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}

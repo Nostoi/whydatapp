@@ -49,3 +49,44 @@ def test_manager_badge_falls_back_when_unknown():
     html = env.get_template("components/manager_badge.html").render(manager="custom", pres={})
     assert "custom" in html
     assert "📦" in html
+
+
+from why import store
+
+
+def _seed_one(why_home: Path) -> int:
+    db = ensure_ready()
+    user = store.get_solo_user(db); device = store.get_solo_device(db)
+    inst = store.create_install(
+        db, user_id=user.id, device_id=device.id,
+        command="brew install ripgrep", package_name="ripgrep", manager="brew",
+        install_dir="/tmp", resolved_path=None, exit_code=0,
+    )
+    store.update_install(db, inst.id, display_name="ripgrep", disposition="doc",
+                         what_it_does="fast grep", project="p", why="speed",
+                         metadata_complete=1)
+    return inst.id
+
+
+def test_table_lists_installs(why_home: Path) -> None:
+    _seed_one(why_home)
+    c = _client(why_home)
+    r = c.get("/installs")
+    assert r.status_code == 200
+    assert "ripgrep" in r.text
+
+
+def test_table_fragment_endpoint(why_home: Path) -> None:
+    _seed_one(why_home)
+    c = _client(why_home)
+    r = c.get("/installs/table?manager=brew")
+    assert r.status_code == 200
+    assert "ripgrep" in r.text
+    assert "<header" not in r.text
+
+
+def test_filter_excludes_other_managers(why_home: Path) -> None:
+    _seed_one(why_home)
+    c = _client(why_home)
+    r = c.get("/installs/table?manager=npm")
+    assert "ripgrep" not in r.text
