@@ -99,3 +99,19 @@ def test_hook_matched_runs_prompt(why_home: Path, monkeypatch) -> None:
     assert result.exit_code == 0
     listed = runner.invoke(app, ["list"])
     assert "ripgrep" in listed.stdout
+
+
+def test_serve_invokes_uvicorn(monkeypatch, why_home: Path) -> None:
+    called = {}
+
+    def fake_run(app, **kw):
+        called["host"] = kw.get("host")
+        called["port"] = kw.get("port")
+
+    import uvicorn
+    monkeypatch.setattr(uvicorn, "run", fake_run)
+    monkeypatch.setattr("webbrowser.open", lambda *a, **kw: None)
+    result = runner.invoke(app, ["serve", "--no-open"])
+    assert result.exit_code == 0
+    assert called["host"] == "127.0.0.1"
+    assert called["port"] == 7873

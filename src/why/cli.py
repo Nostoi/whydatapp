@@ -225,6 +225,26 @@ def delete_cmd(
     console.print(f"[green]✓[/green] deleted (soft) id={install_id}.")
 
 
+@app.command("serve")
+def serve_cmd(
+    host: str | None = typer.Option(None),
+    port: int | None = typer.Option(None),
+    open_browser: bool = typer.Option(True, "--open/--no-open"),
+) -> None:
+    """Start the local web UI on 127.0.0.1."""
+    import webbrowser
+    import uvicorn
+    from why.config import load_config
+    from why.web.app import create_app
+
+    cfg = load_config()
+    h = host or cfg["web"]["host"]
+    p = port or int(cfg["web"]["port"])
+    if open_browser:
+        webbrowser.open(f"http://{h}:{p}/")
+    uvicorn.run(create_app(), host=h, port=p, log_level="warning")
+
+
 @app.command("_hook", hidden=True)
 def hook_cmd(
     cmd: str = typer.Option(...),
