@@ -11,11 +11,10 @@ from rich.table import Table
 
 from why import __version__, store
 from why.bootstrap import ensure_ready
+from why.capture import capture
 from why.detect import match_install
 from why.markdown import to_markdown
-from why.project_infer import infer_project
 from why.prompts import run_metadata_prompt
-from why.resolve import resolve_path
 from why.store import InstallFilters
 
 app = typer.Typer(add_completion=False, help="Track why you installed every tool.")
@@ -77,6 +76,12 @@ def list_cmd(
 def log_cmd(
     cmd: list[str] = typer.Argument(..., help="The install command, after `--`."),  # noqa: B008
     cwd: str = typer.Option(None, help="Override cwd; defaults to current directory."),
+    enrich: bool = typer.Option(
+        False,
+        "--enrich",
+        help="When set, behave like the hook: update an existing complete entry instead of "
+             "creating a new one. Useful if you want enrichment from a manual `why log`.",
+    ),
 ) -> None:
     """Log an install interactively. Used by the shell hook and for manual entries."""
     db = ensure_ready()
@@ -90,62 +95,15 @@ def log_cmd(
         )
         raise typer.Exit(code=2)
 
-    if store.recent_duplicate_exists(
-        db, command=command_str, install_dir=work_dir, within_seconds=60
-    ):
-        console.print("[dim]recent duplicate; skipping.[/dim]")
-        raise typer.Exit(code=0)
-
-    user = store.get_solo_user(db)
-    device = store.get_solo_device(db)
-    assert user is not None and device is not None
-
-    primary_pkg = match.packages[0]
-    resolved = resolve_path(manager=match.manager, package=primary_pkg, cwd=work_dir)
-
-    inst = store.create_install(
+    capture(
         db,
-        user_id=user.id,
-        device_id=device.id,
-        command=command_str,
-        package_name=primary_pkg,
-        manager=match.manager,
-        install_dir=work_dir,
-        resolved_path=resolved,
-        exit_code=0,
-    )
-
-    inferred_project = infer_project(work_dir)
-    result = run_metadata_prompt(
-        default_name=primary_pkg,
-        default_project=inferred_project,
-        command=command_str,
-        cwd=work_dir,
+        command_str=command_str,
+        work_dir=work_dir,
+        enrich=enrich,
+        console=console,
         input=sys.stdin,
         output=sys.stdout,
     )
-
-    if result.disposition == "skip":
-        console.print(
-            f"  [dim]skipped — review later via `why review` (id={inst.id})[/dim]"
-        )
-        return
-
-    if result.project:
-        store.upsert_project(db, result.project)
-
-    store.update_install(
-        db,
-        inst.id,
-        display_name=result.display_name,
-        what_it_does=result.what_it_does,
-        project=result.project,
-        why=result.why,
-        notes=result.notes,
-        disposition=result.disposition,
-        metadata_complete=1 if result.metadata_complete else 0,
-    )
-    console.print(f"  [green]✓[/green] logged (id={inst.id}).")
 
 
 @app.command("review")

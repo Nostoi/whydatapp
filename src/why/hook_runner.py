@@ -3,8 +3,11 @@ from __future__ import annotations
 import os
 import sys
 
+from rich.console import Console
+
 from why import store
 from why.bootstrap import ensure_ready
+from why.capture import capture
 from why.config import load_user_ignore_patterns
 from why.detect import IgnoreContext, match_install, should_ignore
 from why.paths import log_path
@@ -64,8 +67,15 @@ def run_hook(*, command: str, cwd: str, exit_code: int) -> int:
         if should_ignore(ctx):
             return 0
 
-        from why.cli import log_cmd
-        log_cmd(cmd=command.split(), cwd=cwd)
+        capture(
+            db,
+            command_str=command,
+            work_dir=cwd,
+            enrich=True,
+            console=Console(),
+            input=sys.stdin,
+            output=sys.stdout,
+        )
         return 0
     except SystemExit:
         raise

@@ -18,7 +18,19 @@ Every subcommand of the `why` CLI, with examples.
 
 ## How capture works
 
-When the shell hook is installed, `why` watches every command you run interactively. After a command exits successfully, it checks: did this look like a user-intent install? If yes, and none of the [ignore rules](configuration.md#ignore-rules) match, it pops the prompt:
+When the shell hook is installed, `why` watches every command you run interactively. After a command exits successfully, it checks: did this look like a user-intent install? If yes, and none of the [ignore rules](configuration.md#ignore-rules) match, it runs the capture flow.
+
+**Re-install enrichment** — if a complete record already exists for the same `(manager, package)` pair, the hook skips the prompt entirely and silently updates the existing entry:
+
+```
+↻ ripgrep re-installed (id=47, last seen 14d ago)
+```
+
+If only an incomplete record exists (you hit `[s]` the first time), the prompt is surfaced again, pre-filled from the prior entry. Filling it in updates the same row.
+
+See [Re-installs](configuration.md#re-installs) in the configuration guide for the full rules.
+
+Otherwise the prompt fires:
 
 ```
 $ brew install ripgrep
@@ -54,6 +66,18 @@ why log -- git clone https://github.com/foo/bar
 ```
 
 Note the `--` separating `log` from the install command. Without it, your shell will try to interpret `--` flags. Behaviour is identical to the hook prompt above.
+
+### `--enrich` flag
+
+By default, `why log` **always creates a new entry**, even if one already exists for the same package. This lets you split history per project.
+
+If you want `why log` to match hook behavior (update an existing complete entry instead of creating a new one), pass `--enrich`:
+
+```bash
+why log --enrich -- brew install ripgrep
+```
+
+This is the rare case — the shell hook handles enrichment automatically for most users.
 
 If the command isn't recognized as an install pattern, you'll get exit code 2 and a yellow notice:
 

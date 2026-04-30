@@ -138,6 +138,8 @@ class Install:
     removed_at: str | None
     updated_at: str
     deleted: int
+    reinstall_count: int
+    last_installed_at: str | None
 
 
 @dataclass(frozen=True)
@@ -194,7 +196,7 @@ def create_install(
 _UPDATABLE = {
     "display_name", "what_it_does", "project", "why", "disposition", "notes",
     "source_url", "metadata_complete", "reviewed_at", "removed_at",
-    "package_name", "resolved_path",
+    "package_name", "resolved_path", "reinstall_count", "last_installed_at",
 }
 
 
@@ -347,3 +349,36 @@ def list_skipped(db: Path) -> list[Install]:
             " ORDER BY installed_at ASC"
         ).fetchall()
     return [_row_to_install(r) for r in rows]
+
+
+def find_existing_install(
+    db: Path, *, manager: str, package_name: str
+) -> Install | None:
+    """Return the most recent non-deleted install for (manager, package_name), or None."""
+    with _conn(db) as c:
+        r = c.execute(
+            """SELECT * FROM installs
+               WHERE manager=? AND package_name=? AND deleted=0
+               ORDER BY installed_at DESC
+               LIMIT 1""",
+            (manager, package_name),
+        ).fetchone()
+    return _row_to_install(r) if r else None
+
+
+def record_reinstall(db: Path, install_id: int) -> Install:
+    """Bump reinstall_count, set last_installed_at and updated_at. Returns updated row."""
+    now = _now()
+    with _conn(db) as c:
+        c.execute(
+            """UPDATE installs
+               SET reinstall_count = reinstall_count + 1,
+                   last_installed_at = ?,
+                   updated_at = ?
+               WHERE id = ?""",
+            (now, now, install_id),
+        )
+        r = c.execute("SELECT * FROM installs WHERE id=?", (install_id,)).fetchone()
+    if not r:
+        raise KeyError(install_id)
+    return _row_to_install(r)

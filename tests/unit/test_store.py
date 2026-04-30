@@ -112,3 +112,38 @@ def test_recent_duplicate_detection(db: Path) -> None:
     assert not store.recent_duplicate_exists(
         db, command="brew install ripgrep", install_dir="/elsewhere", within_seconds=60
     )
+
+
+def test_find_existing_install_returns_most_recent(db: Path) -> None:
+    # Create two installs for the same package; should return the most recent.
+    _make_install(db, installed_at="2026-01-01T00:00:00+00:00")
+    inst2 = _make_install(
+        db,
+        command="brew install ripgrep",
+        package_name="ripgrep",
+        manager="brew",
+        installed_at="2026-02-01T00:00:00+00:00",
+    )
+    found = store.find_existing_install(db, manager="brew", package_name="ripgrep")
+    assert found is not None
+    assert found.id == inst2.id
+
+
+def test_find_existing_install_skips_deleted(db: Path) -> None:
+    inst = _make_install(db)
+    store.soft_delete_install(db, inst.id)
+    found = store.find_existing_install(db, manager="brew", package_name="ripgrep")
+    assert found is None
+
+
+def test_record_reinstall_bumps_counter(db: Path) -> None:
+    inst = _make_install(db)
+    assert inst.reinstall_count == 0
+    assert inst.last_installed_at is None
+
+    updated = store.record_reinstall(db, inst.id)
+    assert updated.reinstall_count == 1
+    assert updated.last_installed_at is not None
+
+    updated2 = store.record_reinstall(db, inst.id)
+    assert updated2.reinstall_count == 2

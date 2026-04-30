@@ -151,3 +151,33 @@ Beyond `ignore.toml`, the hook drops events when any of these are true:
 SQLite in WAL mode at `~/.why/data.db`. Full-text search is provided by FTS5 on `display_name`, `package_name`, `command`, `what_it_does`, `project`, `why`, `notes`. Schema migrations run automatically at startup; pre-migration backups land in `~/.why/backups/`.
 
 The schema includes forward-compat columns (`sync_id`, `updated_at`, `deleted`, `device_id`, `user_id`) so the future sync feature lands without a migration.
+
+As of schema v2 (whydatApp 1.3.0), two additional columns track re-installs:
+
+| Column              | Type                   | Meaning                                                                 |
+|---------------------|------------------------|-------------------------------------------------------------------------|
+| `reinstall_count`   | `INTEGER DEFAULT 0`    | How many times this entry was updated via re-install enrichment.        |
+| `last_installed_at` | `TEXT` (ISO timestamp) | Timestamp of the most recent re-install enrichment (NULL until first re-install). |
+
+Both columns are backwards-compatible (default 0 / NULL; no constraint changes).
+
+## Re-installs
+
+When the **shell hook** fires for a package that already has a **complete** record in the database (`metadata_complete = 1`):
+
+- The hook updates `last_installed_at`, bumps `reinstall_count`, and prints a one-line confirmation:
+  ```
+  ↻ ripgrep re-installed (id=47, last seen 14d ago)
+  ```
+- No prompt is shown. The existing disposition, project, why, and notes are left untouched.
+
+When the existing record is **incomplete** (`metadata_complete = 0`):
+
+- The hook surfaces the prompt as normal, pre-filling from the incomplete entry.
+- When the user fills it in, the same row is updated (no duplicate created).
+
+**Manual `why log`** always creates a new entry, regardless of whether one already exists — this lets power users split history per project. To match hook behavior from a manual entry, use:
+
+```bash
+why log --enrich -- brew install ripgrep
+```
