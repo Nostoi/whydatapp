@@ -10,7 +10,9 @@ from why.web.app import create_app
 
 def _client(why_home: Path) -> TestClient:
     ensure_ready()
-    return TestClient(create_app())
+    c = TestClient(create_app())
+    c.get("/installs")  # prime CSRF cookie
+    return c
 
 
 def test_root_redirects_to_installs(why_home: Path) -> None:
@@ -113,6 +115,7 @@ def test_post_updates_row(why_home: Path) -> None:
             "disposition": "experimental",
             "notes": "",
             "metadata_complete": "1",
+            "csrf_token": c.cookies.get("why_csrf", ""),
         },
     )
     assert r.status_code == 200
@@ -125,7 +128,10 @@ def test_post_updates_row(why_home: Path) -> None:
 def test_share_returns_markdown(why_home: Path) -> None:
     iid = _seed_one(why_home)
     c = _client(why_home)
-    r = c.post(f"/installs/{iid}/share")
+    r = c.post(
+        f"/installs/{iid}/share",
+        headers={"X-CSRF-Token": c.cookies.get("why_csrf", "")},
+    )
     assert r.status_code == 200
     assert "**ripgrep**" in r.text
 
@@ -207,6 +213,7 @@ def test_review_post_saves_and_advances(why_home: Path) -> None:
             "display_name": "fd", "what_it_does": "find replacement",
             "project": "p", "why": "speed",
             "disposition": "doc", "notes": "",
+            "csrf_token": c.cookies.get("why_csrf", ""),
         },
         follow_redirects=False,
     )
@@ -215,3 +222,31 @@ def test_review_post_saves_and_advances(why_home: Path) -> None:
     inst = store.get_install(db, inst.id)
     assert inst.disposition == "doc"
     assert inst.metadata_complete == 1
+
+
+def test_post_without_csrf_rejected(why_home: Path) -> None:
+    iid = _seed_one(why_home)
+    from fastapi.testclient import TestClient
+    from why.web.app import create_app
+    raw = TestClient(create_app(), raise_server_exceptions=False)
+    r = raw.post(f"/installs/{iid}", data={"display_name": "x"})
+    assert r.status_code == 403
+
+
+def test_post_with_csrf_accepted(why_home: Path) -> None:
+    iid = _seed_one(why_home)
+    c = _client(why_home)
+    c.get("/installs")
+    token = c.cookies.get("why_csrf")
+    assert token
+    r = c.post(
+        f"/installs/{iid}",
+        data={
+            "display_name": "rg", "what_it_does": "g",
+            "project": "p", "why": "w",
+            "disposition": "doc", "notes": "",
+            "metadata_complete": "1",
+            "csrf_token": token,
+        },
+    )
+    assert r.status_code == 200

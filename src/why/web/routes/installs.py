@@ -55,13 +55,13 @@ def _common_ctx(request: Request, db, pres) -> dict:
 @router.get("/installs", response_class=HTMLResponse)
 def installs_page(request: Request, db=Depends(get_db), pres=Depends(get_presentation)):
     ctx = _common_ctx(request, db, pres)
-    return HTMLResponse(_env.get_template("installs.html").render(**ctx))
+    return HTMLResponse(_env.get_template("installs.html").render(request=request, **ctx))
 
 
 @router.get("/installs/table", response_class=HTMLResponse)
 def installs_table(request: Request, db=Depends(get_db), pres=Depends(get_presentation)):
     ctx = _common_ctx(request, db, pres)
-    return HTMLResponse(_env.get_template("installs_table.html").render(**ctx))
+    return HTMLResponse(_env.get_template("installs_table.html").render(request=request, **ctx))
 
 
 def _row_ctx(db, pres, install_id: int) -> dict | None:
@@ -72,23 +72,24 @@ def _row_ctx(db, pres, install_id: int) -> dict | None:
 
 
 @router.get("/installs/{install_id}/edit", response_class=HTMLResponse)
-def install_edit(install_id: int, db=Depends(get_db), pres=Depends(get_presentation)):
+def install_edit(request: Request, install_id: int, db=Depends(get_db), pres=Depends(get_presentation)):
     ctx = _row_ctx(db, pres, install_id)
     if ctx is None:
         return HTMLResponse("Not found", status_code=404)
-    return HTMLResponse(_env.get_template("install_edit.html").render(**ctx))
+    return HTMLResponse(_env.get_template("install_edit.html").render(request=request, **ctx))
 
 
 @router.get("/installs/{install_id}/row", response_class=HTMLResponse)
-def install_row(install_id: int, db=Depends(get_db), pres=Depends(get_presentation)):
+def install_row(request: Request, install_id: int, db=Depends(get_db), pres=Depends(get_presentation)):
     ctx = _row_ctx(db, pres, install_id)
     if ctx is None:
         return HTMLResponse("Not found", status_code=404)
-    return HTMLResponse(_env.get_template("install_row.html").render(**ctx))
+    return HTMLResponse(_env.get_template("install_row.html").render(request=request, **ctx))
 
 
 @router.post("/installs/{install_id}", response_class=HTMLResponse)
 def install_update(
+    request: Request,
     install_id: int,
     display_name: str = Form(""),
     what_it_does: str = Form(""),
@@ -113,4 +114,4 @@ def install_update(
         metadata_complete=int(metadata_complete or 0),
     )
     ctx = _row_ctx(db, pres, install_id)
-    return HTMLResponse(_env.get_template("install_row.html").render(**ctx))
+    return HTMLResponse(_env.get_template("install_row.html").render(request=request, **ctx))

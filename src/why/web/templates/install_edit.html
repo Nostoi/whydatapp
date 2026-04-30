@@ -31,6 +31,7 @@
         <input class="input" name="notes" value="{{ r.notes or '' }}">
       </label>
       <input type="hidden" name="metadata_complete" value="1">
+      <input type="hidden" name="csrf_token" value="{{ request.cookies.get('why_csrf', '') if request else '' }}">
       <div class="col-span-2 flex gap-2 justify-end">
         <a class="btn" hx-get="/installs/{{ r.id }}/row" hx-target="closest tr" hx-swap="outerHTML">Cancel</a>
         <button class="btn btn-primary" type="submit">Save</button>

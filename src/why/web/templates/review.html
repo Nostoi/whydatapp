@@ -39,6 +39,7 @@
       <span class="text-xs text-zinc-500">Why install</span>
       <textarea class="input" name="why" rows="3"></textarea>
     </label>
+    <input type="hidden" name="csrf_token" value="{{ request.cookies.get('why_csrf', '') if request else '' }}">
     <div class="col-span-2 flex gap-2 justify-end">
       <button class="btn" type="submit" name="skip" value="1">Skip</button>
       <button class="btn btn-primary" type="submit">Save &amp; next</button>

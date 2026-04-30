@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 
 from why import store
@@ -12,7 +12,7 @@ _env = make_env()
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
-def dashboard(db=Depends(get_db), pres=Depends(get_presentation)):
+def dashboard(request: Request, db=Depends(get_db), pres=Depends(get_presentation)):
     ctx = {
         "by_disposition": store.stats_by_disposition(db),
         "by_manager": store.stats_by_manager(db),
@@ -22,4 +22,4 @@ def dashboard(db=Depends(get_db), pres=Depends(get_presentation)):
         "review_count": len(store.list_skipped(db)),
         "pres": pres,
     }
-    return HTMLResponse(_env.get_template("dashboard.html").render(**ctx))
+    return HTMLResponse(_env.get_template("dashboard.html").render(request=request, **ctx))

@@ -6,6 +6,7 @@
   <title>why?</title>
   <link rel="stylesheet" href="/static/css/tailwind.css">
   <script src="/static/js/htmx.min.js" defer></script>
+  <meta name="csrf-token" content="{{ request.cookies.get('why_csrf', '') if request else '' }}">
 </head>
 <body class="bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans">
   <header class="border-b border-zinc-200 dark:border-zinc-800 px-6 py-3 flex items-center gap-6">
@@ -25,5 +26,11 @@
   <footer class="px-6 py-3 text-xs text-zinc-500 border-t border-zinc-200 dark:border-zinc-800">
     🔒 localhost · no network
   </footer>
+<script defer>
+  document.body.addEventListener('htmx:configRequest', (e) => {
+    const m = document.querySelector('meta[name="csrf-token"]');
+    if (m) e.detail.headers['X-CSRF-Token'] = m.getAttribute('content');
+  });
+</script>
 </body>
 </html>

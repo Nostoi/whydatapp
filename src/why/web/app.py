@@ -11,6 +11,9 @@ from fastapi.staticfiles import StaticFiles
 def create_app() -> FastAPI:
     app = FastAPI(title="why?", docs_url=None, redoc_url=None)
 
+    from why.web.csrf import CSRFMiddleware
+    app.add_middleware(CSRFMiddleware)
+
     static_dir = Path(str(resources.files("why.web").joinpath("static")))
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 

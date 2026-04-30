@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Form
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from why import store
@@ -12,15 +12,15 @@ _env = make_env()
 
 
 @router.get("/review", response_class=HTMLResponse)
-def review_index(db=Depends(get_db), pres=Depends(get_presentation)):
+def review_index(request: Request, db=Depends(get_db), pres=Depends(get_presentation)):
     pending = store.list_skipped(db)
     if not pending:
         tmpl = _env.get_template("review.html")
-        return HTMLResponse(tmpl.render(current=None, remaining=0, pres=pres, review_count=0))
+        return HTMLResponse(tmpl.render(request=request, current=None, remaining=0, pres=pres, review_count=0))
     current = pending[0]
     tmpl = _env.get_template("review.html")
     return HTMLResponse(tmpl.render(
-        current=current, remaining=len(pending), pres=pres,
+        request=request, current=current, remaining=len(pending), pres=pres,
         review_count=len(pending),
     ))
 
