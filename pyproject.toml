@@ -40,6 +40,7 @@ packages = ["src/why"]
 "src/why/presentation.toml" = "why/presentation.toml"
 "src/why/web/templates" = "why/web/templates"
 "src/why/web/static" = "why/web/static"
+"src/why/shells" = "why/shells"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -56,3 +57,8 @@ select = ["E", "F", "I", "B", "UP", "SIM"]
 python_version = "3.11"
 strict = true
 files = ["src/why"]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+]
