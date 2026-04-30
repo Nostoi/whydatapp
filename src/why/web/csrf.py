@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import re
 import secrets
+from typing import Any
 from urllib.parse import parse_qs
 
 from fastapi import Request
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
 
 CSRF_COOKIE = "why_csrf"
@@ -12,7 +14,9 @@ SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 
 
 class CSRFMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):  # type: ignore[override]
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
         token = request.cookies.get(CSRF_COOKIE)
         if request.method not in SAFE_METHODS:
             sent = request.headers.get("x-csrf-token") or await _form_token(request)
@@ -35,19 +39,19 @@ async def _form_token(request: Request) -> str | None:
     ):
         return None
     body = await request.body()
+
     # Cache the body so downstream handlers can re-read it.
-    async def _receive() -> dict:  # type: ignore[return]
+    async def _receive() -> dict[str, Any]:
         return {"type": "http.request", "body": body, "more_body": False}
 
-    request._receive = _receive  # type: ignore[attr-defined]
+    request._receive = _receive
     if ct.startswith("application/x-www-form-urlencoded"):
         parsed = parse_qs(body.decode("utf-8", errors="ignore"))
-        val = parsed.get("csrf_token", [None])[0]
+        val: str | None = parsed.get("csrf_token", [None])[0]
         return val
     # multipart: do a simple search for the token field — best-effort.
     try:
         text = body.decode("utf-8", errors="ignore")
-        import re
         m = re.search(r'name="csrf_token"\r?\n\r?\n([^\r\n]+)', text)
         return m.group(1) if m else None
     except Exception:

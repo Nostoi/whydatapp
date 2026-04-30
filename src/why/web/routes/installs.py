@@ -72,7 +72,10 @@ def _row_ctx(db, pres, install_id: int) -> dict | None:
 
 
 @router.get("/installs/{install_id}/edit", response_class=HTMLResponse)
-def install_edit(request: Request, install_id: int, db=Depends(get_db), pres=Depends(get_presentation)):
+def install_edit(
+    request: Request, install_id: int,
+    db=Depends(get_db), pres=Depends(get_presentation),  # noqa: B008
+):
     ctx = _row_ctx(db, pres, install_id)
     if ctx is None:
         return HTMLResponse("Not found", status_code=404)
@@ -80,7 +83,10 @@ def install_edit(request: Request, install_id: int, db=Depends(get_db), pres=Dep
 
 
 @router.get("/installs/{install_id}/row", response_class=HTMLResponse)
-def install_row(request: Request, install_id: int, db=Depends(get_db), pres=Depends(get_presentation)):
+def install_row(
+    request: Request, install_id: int,
+    db=Depends(get_db), pres=Depends(get_presentation),  # noqa: B008
+):
     ctx = _row_ctx(db, pres, install_id)
     if ctx is None:
         return HTMLResponse("Not found", status_code=404)

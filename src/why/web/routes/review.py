@@ -16,7 +16,9 @@ def review_index(request: Request, db=Depends(get_db), pres=Depends(get_presenta
     pending = store.list_skipped(db)
     if not pending:
         tmpl = _env.get_template("review.html")
-        return HTMLResponse(tmpl.render(request=request, current=None, remaining=0, pres=pres, review_count=0))
+        return HTMLResponse(tmpl.render(
+            request=request, current=None, remaining=0, pres=pres, review_count=0,
+        ))
     current = pending[0]
     tmpl = _env.get_template("review.html")
     return HTMLResponse(tmpl.render(
