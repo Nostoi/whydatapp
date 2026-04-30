@@ -3,14 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>why?</title>
+  <title>whydatApp</title>
+  <link rel="icon" type="image/png" href="/static/img/whydatapp-light.png">
   <link rel="stylesheet" href="/static/css/tailwind.css">
   <script src="/static/js/htmx.min.js" defer></script>
   <meta name="csrf-token" content="{{ request.cookies.get('why_csrf', '') if request else '' }}">
 </head>
 <body class="bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans">
   <header class="border-b border-zinc-200 dark:border-zinc-800 px-6 py-3 flex items-center gap-6">
-    <a href="/installs" class="font-semibold">why?</a>
+    <a href="/installs" class="flex items-center gap-2 font-semibold">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="/static/img/whydatapp-dark.png">
+        <img src="/static/img/whydatapp-light.png" alt="whydatApp" class="h-8 w-auto">
+      </picture>
+      <span class="sr-only">whydatApp</span>
+    </a>
     <nav class="flex gap-4 text-sm">
       <a href="/installs" class="hover:underline">Installs</a>
       <a href="/dashboard" class="hover:underline">Dashboard</a>

@@ -28,7 +28,7 @@ def test_installs_page_renders(why_home: Path) -> None:
     c = _client(why_home)
     r = c.get("/installs")
     assert r.status_code == 200
-    assert "why?" in r.text
+    assert "whydatApp" in r.text
     assert "localhost · no network" in r.text
 
 

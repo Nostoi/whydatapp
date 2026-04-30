@@ -1,4 +1,11 @@
-# why?
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/whydatapp-dark.png">
+    <img src="docs/assets/whydatapp-light.png" alt="whydatApp" width="320">
+  </picture>
+</p>
+
+# whydatApp (`why?`)
 
 Track *why* you installed every tool on your machine.
 
