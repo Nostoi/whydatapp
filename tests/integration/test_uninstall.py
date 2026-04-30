@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from typer.testing import CliRunner
+
+from why.cli import app
 from why.shells.installer import (
     BLOCK_BEGIN,
     BLOCK_END,
@@ -10,6 +13,8 @@ from why.shells.installer import (
     rc_file_for,
     remove_from_rc,
 )
+
+cli_runner = CliRunner()
 
 
 def test_install_appends_block_with_fence(tmp_path: Path):
@@ -57,3 +62,35 @@ def test_rc_file_for_returns_expected_path(tmp_path, monkeypatch):
     assert rc_file_for("zsh") == tmp_path / ".zshrc"
     assert rc_file_for("bash") == tmp_path / ".bashrc"
     assert rc_file_for("fish") == tmp_path / ".config/fish/config.fish"
+
+
+def test_uninstall_removes_block_and_keeps_data(tmp_path: Path, why_home: Path, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("SHELL", "/bin/zsh")
+    rc = tmp_path / ".zshrc"
+    rc.write_text("# x\n")
+    init_answers = "\n".join(
+        ["lab"] + ["y"]*10 + ["n", "", "n", "y"]
+    ) + "\n"
+    cli_runner.invoke(app, ["init"], input=init_answers)
+    assert BLOCK_BEGIN in rc.read_text()
+
+    result = cli_runner.invoke(app, ["uninstall"], input="n\n")
+    assert result.exit_code == 0
+    assert BLOCK_BEGIN not in rc.read_text()
+    assert (why_home / "data.db").exists()
+
+
+def test_uninstall_removes_data_when_confirmed(tmp_path: Path, why_home: Path, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("SHELL", "/bin/zsh")
+    rc = tmp_path / ".zshrc"
+    rc.write_text("")
+    init_answers = "\n".join(
+        ["lab"] + ["y"]*10 + ["n", "", "n", "y"]
+    ) + "\n"
+    cli_runner.invoke(app, ["init"], input=init_answers)
+
+    result = cli_runner.invoke(app, ["uninstall"], input="y\n")
+    assert result.exit_code == 0
+    assert not (why_home / "data.db").exists()

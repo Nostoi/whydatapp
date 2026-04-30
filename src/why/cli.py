@@ -255,6 +255,38 @@ def init_cmd() -> None:
     raise typer.Exit(code=rc_code)
 
 
+@app.command("uninstall")
+def uninstall_cmd() -> None:
+    """Remove the shell hook and (optionally) the ~/.why directory."""
+    import shutil
+    import sys
+    from why.paths import why_home as _wh
+    from why.shells.installer import detect_shell, rc_file_for, remove_from_rc
+
+    shell = detect_shell()
+    rc = rc_file_for(shell)
+    remove_from_rc(rc)
+    console.print(f"[green]✓[/green] removed hook block from {rc}")
+
+    if sys.platform == "darwin":
+        from why.autostart import uninstall_macos_launchd
+        uninstall_macos_launchd()
+    elif sys.platform.startswith("linux"):
+        from why.autostart import uninstall_linux_systemd
+        uninstall_linux_systemd()
+
+    home = _wh()
+    if typer.confirm(
+        f"Also delete data directory {home}? This wipes your install history.",
+        default=False,
+    ):
+        if home.exists():
+            shutil.rmtree(home)
+        console.print(f"[green]✓[/green] removed {home}")
+    else:
+        console.print(f"  [dim]kept {home}[/dim]")
+
+
 @app.command("_hook", hidden=True)
 def hook_cmd(
     cmd: str = typer.Option(...),
