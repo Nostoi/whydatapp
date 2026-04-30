@@ -11,8 +11,8 @@ from rich.table import Table
 
 from why import __version__, store
 from why.bootstrap import ensure_ready
-from why.markdown import to_markdown
 from why.detect import match_install
+from why.markdown import to_markdown
 from why.project_infer import infer_project
 from why.prompts import run_metadata_prompt
 from why.resolve import resolve_path
@@ -233,7 +233,9 @@ def serve_cmd(
 ) -> None:
     """Start the local web UI on 127.0.0.1."""
     import webbrowser
+
     import uvicorn
+
     from why.config import load_config
     from why.web.app import create_app
 
@@ -243,6 +245,14 @@ def serve_cmd(
     if open_browser:
         webbrowser.open(f"http://{h}:{p}/")
     uvicorn.run(create_app(), host=h, port=p, log_level="warning")
+
+
+@app.command("init")
+def init_cmd() -> None:
+    """First-run interactive setup wizard."""
+    from why.init_wizard import run_wizard
+    rc_code = run_wizard(console)
+    raise typer.Exit(code=rc_code)
 
 
 @app.command("_hook", hidden=True)
