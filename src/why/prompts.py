@@ -64,8 +64,8 @@ def run_metadata_prompt(
     output: IO[str],
 ) -> PromptResult:
     output.write(f"\n📝 why? — captured: {command}  ({cwd})\n\n")
-    output.write("  Disposition? [1] Doc  [2] Setup  [3] Experimental  "
-                 "[4] Remove later  [5] Ignore\n")
+    output.write("  Purpose? [1] Reference  [2] Project setup  [3] Trying out  "
+                 "[4] Cleanup soon  [5] Ignore\n")
     output.write("  [s] Skip for now    [q] Quit (treat as ignore)\n")
     output.flush()
 

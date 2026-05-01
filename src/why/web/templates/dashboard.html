@@ -26,11 +26,11 @@
   </div>
 </div>
 
-{# ── Row 2: By disposition (1 col) + Stale queue (2 col) ─────────────────── #}
+{# ── Row 2: By purpose (1 col) + Stale queue (2 col) ─────────────────── #}
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
 
   <div class="md:col-span-1">
-    {% call card(title="By disposition") %}
+    {% call card(title="By purpose") %}
       <div class="space-y-1">
         {% for d, n in by_disposition.items() %}
           <a href="/installs?disposition={{ d }}"

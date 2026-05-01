@@ -19,7 +19,7 @@ def test_init_creates_home_and_rc_block(why_home: Path, tmp_path: Path, monkeypa
     rc.write_text("# existing\n")
     answers = "\n".join([
         "work-mbp",
-        "y", "y", "y", "y", "y", "y", "y", "y", "y", "y",
+        "y", "y", "y", "y", "y", "y", "y", "y", "y", "y", "y",
         "n",
         "",
         "n",

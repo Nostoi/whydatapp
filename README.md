@@ -74,6 +74,7 @@ Detailed usage with examples: **[Usage guide](https://github.com/Nostoi/whydatap
 - **[Configuration](https://github.com/Nostoi/whydatapp/blob/main/docs/guide/configuration.md)** — `~/.why/*.toml` files, env vars, ignore rules.
 - **[Troubleshooting](https://github.com/Nostoi/whydatapp/blob/main/docs/guide/troubleshooting.md)** — Hook not firing, prompt missed, address-in-use, restoring data, filing bugs.
 - **[Development](https://github.com/Nostoi/whydatapp/blob/main/docs/guide/development.md)** — Clone, set up, run tests, build the wheel, project layout, contribute.
+- **[Changelog](https://github.com/Nostoi/whydatapp/blob/main/CHANGELOG.md)** — Release history.
 - **[Design spec](https://github.com/Nostoi/whydatapp/blob/main/docs/superpowers/specs/2026-04-29-whydatapp-design.md)** — Architecture, data model, decisions, post-MVP roadmap.
 
 ## Privacy

@@ -98,8 +98,22 @@ def _extract_git_clone(tokens: list[str]) -> list[str] | None:
     return [name] if name else None
 
 
+def _extract_gh_clone(tokens: list[str]) -> list[str] | None:
+    if len(tokens) < 4 or tokens[1] != "repo" or tokens[2] != "clone":
+        return None
+    args = _strip_flags(tokens[3:])
+    if not args:
+        return None
+    if len(args) >= 2:
+        return [args[1]]
+    ref = args[0]
+    name = ref.rsplit("/", 1)[-1]
+    return [name] if name else None
+
+
 _HEAD = {
     "brew":  ("brew",  _extract_brew),
+    "gh":    ("gh",    _extract_gh_clone),
     "npm":   ("npm",   _extract_npm_global),
     "pnpm":  ("pnpm",  _extract_pnpm),
     "yarn":  ("yarn",  _extract_yarn),

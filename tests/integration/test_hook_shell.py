@@ -23,7 +23,7 @@ def test_hook_captures_real_install(tmp_path: Path, monkeypatch):
 
     monkeypatch.setenv("HOME", str(home))
     monkeypatch.setenv("SHELL", "/bin/zsh")
-    init_answers = "\n".join(["lab"] + ["y"] * 10 + ["n", "", "n", "y"]) + "\n"
+    init_answers = "\n".join(["lab"] + ["y"] * 11 + ["n", "", "n", "y"]) + "\n"
     subprocess.run(
         ["uv", "run", "why", "init"],
         input=init_answers,

@@ -13,7 +13,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "user":   {"id": "", "display_name": "", "email": ""},
     "managers": {
         "brew": True, "npm": True, "pnpm": True, "yarn": True, "bun": True,
-        "pip": True, "pipx": True, "uv": True, "cargo": True, "git": True,
+        "pip": True, "pipx": True, "uv": True, "cargo": True, "gh": True, "git": True,
         "gem": False, "go": False, "apt": False, "mas": False,
         "vscode": False, "docker": False,
     },

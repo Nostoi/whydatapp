@@ -43,6 +43,11 @@ icon = "📦"
 color = "#a16207"
 label = "Cargo"
 
+[gh]
+icon = "🐙"
+color = "#6b7280"
+label = "gh repo clone"
+
 [git]
 icon = "🌿"
 color = "#6b7280"
@@ -50,19 +55,19 @@ label = "git clone"
 
 [disposition.doc]
 color = "#2563eb"
-label = "Doc"
+label = "Reference"
 
 [disposition.setup]
 color = "#16a34a"
-label = "Setup"
+label = "Project setup"
 
 [disposition.experimental]
 color = "#d97706"
-label = "Experimental"
+label = "Trying out"
 
 [disposition.remove]
 color = "#dc2626"
-label = "Remove"
+label = "Cleanup soon"
 
 [disposition.ignore]
 color = "#6b7280"

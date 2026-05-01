@@ -65,7 +65,7 @@ why init
 
 1. Detects your shell (zsh / bash / fish) and confirms the rc file path.
 2. Prompts for a device label (defaults to your hostname).
-3. Lets you toggle each Tier-1 manager on/off (all on by default): `brew`, `npm`, `pnpm`, `yarn`, `bun`, `pip`, `pipx`, `uv`, `cargo`, `git`.
+3. Lets you toggle each Tier-1 manager on/off (all on by default): `brew`, `npm`, `pnpm`, `yarn`, `bun`, `pip`, `pipx`, `uv`, `cargo`, `gh`, `git`.
 4. Offers Tier-2 opt-in (`gem`, `go`, `apt`, `mas`, `vscode`, `docker` — all off by default).
 5. Asks for the web UI port (default `7873`) and whether to autostart on login (launchd on macOS, systemd-user on Linux).
 6. Appends a fenced hook block to your rc file:

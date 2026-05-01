@@ -53,7 +53,7 @@
      data-bulk-bar>
   <span id="bulk-count" class="font-medium tabular-nums" style="color: var(--color-fg);">0 selected</span>
   <div class="flex items-center gap-2 ml-auto">
-    <label class="text-xs font-medium" style="color: var(--color-fg-muted);">Set disposition:</label>
+    <label class="text-xs font-medium" style="color: var(--color-fg-muted);">Set purpose:</label>
     <select id="bulk-disposition" class="select text-xs py-1"
             onchange="
               if (!this.value) return;
@@ -68,11 +68,11 @@
               htmx.trigger(form, 'submit');
               this.value = '';
             ">
-      <option value="">— disposition —</option>
-      <option value="doc">Doc</option>
-      <option value="setup">Setup</option>
-      <option value="experimental">Experimental</option>
-      <option value="remove">Remove</option>
+      <option value="">— purpose —</option>
+      <option value="doc">Reference</option>
+      <option value="setup">Project setup</option>
+      <option value="experimental">Trying out</option>
+      <option value="remove">Cleanup soon</option>
       <option value="ignore">Ignore</option>
     </select>
     <button type="button" class="btn text-xs"

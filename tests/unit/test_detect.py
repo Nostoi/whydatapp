@@ -20,6 +20,8 @@ from why.detect import IgnoreContext, is_self_or_source_install, match_install, 
     ("pipx install black", "pipx", ["black"]),
     ("uv tool install ruff", "uv", ["ruff"]),
     ("cargo install ripgrep", "cargo", ["ripgrep"]),
+    ("gh repo clone 0x0funky/agent-sprite-forge", "gh", ["agent-sprite-forge"]),
+    ("gh repo clone 0x0funky/agent-sprite-forge my-fork", "gh", ["my-fork"]),
     ("git clone https://github.com/foo/bar", "git", ["bar"]),
     ("git clone https://github.com/foo/bar.git baz", "git", ["baz"]),
 ])

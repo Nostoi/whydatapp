@@ -1,6 +1,6 @@
 {# ── Quick-filter tab strip ─────────────────────────────────────────────────── #}
 <nav class="flex gap-0 border-b mb-4 overflow-x-auto text-sm" style="border-color: var(--color-border);"
-     aria-label="Filter by disposition">
+     aria-label="Filter by purpose">
   {% for tab in tabs %}
     {% set is_active = tab.key == active_tab %}
     <a href="/installs?{{ tab_link(tab.key) }}"
@@ -44,7 +44,7 @@
                style="accent-color: var(--color-brand);"
                aria-label="Select all visible">
       </th>
-      {% for col, label in [("display_name","Name"),("manager","Manager"),("project","Project"),("disposition","Disposition"),("installed_at","Installed")] %}
+      {% for col, label in [("display_name","Name"),("manager","Manager"),("project","Project"),("disposition","Purpose"),("installed_at","Installed")] %}
         {% set is_sort_col = (filters.order_by == col) %}
         <th class="py-2 pr-4 {% if col == 'installed_at' %}pl-0{% else %}pl-0{% endif %} font-medium
                    {% if col == 'installed_at' %}text-right{% endif %}">
@@ -110,7 +110,7 @@
         </div>
         <div>
           <dt class="font-medium uppercase tracking-wide" style="color: var(--color-fg-faint);">Installed</dt>
-          <dd class="mt-0.5 font-mono tabular-nums" style="color: var(--color-fg-muted);">{{ r.installed_at[:10] }}</dd>
+          <dd class="mt-0.5 font-mono tabular-nums" style="color: var(--color-fg-muted);">{{ r.installed_at[:10] }} {{ r.installed_at[11:16] }}</dd>
         </div>
         <div class="flex items-end" data-row-actions="true">
           <button type="button" class="btn text-xs" data-share-url="/installs/{{ r.id }}/share">Share</button>

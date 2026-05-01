@@ -8,11 +8,11 @@
 <section class="card max-w-2xl">
   <p class="text-xs font-medium uppercase tracking-wide mb-2" style="color: var(--color-fg-faint);">Captured</p>
   <pre class="font-mono text-sm mb-1 leading-relaxed" style="color: var(--color-fg);">{{ current.command }}</pre>
-  <p class="text-xs mb-6 leading-relaxed" style="color: var(--color-fg-faint);">{{ current.install_dir }} · {{ current.installed_at }}</p>
+  <p class="text-xs mb-6 leading-relaxed" style="color: var(--color-fg-faint);">Run from: {{ current.install_dir }} · {{ current.installed_at[:10] }} {{ current.installed_at[11:16] }}</p>
 
   <form method="post" action="/review/{{ current.id }}" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
     <label class="flex flex-col gap-1">
-      <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Disposition</span>
+      <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Purpose</span>
       <select class="input" name="disposition" required>
         {% for d in ["doc","setup","experimental","remove","ignore"] %}
           <option value="{{ d }}">{{ pres.disposition[d].label }}</option>
