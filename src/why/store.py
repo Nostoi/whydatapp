@@ -282,6 +282,7 @@ def recent_duplicate_exists(
         r = c.execute(
             """SELECT 1 FROM installs
                WHERE command=? AND install_dir=?
+                 AND deleted=0
                  AND installed_at >= datetime('now', ?)
                LIMIT 1""",
             (command, install_dir, f"-{within_seconds} seconds"),
