@@ -14,6 +14,7 @@ Every subcommand of the `why` CLI, with examples.
 | `why export`         | Export to Markdown or JSON.                         |
 | `why delete <id>`    | Soft-delete an entry by id.                         |
 | `why serve`          | Start the local web UI and open the browser.        |
+| `why show <id>`      | Print full details + command history for an install. |
 | `why purposes`       | Manage purpose categories (list/add/edit/delete).   |
 | `why uninstall`      | Remove the hook (and optionally the data dir).      |
 | `why --version`      | Print the installed version.                        |
@@ -225,3 +226,17 @@ You can also manage categories from the web UI at **Settings → Purposes**
 | 2    | Invalid input (e.g., unrecognized install cmd).  |
 
 The `_hook` subcommand always exits 0 — the shell hook must never break your terminal.
+
+## `why show <id>` — inspect an install
+
+Print full metadata and command history for a single install by ID:
+
+```
+why show 42
+```
+
+Output includes display name, manager, project, why, purpose, captured
+timestamp, and — when available — the list of commands that ran immediately
+before the install in that shell session.
+
+IDs appear in `why list` output.

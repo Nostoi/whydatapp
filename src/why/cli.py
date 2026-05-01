@@ -323,11 +323,43 @@ def hook_cmd(
     cmd: str = typer.Option(...),
     cwd: str = typer.Option(...),
     code: int = typer.Option(...),
+    history: str = typer.Option("", help="Record-separator (\\x1e) delimited prior commands"),
 ) -> None:
     """Internal: invoked by the shell hook. Always exits 0."""
     from why.hook_runner import run_hook
-    rc = run_hook(command=cmd, cwd=cwd, exit_code=code)
+    rc = run_hook(command=cmd, cwd=cwd, exit_code=code, raw_history=history)
     raise typer.Exit(code=rc)
+
+
+@app.command("show")
+def show_cmd(
+    install_id: int = typer.Argument(..., help="Install ID (from why list)"),
+) -> None:
+    """Show full details and command history for an install."""
+    db = ensure_ready()
+    inst = store.get_install(db, install_id)
+    if inst is None:
+        console.print(f"[red]No install with id {install_id}[/red]")
+        raise typer.Exit(1)
+    console.print(f"[bold]#{inst.id}[/bold]  {inst.command}")
+    console.print(f"  Manager:  {inst.manager}")
+    if inst.display_name:
+        console.print(f"  Name:     {inst.display_name}")
+    if inst.what_it_does:
+        console.print(f"  Does:     {inst.what_it_does}")
+    if inst.project:
+        console.print(f"  Project:  {inst.project}")
+    if inst.why:
+        console.print(f"  Why:      {inst.why}")
+    if inst.notes:
+        console.print(f"  Notes:    {inst.notes}")
+    console.print(f"  Purpose:  {inst.disposition or '—'}")
+    console.print(f"  Captured: {inst.installed_at}")
+    history = store.get_command_history(db, install_id)
+    if history:
+        console.print("\n  [dim]Commands before this install:[/dim]")
+        for i, h in enumerate(history, 1):
+            console.print(f"    {i:2}. {h}")
 
 
 # ---------------------------------------------------------------------------

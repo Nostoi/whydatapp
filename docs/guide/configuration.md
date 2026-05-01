@@ -182,3 +182,25 @@ When the existing record is **incomplete** (`metadata_complete = 0`):
 ```bash
 why log --enrich -- brew install ripgrep
 ```
+
+## Command history and redaction
+
+When an install is captured, whydatApp records up to 10 commands that ran
+immediately before it in that shell session. This context is stored in the
+`command_history` table and shown in the web edit modal and `why show <id>`.
+
+Before storing, commands are passed through `redact.py`, which replaces
+secret-looking values with `[REDACTED]`. Patterns covered:
+
+- Long-form flags with sensitive names: `--password=`, `--token=`,
+  `--secret=`, `--api-key=`, `--auth-token=`, `--private-key=`,
+  `--access-key=`, `--client-secret=` (both `=value` and `value` forms).
+- Short flag `-p <value>` (common in `mysql`, `psql`, `ssh`).
+- Environment-variable prefixes where the variable name contains a sensitive
+  word: e.g. `GITHUB_TOKEN=`, `DATABASE_PASSWORD=`, `MY_API_KEY=`.
+
+Redaction is conservative — only clearly sensitive patterns are stripped.
+The command text is otherwise preserved as-is to remain useful for context.
+
+There is currently no user-configurable allowlist/blocklist for redaction
+patterns. This is on the roadmap.

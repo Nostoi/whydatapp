@@ -11,6 +11,7 @@ from why.capture import capture
 from why.config import load_user_ignore_patterns
 from why.detect import IgnoreContext, match_install, should_ignore
 from why.paths import log_path
+from why.redact import redact
 
 
 def _parent_process_name() -> str | None:
@@ -37,7 +38,19 @@ def _log_error(msg: str) -> None:
         pass
 
 
-def run_hook(*, command: str, cwd: str, exit_code: int) -> int:
+def _parse_history(raw: str) -> list[str]:
+    """Parse \x1e-delimited history string into a list of redacted commands.
+
+    The shell hooks join decoded commands with ASCII record separator \\x1e.
+    Empty entries and the install command itself are dropped.
+    """
+    if not raw:
+        return []
+    entries = [e.strip() for e in raw.split("\x1e")]
+    return [redact(e) for e in entries if e]
+
+
+def run_hook(*, command: str, cwd: str, exit_code: int, raw_history: str = "") -> int:
     """Returns 0 always. Triggers `why log` flow only when warranted."""
     try:
         if not command.strip():
@@ -47,12 +60,6 @@ def run_hook(*, command: str, cwd: str, exit_code: int) -> int:
             return 0
 
         db = ensure_ready()
-        # WHY_SUPPRESS is set by the shell hook *for our environment* as a
-        # shell-level recursion guard (see hook.zsh / hook.bash / hook.fish:
-        # the shell itself checks $WHY_SUPPRESS before re-entering precmd).
-        # We do NOT read it here — this Python process IS the hook, and
-        # treating its own env flag as an "ignore me" signal silently
-        # cancels every capture.
         ctx = IgnoreContext(
             command=command,
             cwd=cwd,
@@ -67,7 +74,7 @@ def run_hook(*, command: str, cwd: str, exit_code: int) -> int:
         if should_ignore(ctx):
             return 0
 
-        capture(
+        install = capture(
             db,
             command_str=command,
             work_dir=cwd,
@@ -76,6 +83,13 @@ def run_hook(*, command: str, cwd: str, exit_code: int) -> int:
             input=sys.stdin,
             output=sys.stdout,
         )
+
+        # Persist ring-buffer history (may be None if capture was skipped).
+        if install is not None:
+            history_cmds = _parse_history(raw_history)
+            if history_cmds:
+                store.save_command_history(db, install.id, history_cmds)
+
         return 0
     except SystemExit:
         raise

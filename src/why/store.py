@@ -469,3 +469,36 @@ def delete_purpose(db: Path, key: str) -> None:
         if r["built_in"]:
             raise ValueError(f"cannot delete built-in purpose '{key}'")
         c.execute("DELETE FROM purposes WHERE key=?", (key,))
+
+
+# ---------------------------------------------------------------------------
+# Command history
+# ---------------------------------------------------------------------------
+
+_HISTORY_LIMIT = 10  # max commands stored per install
+
+
+def save_command_history(db: Path, install_id: int, commands: list[str]) -> None:
+    """Store the ring-buffer commands that preceded *install_id*.
+
+    *commands* is oldest-first; at most _HISTORY_LIMIT entries are kept.
+    Silently no-ops when *commands* is empty.
+    """
+    if not commands:
+        return
+    trimmed = commands[-_HISTORY_LIMIT:]
+    with _conn(db) as c:
+        c.executemany(
+            "INSERT INTO command_history (install_id, position, command) VALUES (?,?,?)",
+            [(install_id, i, cmd) for i, cmd in enumerate(trimmed)],
+        )
+
+
+def get_command_history(db: Path, install_id: int) -> list[str]:
+    """Return commands for *install_id*, oldest-first. Empty list if none."""
+    with _conn(db) as c:
+        rows = c.execute(
+            "SELECT command FROM command_history WHERE install_id=? ORDER BY position",
+            (install_id,),
+        ).fetchall()
+    return [r[0] for r in rows]

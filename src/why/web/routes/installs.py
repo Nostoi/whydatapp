@@ -203,7 +203,10 @@ def install_edit(
     ctx = _row_ctx(db, pres, install_id, purposes)
     if ctx is None:
         return HTMLResponse("Not found", status_code=404)
-    return HTMLResponse(_env.get_template("install_edit.html").render(request=request, **ctx))
+    history = store.get_command_history(db, install_id)
+    return HTMLResponse(_env.get_template("install_edit.html").render(
+        request=request, history=history, **ctx,
+    ))
 
 
 @router.get("/installs/{install_id}/row", response_class=HTMLResponse)
