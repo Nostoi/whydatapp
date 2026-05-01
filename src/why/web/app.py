@@ -35,4 +35,8 @@ def create_app() -> FastAPI:
 
     from why.web.routes.review import router as review_router
     app.include_router(review_router)
+
+    from why.web.routes.settings import router as settings_router
+    app.include_router(settings_router)
+
     return app

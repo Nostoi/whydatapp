@@ -32,16 +32,14 @@
   <div class="md:col-span-1">
     {% call card(title="By purpose") %}
       <div class="space-y-1">
-        {% for d, n in by_disposition.items() %}
-          <a href="/installs?disposition={{ d }}"
+        {% for p in purposes %}
+          <a href="/installs?disposition={{ p.key }}"
              class="flex items-center justify-between gap-2 px-2 py-1.5 rounded-md -mx-2 transition-colors duration-100"
              style="color: var(--color-fg);"
              onmouseover="this.style.backgroundColor='var(--color-bg-muted)'"
              onmouseout="this.style.backgroundColor=''">
-            <span class="text-sm" style="color: var(--color-fg-muted);">
-              {% if d in pres.disposition %}{{ pres.disposition[d].label }}{% else %}{{ d }}{% endif %}
-            </span>
-            <span class="text-2xl font-semibold tabular-nums tracking-tight" style="color: var(--color-fg);">{{ n }}</span>
+            <span class="text-sm" style="color: var(--color-fg-muted);">{{ p.label }}</span>
+            <span class="text-2xl font-semibold tabular-nums tracking-tight" style="color: var(--color-fg);">{{ by_disposition.get(p.key, 0) }}</span>
           </a>
         {% endfor %}
       </div>

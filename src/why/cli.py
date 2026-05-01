@@ -328,3 +328,78 @@ def hook_cmd(
     from why.hook_runner import run_hook
     rc = run_hook(command=cmd, cwd=cwd, exit_code=code)
     raise typer.Exit(code=rc)
+
+
+# ---------------------------------------------------------------------------
+# why purposes — manage purpose categories
+# ---------------------------------------------------------------------------
+
+purposes_app = typer.Typer(help="Manage purpose categories.")
+app.add_typer(purposes_app, name="purposes")
+
+
+@purposes_app.command("list")
+def purposes_list() -> None:
+    """List all purpose categories."""
+    db = ensure_ready()
+    rows = store.list_purposes(db)
+    if not rows:
+        console.print("No purposes defined.")
+        return
+    t = Table()
+    for col in ("key", "label", "color", "order", "built-in"):
+        t.add_column(col)
+    for p in rows:
+        t.add_row(p.key, p.label, p.color, str(p.sort_order), "yes" if p.built_in else "no")
+    console.print(t)
+
+
+@purposes_app.command("add")
+def purposes_add(
+    key: str = typer.Argument(..., help="Unique key (e.g. 'work')"),
+    label: str = typer.Option(..., "--label", "-l", help="Display label"),
+    color: str = typer.Option("#6b7280", "--color", "-c", help="Hex color"),
+    order: int = typer.Option(99, "--order", "-o", help="Sort order"),
+) -> None:
+    """Add a new purpose category."""
+    db = ensure_ready()
+    try:
+        p = store.create_purpose(db, key=key, label=label, color=color, sort_order=order)
+        console.print(f"Added purpose '{p.key}': {p.label}")
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1) from e
+
+
+@purposes_app.command("edit")
+def purposes_edit(
+    key: str = typer.Argument(..., help="Key of the purpose to edit"),
+    label: str | None = typer.Option(None, "--label", "-l"),
+    color: str | None = typer.Option(None, "--color", "-c"),
+    order: int | None = typer.Option(None, "--order", "-o"),
+) -> None:
+    """Edit an existing purpose category (built-in or custom)."""
+    db = ensure_ready()
+    try:
+        p = store.update_purpose(db, key, label=label, color=color, sort_order=order)
+        console.print(f"Updated purpose '{p.key}': {p.label}")
+    except (KeyError, ValueError) as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1) from e
+
+
+@purposes_app.command("delete")
+def purposes_delete(
+    key: str = typer.Argument(..., help="Key of the purpose to delete"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation"),
+) -> None:
+    """Delete a custom purpose category (built-in purposes cannot be deleted)."""
+    db = ensure_ready()
+    try:
+        if not yes:
+            typer.confirm(f"Delete purpose '{key}'?", abort=True)
+        store.delete_purpose(db, key)
+        console.print(f"Deleted purpose '{key}'.")
+    except (KeyError, ValueError) as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1) from e

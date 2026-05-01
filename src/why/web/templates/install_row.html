@@ -23,7 +23,8 @@
   <td class="py-2 pr-4 text-sm leading-relaxed cursor-pointer" style="color: var(--color-fg-muted);">{{ r.project or "—" }}</td>
   <td class="py-2 pr-4 cursor-pointer">
     {% if r.disposition %}
-      {% with tone=r.disposition, label=pres.disposition[r.disposition].label %}
+      {% set _p = purpose_map.get(r.disposition) if purpose_map is defined else none %}
+      {% with tone=r.disposition, label=(_p.label if _p else r.disposition) %}
         {% include "components/pill.html" %}
       {% endwith %}
     {% else %}

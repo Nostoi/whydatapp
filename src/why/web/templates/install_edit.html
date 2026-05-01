@@ -34,8 +34,8 @@
   <label class="flex flex-col gap-1">
     <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Purpose</span>
     <select class="input" name="disposition">
-      {% for d in ["doc","setup","experimental","remove","ignore"] %}
-        <option value="{{ d }}" {% if r.disposition == d %}selected{% endif %}>{{ pres.disposition[d].label }}</option>
+      {% for p in purposes %}
+        <option value="{{ p.key }}" {% if r.disposition == p.key %}selected{% endif %}>{{ p.label }}</option>
       {% endfor %}
     </select>
   </label>

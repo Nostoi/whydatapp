@@ -382,3 +382,90 @@ def record_reinstall(db: Path, install_id: int) -> Install:
     if not r:
         raise KeyError(install_id)
     return _row_to_install(r)
+
+
+# ---------------------------------------------------------------------------
+# Purposes
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class Purpose:
+    key: str
+    label: str
+    color: str
+    sort_order: int
+    built_in: bool
+
+
+def _row_to_purpose(r: sqlite3.Row) -> Purpose:
+    return Purpose(
+        key=r["key"],
+        label=r["label"],
+        color=r["color"],
+        sort_order=r["sort_order"],
+        built_in=bool(r["built_in"]),
+    )
+
+
+def list_purposes(db: Path) -> list[Purpose]:
+    """Return all purposes ordered by sort_order."""
+    with _conn(db) as c:
+        rows = c.execute(
+            "SELECT * FROM purposes ORDER BY sort_order, key"
+        ).fetchall()
+    return [_row_to_purpose(r) for r in rows]
+
+
+def get_purpose(db: Path, key: str) -> Purpose | None:
+    with _conn(db) as c:
+        r = c.execute("SELECT * FROM purposes WHERE key=?", (key,)).fetchone()
+    return _row_to_purpose(r) if r else None
+
+
+def create_purpose(
+    db: Path, *, key: str, label: str, color: str = "#6b7280", sort_order: int = 99
+) -> Purpose:
+    with _conn(db) as c:
+        c.execute(
+            "INSERT INTO purposes(key, label, color, sort_order, built_in) VALUES (?,?,?,?,0)",
+            (key, label, color, sort_order),
+        )
+    return Purpose(key=key, label=label, color=color, sort_order=sort_order, built_in=False)
+
+
+def update_purpose(
+    db: Path,
+    key: str,
+    *,
+    label: str | None = None,
+    color: str | None = None,
+    sort_order: int | None = None,
+) -> Purpose:
+    fields: dict[str, object] = {}
+    if label is not None:
+        fields["label"] = label
+    if color is not None:
+        fields["color"] = color
+    if sort_order is not None:
+        fields["sort_order"] = sort_order
+    if not fields:
+        raise ValueError("no fields to update")
+    sets = ", ".join(f"{k}=?" for k in fields)
+    params = list(fields.values()) + [key]
+    with _conn(db) as c:
+        c.execute(f"UPDATE purposes SET {sets} WHERE key=?", params)
+        r = c.execute("SELECT * FROM purposes WHERE key=?", (key,)).fetchone()
+    if not r:
+        raise KeyError(key)
+    return _row_to_purpose(r)
+
+
+def delete_purpose(db: Path, key: str) -> None:
+    """Delete a purpose. Raises ValueError if it is built-in."""
+    with _conn(db) as c:
+        r = c.execute("SELECT built_in FROM purposes WHERE key=?", (key,)).fetchone()
+        if r is None:
+            raise KeyError(key)
+        if r["built_in"]:
+            raise ValueError(f"cannot delete built-in purpose '{key}'")
+        c.execute("DELETE FROM purposes WHERE key=?", (key,))

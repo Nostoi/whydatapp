@@ -69,11 +69,9 @@
               this.value = '';
             ">
       <option value="">— purpose —</option>
-      <option value="doc">Reference</option>
-      <option value="setup">Project setup</option>
-      <option value="experimental">Trying out</option>
-      <option value="remove">Cleanup soon</option>
-      <option value="ignore">Ignore</option>
+      {% for p in purposes %}
+        <option value="{{ p.key }}">{{ p.label }}</option>
+      {% endfor %}
     </select>
     <button type="button" class="btn text-xs"
             style="background-color: var(--color-remove); color: var(--color-remove-fg); border-color: var(--color-remove-border);"

@@ -6,6 +6,34 @@ Versioning follows [SemVer](https://semver.org/).
 
 ---
 
+## [1.6.0] — 2026-05-01
+
+### Added
+- **User-configurable purpose categories** — purpose labels, colors, and sort
+  order are now stored in the `purposes` table (DB migration 003) instead of
+  being hardcoded. Five built-in categories (Reference, Project setup, Trying
+  out, Cleanup soon, Ignore) are seeded automatically; built-ins can be edited
+  but not deleted.
+- `why purposes list` — tabular view of all purpose categories.
+- `why purposes add --key KEY --label LABEL [--color COLOR] [--sort-order N]`
+  — add a custom purpose category.
+- `why purposes edit KEY [--label LABEL] [--color COLOR] [--sort-order N]`
+  — update an existing purpose category (built-ins included).
+- `why purposes delete KEY` — delete a custom purpose category (built-ins
+  are protected).
+- **Settings → Purposes page** (`/settings/purposes`) in the web UI — list,
+  add, edit, and delete purpose categories without touching the CLI.
+- "Purposes" nav link in the web sidebar pointing to the settings page.
+- CLI capture prompt now loads purpose options dynamically from the DB;
+  falls back to built-in defaults if the DB is unavailable.
+
+### Changed
+- Schema version bumped from 2 → 3 (`003_purposes.sql`).
+- All templates and routes now receive a `purposes` list and `purpose_map`
+  dict from the DB rather than reading hardcoded key lists.
+
+---
+
 ## [1.5.0] — 2026-05-01
 
 ### Changed
