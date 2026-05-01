@@ -30,6 +30,9 @@
       {% with href="/review", label="Review", active=(active_path == '/review'), badge_count=review_count %}
         {% include "components/nav_link.html" %}
       {% endwith %}
+      {% with href="/settings/purposes", label="Purposes", active=(active_path.startswith('/settings')), badge_count=0 %}
+        {% include "components/nav_link.html" %}
+      {% endwith %}
     </nav>
     <!-- Row 2 on mobile, right-aligned on md+: search -->
     <form action="/installs" method="get" class="w-full md:w-auto md:ml-auto order-3 md:order-none">

@@ -36,6 +36,8 @@ def _backup(db_path: Path, backups_dir: Path) -> None:
 _MIGRATION_FILES = {
     1: "001_init.sql",
     2: "002_reinstall_columns.sql",
+    3: "003_purposes.sql",
+    4: "004_command_history.sql",
 }
 
 
@@ -44,7 +46,12 @@ def _read_migration(n: int) -> str:
     return resources.files("why.migrations").joinpath(filename).read_text()
 
 
-MIGRATIONS = {1: lambda: _read_migration(1), 2: lambda: _read_migration(2)}
+MIGRATIONS = {
+    1: lambda: _read_migration(1),
+    2: lambda: _read_migration(2),
+    3: lambda: _read_migration(3),
+    4: lambda: _read_migration(4),
+}
 
 
 def migrate(db_path: Path, backups_dir: Path | None = None) -> None:

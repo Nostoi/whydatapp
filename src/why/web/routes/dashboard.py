@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 
 from why import store
-from why.web.deps import get_db, get_presentation
+from why.web.deps import get_db, get_presentation, get_purposes
 from why.web.templates_env import make_env
 
 router = APIRouter()
@@ -55,6 +55,7 @@ def dashboard(  # noqa: B008
     per_month = store.installs_per_month(db, months=12)
     stale = store.stale_review_queue(db)
     skipped = store.list_skipped(db)
+    purposes = get_purposes(db)
 
     total_installs = sum(by_disposition.values())
     total_projects = len(by_project)
@@ -71,6 +72,7 @@ def dashboard(  # noqa: B008
         "stale": stale,
         "review_count": len(skipped),
         "pres": pres,
+        "purposes": purposes,
         "total_installs": total_installs,
         "total_projects": total_projects,
         "stale_count": stale_count,

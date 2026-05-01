@@ -114,6 +114,15 @@ def test_recent_duplicate_detection(db: Path) -> None:
     )
 
 
+def test_recent_duplicate_ignores_soft_deleted(db: Path) -> None:
+    """A soft-deleted install must not trigger the duplicate guard on reinstall."""
+    inst = _make_install(db)
+    store.soft_delete_install(db, inst.id)
+    assert not store.recent_duplicate_exists(
+        db, command="brew install ripgrep", install_dir="/tmp", within_seconds=60
+    )
+
+
 def test_find_existing_install_returns_most_recent(db: Path) -> None:
     # Create two installs for the same package; should return the most recent.
     _make_install(db, installed_at="2026-01-01T00:00:00+00:00")

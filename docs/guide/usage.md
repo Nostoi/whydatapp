@@ -14,6 +14,8 @@ Every subcommand of the `why` CLI, with examples.
 | `why export`         | Export to Markdown or JSON.                         |
 | `why delete <id>`    | Soft-delete an entry by id.                         |
 | `why serve`          | Start the local web UI and open the browser.        |
+| `why show <id>`      | Print full details + command history for an install. |
+| `why purposes`       | Manage purpose categories (list/add/edit/delete).   |
 | `why uninstall`      | Remove the hook (and optionally the data dir).      |
 | `why --version`      | Print the installed version.                        |
 
@@ -193,6 +195,30 @@ Answer `n` (the default) to keep your data; answer `y` to wipe it.
 
 ## Exit codes
 
+## `why purposes` — manage purpose categories
+
+Purpose categories label why each install exists. Five built-in categories are
+seeded on first run; you can edit them or add your own.
+
+```
+# List all categories
+why purposes list
+
+# Add a custom category
+why purposes add --key work --label "Work" --color "#f59e0b" --sort-order 10
+
+# Edit an existing category (built-ins included)
+why purposes edit doc --label "Reference docs"
+
+# Delete a custom category (built-ins are protected)
+why purposes delete work
+```
+
+You can also manage categories from the web UI at **Settings → Purposes**
+(`/settings/purposes`).
+
+## Exit codes
+
 | Code | Meaning                                          |
 |------|--------------------------------------------------|
 | 0    | Success.                                         |
@@ -200,3 +226,17 @@ Answer `n` (the default) to keep your data; answer `y` to wipe it.
 | 2    | Invalid input (e.g., unrecognized install cmd).  |
 
 The `_hook` subcommand always exits 0 — the shell hook must never break your terminal.
+
+## `why show <id>` — inspect an install
+
+Print full metadata and command history for a single install by ID:
+
+```
+why show 42
+```
+
+Output includes display name, manager, project, why, purpose, captured
+timestamp, and — when available — the list of commands that ran immediately
+before the install in that shell session.
+
+IDs appear in `why list` output.

@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from why import store
-from why.web.deps import get_db, get_presentation
+from why.web.deps import get_db, get_presentation, get_purposes
 from why.web.templates_env import make_env
 
 router = APIRouter()
@@ -21,16 +21,18 @@ def review_index(
     pres: dict[str, Any] = Depends(get_presentation),  # noqa: B008
 ) -> HTMLResponse:
     pending = store.list_skipped(db)
+    purposes = get_purposes(db)
     if not pending:
         tmpl = _env.get_template("review.html")
         return HTMLResponse(tmpl.render(
-            request=request, current=None, remaining=0, pres=pres, review_count=0,
+            request=request, current=None, remaining=0, pres=pres,
+            purposes=purposes, review_count=0,
         ))
     current = pending[0]
     tmpl = _env.get_template("review.html")
     return HTMLResponse(tmpl.render(
         request=request, current=current, remaining=len(pending), pres=pres,
-        review_count=len(pending),
+        purposes=purposes, review_count=len(pending),
     ))
 
 

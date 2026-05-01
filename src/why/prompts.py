@@ -1,33 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
 from typing import IO
-
-
-class DispositionChoice(Enum):
-    DOC = "doc"
-    SETUP = "setup"
-    EXPERIMENTAL = "experimental"
-    REMOVE = "remove"
-    IGNORE = "ignore"
-    SKIP = "skip"
-    QUIT = "quit"
-
-
-_NUMERIC = {
-    "1": DispositionChoice.DOC,
-    "2": DispositionChoice.SETUP,
-    "3": DispositionChoice.EXPERIMENTAL,
-    "4": DispositionChoice.REMOVE,
-    "5": DispositionChoice.IGNORE,
-    "s": DispositionChoice.SKIP,
-    "q": DispositionChoice.QUIT,
-}
-
-
-def parse_disposition_input(s: str) -> DispositionChoice | None:
-    return _NUMERIC.get(s.strip().lower())
 
 
 @dataclass(frozen=True)
@@ -54,6 +28,23 @@ def _ask(prompt: str, *, input: IO[str], output: IO[str], default: str | None = 
     return val if val else (default or "")
 
 
+def _load_purposes() -> list[tuple[str, str]]:
+    """Return [(key, label), ...] from DB, or built-in defaults on any error."""
+    try:
+        from why import store
+        from why.bootstrap import ensure_ready
+        db = ensure_ready()
+        return [(p.key, p.label) for p in store.list_purposes(db)]
+    except Exception:
+        return [
+            ("doc", "Reference"),
+            ("setup", "Project setup"),
+            ("experimental", "Trying out"),
+            ("remove", "Cleanup soon"),
+            ("ignore", "Ignore"),
+        ]
+
+
 def run_metadata_prompt(
     *,
     default_name: str | None,
@@ -63,11 +54,23 @@ def run_metadata_prompt(
     input: IO[str],
     output: IO[str],
 ) -> PromptResult:
+    purposes = _load_purposes()
+
+    # Build numeric mapping 1..N → (key, label)
+    numeric_map: dict[str, str] = {}  # digit → key
+    parts = []
+    for i, (key, label) in enumerate(purposes, start=1):
+        numeric_map[str(i)] = key
+        parts.append(f"[{i}] {label}")
+
     output.write(f"\n📝 why? — captured: {command}  ({cwd})\n\n")
-    output.write("  Purpose? [1] Reference  [2] Project setup  [3] Trying out  "
-                 "[4] Cleanup soon  [5] Ignore\n")
+    output.write("  Purpose? " + "  ".join(parts) + "\n")
     output.write("  [s] Skip for now    [q] Quit (treat as ignore)\n")
     output.flush()
+
+    chosen_key: str | None = None
+    is_skip = False
+    is_quit = False
 
     while True:
         output.write("> ")
@@ -75,14 +78,21 @@ def run_metadata_prompt(
         line = input.readline()
         if not line:
             return PromptResult("skip", None, None, None, None, None, False)
-        choice = parse_disposition_input(line)
-        if choice is not None:
+        val = line.strip().lower()
+        if val == "s":
+            is_skip = True
+            break
+        if val == "q":
+            is_quit = True
+            break
+        if val in numeric_map:
+            chosen_key = numeric_map[val]
             break
         output.write("  invalid choice; try again.\n")
 
-    if choice == DispositionChoice.SKIP:
+    if is_skip:
         return PromptResult("skip", None, None, None, None, None, False)
-    if choice == DispositionChoice.QUIT:
+    if is_quit:
         return PromptResult("ignore", None, None, None, None, None, True)
 
     name = _ask("Display name", default=default_name or "", input=input, output=output) or None
@@ -92,7 +102,7 @@ def run_metadata_prompt(
     notes = _ask("Notes (optional, ↵ to skip)", default=None, input=input, output=output) or None
 
     return PromptResult(
-        disposition=choice.value,
+        disposition=chosen_key or "ignore",
         display_name=name,
         what_it_does=what,
         project=project,
@@ -100,3 +110,4 @@ def run_metadata_prompt(
         notes=notes,
         metadata_complete=True,
     )
+

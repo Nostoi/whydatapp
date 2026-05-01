@@ -34,8 +34,8 @@
   <label class="flex flex-col gap-1">
     <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Purpose</span>
     <select class="input" name="disposition">
-      {% for d in ["doc","setup","experimental","remove","ignore"] %}
-        <option value="{{ d }}" {% if r.disposition == d %}selected{% endif %}>{{ pres.disposition[d].label }}</option>
+      {% for p in purposes %}
+        <option value="{{ p.key }}" {% if r.disposition == p.key %}selected{% endif %}>{{ p.label }}</option>
       {% endfor %}
     </select>
   </label>
@@ -71,3 +71,14 @@
 <datalist id="edit-modal-projects">
   {% for p in projects %}<option value="{{ p }}">{% endfor %}
 </datalist>
+
+{% if history %}
+<div class="px-5 pb-5 border-t pt-4" style="border-color: var(--color-border);">
+  <p class="text-xs font-medium uppercase tracking-wide mb-2" style="color: var(--color-fg-muted);">Commands before this install</p>
+  <ol class="flex flex-col gap-1">
+    {% for cmd in history %}
+    <li class="font-mono text-xs truncate" style="color: var(--color-fg-faint);" title="{{ cmd }}">{{ loop.index }}. {{ cmd }}</li>
+    {% endfor %}
+  </ol>
+</div>
+{% endif %}

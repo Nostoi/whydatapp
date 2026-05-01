@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse
 
 from why import store
-from why.web.deps import get_db, get_presentation
+from why.web.deps import get_db, get_presentation, get_purposes
 from why.web.filters import parse_query
 from why.web.templates_env import make_env
 
@@ -17,6 +17,10 @@ router = APIRouter()
 _env = make_env()
 
 _DISPOSITIONS = ["doc", "setup", "experimental", "remove", "ignore"]
+
+
+def _purpose_keys(purposes: list[store.Purpose]) -> list[str]:
+    return [p.key for p in purposes]
 
 
 def _stale_count(db: Path) -> int:
@@ -28,7 +32,12 @@ def _devices(db: Path) -> list[Any]:
     return [d] if d else []
 
 
-def _common_ctx(request: Request, db: Path, pres: dict[str, Any]) -> dict[str, Any]:
+def _common_ctx(
+    request: Request,
+    db: Path,
+    pres: dict[str, Any],
+    purposes: list[store.Purpose],
+) -> dict[str, Any]:
     state = parse_query(request.query_params)
 
     # Route rows depending on view=stale
@@ -47,6 +56,8 @@ def _common_ctx(request: Request, db: Path, pres: dict[str, Any]) -> dict[str, A
     by_disp = store.stats_by_disposition(db)
     total_count = sum(by_disp.values())
     stale_count = _stale_count(db)
+
+    purpose_map = {p.key: p for p in purposes}
 
     def sort_link(col: str) -> str:
         params = dict(request.query_params)
@@ -70,16 +81,15 @@ def _common_ctx(request: Request, db: Path, pres: dict[str, Any]) -> dict[str, A
             params["disposition"] = tab
         return urlencode(params)
 
-    disp_pres = pres.get("disposition", {})
     tabs = [
         {"key": "all", "label": "All", "count": total_count},
         *[
             {
-                "key": d,
-                "label": disp_pres.get(d, {}).get("label", d.capitalize()),
-                "count": by_disp.get(d, 0),
+                "key": p.key,
+                "label": p.label,
+                "count": by_disp.get(p.key, 0),
             }
-            for d in _DISPOSITIONS
+            for p in purposes
         ],
         {"key": "stale", "label": "Stale", "count": stale_count},
     ]
@@ -100,6 +110,8 @@ def _common_ctx(request: Request, db: Path, pres: dict[str, Any]) -> dict[str, A
         "managers": managers,
         "devices": devices,
         "pres": pres,
+        "purposes": purposes,
+        "purpose_map": purpose_map,
         "review_count": len(store.list_skipped(db)),
         "sort_link": sort_link,
         "tab_link": tab_link,
@@ -114,7 +126,8 @@ def installs_page(
     db: Path = Depends(get_db),  # noqa: B008
     pres: dict[str, Any] = Depends(get_presentation),  # noqa: B008
 ) -> HTMLResponse:
-    ctx = _common_ctx(request, db, pres)
+    purposes = get_purposes(db)
+    ctx = _common_ctx(request, db, pres, purposes)
     return HTMLResponse(_env.get_template("installs.html").render(request=request, **ctx))
 
 
@@ -124,7 +137,8 @@ def installs_table(
     db: Path = Depends(get_db),  # noqa: B008
     pres: dict[str, Any] = Depends(get_presentation),  # noqa: B008
 ) -> HTMLResponse:
-    ctx = _common_ctx(request, db, pres)
+    purposes = get_purposes(db)
+    ctx = _common_ctx(request, db, pres, purposes)
     return HTMLResponse(_env.get_template("installs_table.html").render(request=request, **ctx))
 
 
@@ -143,7 +157,8 @@ def installs_bulk_update(
         for iid in selected:
             with contextlib.suppress(KeyError, ValueError):
                 store.update_install(db, iid, disposition=disposition)
-    ctx = _common_ctx(request, db, pres)
+    purposes = get_purposes(db)
+    ctx = _common_ctx(request, db, pres, purposes)
     return HTMLResponse(_env.get_template("installs_table.html").render(request=request, **ctx))
 
 
@@ -157,15 +172,24 @@ def installs_bulk_delete(
     for iid in selected:
         with contextlib.suppress(Exception):
             store.soft_delete_install(db, iid)
-    ctx = _common_ctx(request, db, pres)
+    purposes = get_purposes(db)
+    ctx = _common_ctx(request, db, pres, purposes)
     return HTMLResponse(_env.get_template("installs_table.html").render(request=request, **ctx))
 
 
-def _row_ctx(db: Path, pres: dict[str, Any], install_id: int) -> dict[str, Any] | None:
+def _row_ctx(
+    db: Path, pres: dict[str, Any], install_id: int, purposes: list[store.Purpose]
+) -> dict[str, Any] | None:
     r = store.get_install(db, install_id)
     if not r:
         return None
-    return {"r": r, "pres": pres, "projects": store.list_projects(db), "manager": r.manager}
+    return {
+        "r": r,
+        "pres": pres,
+        "purposes": purposes,
+        "projects": store.list_projects(db),
+        "manager": r.manager,
+    }
 
 
 @router.get("/installs/{install_id}/edit", response_class=HTMLResponse)
@@ -175,10 +199,14 @@ def install_edit(
     db: Path = Depends(get_db),  # noqa: B008
     pres: dict[str, Any] = Depends(get_presentation),  # noqa: B008
 ) -> HTMLResponse:
-    ctx = _row_ctx(db, pres, install_id)
+    purposes = get_purposes(db)
+    ctx = _row_ctx(db, pres, install_id, purposes)
     if ctx is None:
         return HTMLResponse("Not found", status_code=404)
-    return HTMLResponse(_env.get_template("install_edit.html").render(request=request, **ctx))
+    history = store.get_command_history(db, install_id)
+    return HTMLResponse(_env.get_template("install_edit.html").render(
+        request=request, history=history, **ctx,
+    ))
 
 
 @router.get("/installs/{install_id}/row", response_class=HTMLResponse)
@@ -188,7 +216,8 @@ def install_row(
     db: Path = Depends(get_db),  # noqa: B008
     pres: dict[str, Any] = Depends(get_presentation),  # noqa: B008
 ) -> HTMLResponse:
-    ctx = _row_ctx(db, pres, install_id)
+    purposes = get_purposes(db)
+    ctx = _row_ctx(db, pres, install_id, purposes)
     if ctx is None:
         return HTMLResponse("Not found", status_code=404)
     return HTMLResponse(_env.get_template("install_row.html").render(request=request, **ctx))
@@ -220,7 +249,8 @@ def install_update(
         notes=notes or None,
         metadata_complete=int(metadata_complete or 0),
     )
-    ctx = _row_ctx(db, pres, install_id)
+    purposes = get_purposes(db)
+    ctx = _row_ctx(db, pres, install_id, purposes)
     if ctx is None:
         return HTMLResponse("Not found", status_code=404)
     return HTMLResponse(

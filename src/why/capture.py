@@ -28,31 +28,24 @@ def capture(
     console: Console,
     input: IO[str],
     output: IO[str],
-) -> None:
+) -> store.Install | None:
     """Run the full capture flow for a single install command.
 
-    Args:
-        db: path to the SQLite database.
-        command_str: the raw install command, e.g. "brew install ripgrep".
-        work_dir: the working directory at capture time.
-        enrich: when True, check for an existing install and short-circuit
-                if it is already complete (re-install enrichment).
-        console: rich Console for output (used for the skip / log confirmation).
-        input: stream for prompt input (usually sys.stdin).
-        output: stream for prompt output (usually sys.stdout).
+    Returns the Install row that was created or updated, or None when the
+    command was skipped / not recognised / was a silent re-install.
     """
     match = match_install(command_str)
     if match is None:
         console.print(
             f"[yellow]not recognized as an install: {command_str}[/yellow]"
         )
-        return
+        return None
 
     if store.recent_duplicate_exists(
         db, command=command_str, install_dir=work_dir, within_seconds=60
     ):
         console.print("[dim]recent duplicate; skipping.[/dim]")
-        return
+        return None
 
     user = store.get_solo_user(db)
     device = store.get_solo_device(db)
@@ -77,7 +70,7 @@ def capture(
                 f"↻ {display} re-installed (id={updated.id}, last seen {ago})\n"
             )
             sys.stdout.flush()
-            return
+            return None  # silent path — no new install row
 
         if existing is not None and existing.metadata_complete == 0:
             # Incomplete record — surface prompt with prefill, then update the same row.
@@ -95,7 +88,7 @@ def capture(
                 console.print(
                     f"  [dim]skipped — review later via `why review` (id={existing.id})[/dim]"
                 )
-                return
+                return None
 
             if result.project:
                 store.upsert_project(db, result.project)
@@ -112,7 +105,7 @@ def capture(
                 metadata_complete=1 if result.metadata_complete else 0,
             )
             console.print(f"  [green]✓[/green] updated (id={existing.id}).")
-            return
+            return store.get_install(db, existing.id)
 
     # --- No existing match, or enrich=False — create a new entry ---
     inst = store.create_install(
@@ -141,7 +134,7 @@ def capture(
         console.print(
             f"  [dim]skipped — review later via `why review` (id={inst.id})[/dim]"
         )
-        return
+        return inst  # row exists but incomplete — still return it for history
 
     if result.project:
         store.upsert_project(db, result.project)
@@ -158,3 +151,4 @@ def capture(
         metadata_complete=1 if result.metadata_complete else 0,
     )
     console.print(f"  [green]✓[/green] logged (id={inst.id}).")
+    return inst

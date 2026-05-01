@@ -68,3 +68,20 @@ Not yet implemented (it's on the [post-MVP roadmap](../superpowers/specs/2026-04
 
 - Icons / colors / labels per manager and per purpose: edit `~/.why/presentation.toml`. See [Configuration](configuration.md#presentationtoml).
 - Dark mode follows your OS preference (`prefers-color-scheme`). A manual toggle is on the roadmap.
+
+## Settings → Purposes
+
+Navigate to **Settings → Purposes** (nav bar link, or `/settings/purposes`) to
+manage purpose categories without touching the CLI.
+
+- **List** — see all categories with their key, label, color, sort order, and
+  whether they are built-in.
+- **Edit** — click the edit button on any row to update the label, color, or
+  sort order. Built-in categories can be edited but not deleted.
+- **Add** — fill in the "Add purpose" form at the bottom of the page. Choose a
+  unique key (alphanumeric + underscores), label, optional hex color, and sort
+  order.
+- **Delete** — available only for custom (non-built-in) categories.
+
+Changes take effect immediately across all views (tabs, pills, dropdowns,
+dashboard cards, and the CLI capture prompt).

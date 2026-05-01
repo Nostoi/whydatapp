@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% from "components/card.html" import card %}
+{% block content %}
+<div class="flex items-center justify-between mb-8">
+  <h1 class="text-2xl md:text-3xl font-semibold tracking-tight leading-tight" style="color: var(--color-brand);">Purpose categories</h1>
+  <a href="/installs" class="btn text-sm">← Back</a>
+</div>
+
+{% if error %}
+<div class="mb-4 px-4 py-3 rounded-md text-sm" style="background: var(--color-accent-muted); color: var(--color-accent-fg);">
+  {{ error }}
+</div>
+{% endif %}
+
+{# ── Existing purposes ─────────────────────────────────────────────────── #}
+{% call card(title="All purposes") %}
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="text-xs uppercase tracking-wide" style="color: var(--color-fg-faint);">
+        <th class="text-left py-1 pr-4">Key</th>
+        <th class="text-left py-1 pr-4">Label</th>
+        <th class="text-left py-1 pr-4">Color</th>
+        <th class="text-left py-1 pr-4">Order</th>
+        <th class="text-left py-1 pr-4"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y" style="border-color: var(--color-border);">
+      {% for p in purposes %}
+      <tr>
+        <td class="py-2 pr-4 font-mono" style="color: var(--color-fg-muted);">{{ p.key }}</td>
+        <td class="py-2 pr-4">
+          <form method="post" action="/settings/purposes/{{ p.key }}/edit" class="flex items-center gap-2">
+            <input type="hidden" name="csrf_token" value="{{ request.cookies.get('why_csrf', '') if request else '' }}">
+            <input class="input text-sm py-0.5 w-36" name="label" value="{{ p.label }}" required>
+            <input type="color" class="h-7 w-10 rounded cursor-pointer border-0 p-0" name="color" value="{{ p.color }}">
+            <input class="input text-sm py-0.5 w-14" type="number" name="sort_order" value="{{ p.sort_order }}" min="0" max="999">
+            <button class="btn btn-primary text-xs py-0.5 px-2" type="submit">Save</button>
+          </form>
+        </td>
+        <td class="py-2 pr-4">
+          <span class="inline-block w-4 h-4 rounded-full border" style="background: {{ p.color }}; border-color: var(--color-border);"></span>
+        </td>
+        <td class="py-2 pr-4 tabular-nums" style="color: var(--color-fg-faint);">{{ p.sort_order }}</td>
+        <td class="py-2">
+          {% if not p.built_in %}
+          <form method="post" action="/settings/purposes/{{ p.key }}/delete"
+                onsubmit="return confirm('Delete purpose \'{{ p.key }}\'?')">
+            <input type="hidden" name="csrf_token" value="{{ request.cookies.get('why_csrf', '') if request else '' }}">
+            <button class="btn text-xs py-0.5 px-2" style="color: var(--color-accent-fg);" type="submit">Delete</button>
+          </form>
+          {% else %}
+          <span class="text-xs" style="color: var(--color-fg-faint);">built-in</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endcall %}
+
+{# ── Add new purpose ───────────────────────────────────────────────────── #}
+{% call card(title="Add purpose") %}
+  <form method="post" action="/settings/purposes" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <input type="hidden" name="csrf_token" value="{{ request.cookies.get('why_csrf', '') if request else '' }}">
+    <label class="flex flex-col gap-1">
+      <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Key <span class="font-normal">(unique, lowercase, no spaces)</span></span>
+      <input class="input" name="key" placeholder="e.g. work" pattern="[a-z0-9_\-]+" required>
+    </label>
+    <label class="flex flex-col gap-1">
+      <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Label</span>
+      <input class="input" name="label" placeholder="e.g. Work project" required>
+    </label>
+    <label class="flex flex-col gap-1">
+      <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Color</span>
+      <input type="color" class="h-9 w-16 rounded cursor-pointer border p-0.5" name="color" value="#6b7280"
+             style="border-color: var(--color-border);">
+    </label>
+    <label class="flex flex-col gap-1">
+      <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Sort order</span>
+      <input class="input" type="number" name="sort_order" value="99" min="0" max="999">
+    </label>
+    <div class="md:col-span-2 flex justify-end">
+      <button class="btn btn-primary" type="submit">Add purpose</button>
+    </div>
+  </form>
+{% endcall %}
+{% endblock %}

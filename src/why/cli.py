@@ -323,8 +323,115 @@ def hook_cmd(
     cmd: str = typer.Option(...),
     cwd: str = typer.Option(...),
     code: int = typer.Option(...),
+    history: str = typer.Option("", help="Record-separator (\\x1e) delimited prior commands"),
 ) -> None:
     """Internal: invoked by the shell hook. Always exits 0."""
     from why.hook_runner import run_hook
-    rc = run_hook(command=cmd, cwd=cwd, exit_code=code)
+    rc = run_hook(command=cmd, cwd=cwd, exit_code=code, raw_history=history)
     raise typer.Exit(code=rc)
+
+
+@app.command("show")
+def show_cmd(
+    install_id: int = typer.Argument(..., help="Install ID (from why list)"),
+) -> None:
+    """Show full details and command history for an install."""
+    db = ensure_ready()
+    inst = store.get_install(db, install_id)
+    if inst is None:
+        console.print(f"[red]No install with id {install_id}[/red]")
+        raise typer.Exit(1)
+    console.print(f"[bold]#{inst.id}[/bold]  {inst.command}")
+    console.print(f"  Manager:  {inst.manager}")
+    if inst.display_name:
+        console.print(f"  Name:     {inst.display_name}")
+    if inst.what_it_does:
+        console.print(f"  Does:     {inst.what_it_does}")
+    if inst.project:
+        console.print(f"  Project:  {inst.project}")
+    if inst.why:
+        console.print(f"  Why:      {inst.why}")
+    if inst.notes:
+        console.print(f"  Notes:    {inst.notes}")
+    console.print(f"  Purpose:  {inst.disposition or '—'}")
+    console.print(f"  Captured: {inst.installed_at}")
+    history = store.get_command_history(db, install_id)
+    if history:
+        console.print("\n  [dim]Commands before this install:[/dim]")
+        for i, h in enumerate(history, 1):
+            console.print(f"    {i:2}. {h}")
+
+
+# ---------------------------------------------------------------------------
+# why purposes — manage purpose categories
+# ---------------------------------------------------------------------------
+
+purposes_app = typer.Typer(help="Manage purpose categories.")
+app.add_typer(purposes_app, name="purposes")
+
+
+@purposes_app.command("list")
+def purposes_list() -> None:
+    """List all purpose categories."""
+    db = ensure_ready()
+    rows = store.list_purposes(db)
+    if not rows:
+        console.print("No purposes defined.")
+        return
+    t = Table()
+    for col in ("key", "label", "color", "order", "built-in"):
+        t.add_column(col)
+    for p in rows:
+        t.add_row(p.key, p.label, p.color, str(p.sort_order), "yes" if p.built_in else "no")
+    console.print(t)
+
+
+@purposes_app.command("add")
+def purposes_add(
+    key: str = typer.Argument(..., help="Unique key (e.g. 'work')"),
+    label: str = typer.Option(..., "--label", "-l", help="Display label"),
+    color: str = typer.Option("#6b7280", "--color", "-c", help="Hex color"),
+    order: int = typer.Option(99, "--order", "-o", help="Sort order"),
+) -> None:
+    """Add a new purpose category."""
+    db = ensure_ready()
+    try:
+        p = store.create_purpose(db, key=key, label=label, color=color, sort_order=order)
+        console.print(f"Added purpose '{p.key}': {p.label}")
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1) from e
+
+
+@purposes_app.command("edit")
+def purposes_edit(
+    key: str = typer.Argument(..., help="Key of the purpose to edit"),
+    label: str | None = typer.Option(None, "--label", "-l"),
+    color: str | None = typer.Option(None, "--color", "-c"),
+    order: int | None = typer.Option(None, "--order", "-o"),
+) -> None:
+    """Edit an existing purpose category (built-in or custom)."""
+    db = ensure_ready()
+    try:
+        p = store.update_purpose(db, key, label=label, color=color, sort_order=order)
+        console.print(f"Updated purpose '{p.key}': {p.label}")
+    except (KeyError, ValueError) as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1) from e
+
+
+@purposes_app.command("delete")
+def purposes_delete(
+    key: str = typer.Argument(..., help="Key of the purpose to delete"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation"),
+) -> None:
+    """Delete a custom purpose category (built-in purposes cannot be deleted)."""
+    db = ensure_ready()
+    try:
+        if not yes:
+            typer.confirm(f"Delete purpose '{key}'?", abort=True)
+        store.delete_purpose(db, key)
+        console.print(f"Deleted purpose '{key}'.")
+    except (KeyError, ValueError) as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1) from e

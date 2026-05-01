@@ -6,6 +6,60 @@ Versioning follows [SemVer](https://semver.org/).
 
 ---
 
+## [1.7.0] — 2026-05-01
+
+### Added
+- **Shell history ring buffer** — the last 10 commands before each install are
+  now captured by the shell hook and stored in the `command_history` table
+  (migration 004). This gives context for *why* you ran an install.
+- `why show <id>` — new CLI subcommand. Prints full install metadata plus the
+  command history for an install.
+- **Edit panel history block** — when an install has a recorded command
+  history, the web edit modal shows a read-only "Commands before this install"
+  list at the bottom.
+- `redact.py` — new pure module that strips secrets (tokens, passwords, API
+  keys, env-var assignments) from captured commands before storing. Uses
+  conservative regex patterns so commands remain useful.
+- `_hook --history` flag — internal flag added to `why _hook`; receives the
+  record-separator-delimited decoded command buffer from the shell hook.
+
+### Changed
+- Schema version bumped from 3 → 4 (`004_command_history.sql`).
+- `capture()` now returns `Install | None` (was `None`) so the hook runner can
+  associate history with the correct install row.
+- Shell hooks (zsh, bash, fish) updated to maintain `WHY_HISTORY` ring buffer
+  and pass decoded commands to `why _hook` via `--history`.
+
+---
+
+## [1.6.0] — 2026-05-01
+
+### Added
+- **User-configurable purpose categories** — purpose labels, colors, and sort
+  order are now stored in the `purposes` table (DB migration 003) instead of
+  being hardcoded. Five built-in categories (Reference, Project setup, Trying
+  out, Cleanup soon, Ignore) are seeded automatically; built-ins can be edited
+  but not deleted.
+- `why purposes list` — tabular view of all purpose categories.
+- `why purposes add --key KEY --label LABEL [--color COLOR] [--sort-order N]`
+  — add a custom purpose category.
+- `why purposes edit KEY [--label LABEL] [--color COLOR] [--sort-order N]`
+  — update an existing purpose category (built-ins included).
+- `why purposes delete KEY` — delete a custom purpose category (built-ins
+  are protected).
+- **Settings → Purposes page** (`/settings/purposes`) in the web UI — list,
+  add, edit, and delete purpose categories without touching the CLI.
+- "Purposes" nav link in the web sidebar pointing to the settings page.
+- CLI capture prompt now loads purpose options dynamically from the DB;
+  falls back to built-in defaults if the DB is unavailable.
+
+### Changed
+- Schema version bumped from 2 → 3 (`003_purposes.sql`).
+- All templates and routes now receive a `purposes` list and `purpose_map`
+  dict from the DB rather than reading hardcoded key lists.
+
+---
+
 ## [1.5.0] — 2026-05-01
 
 ### Changed
