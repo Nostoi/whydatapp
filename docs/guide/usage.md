@@ -50,7 +50,7 @@ $ brew install ripgrep
 
 📝 why? — captured: brew install ripgrep  (~/dev/projects/whydatapp)
 
-  Disposition? [1] Doc  [2] Setup  [3] Experimental  [4] Remove later  [5] Ignore
+  Purpose? [1] Reference  [2] Project setup  [3] Trying out  [4] Cleanup soon  [5] Ignore
   [s] Skip for now    [q] Quit (treat as ignore)
 > 1
   Display name [ripgrep]:
@@ -61,10 +61,10 @@ $ brew install ripgrep
   ✓ logged (id=1).
 ```
 
-- The disposition is the only required field.
+- The purpose is the only required field.
 - `↵` accepts the suggested default (or skips, for optional fields).
 - `[s]` saves the entry with metadata-incomplete; you'll see it in `why review` and on the dashboard's stale queue.
-- `[q]` saves it with `disposition=ignore`. Permanent dismissal.
+- `[q]` saves it with `purpose=ignore`. Permanent dismissal.
 - `Ctrl-C` mid-prompt is treated as `[s]` — captures are never lost.
 
 ## `why log` — manual entry
@@ -102,7 +102,7 @@ not recognized as an install: ls -la
 
 ```bash
 why list                              # all installs (limit 50)
-why list --disposition experimental   # filter by disposition
+why list --purpose experimental   # filter by purpose
 why list --project whydatapp          # filter by project
 why list --manager brew               # filter by manager
 why list --incomplete                 # only entries missing metadata
@@ -124,7 +124,7 @@ If the queue is empty, it just prints `Review queue is empty.` and exits.
 ```bash
 why export --format md   --out installs.md
 why export --format json --out installs.json
-why export --format md   --out doc-items.md  --disposition doc
+why export --format md   --out doc-items.md  --purpose doc
 why export --format md   --out project-x.md  --project x
 ```
 

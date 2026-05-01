@@ -32,7 +32,7 @@
     <textarea class="input" name="why" rows="2">{{ r.why or '' }}</textarea>
   </label>
   <label class="flex flex-col gap-1">
-    <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Disposition</span>
+    <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Purpose</span>
     <select class="input" name="disposition">
       {% for d in ["doc","setup","experimental","remove","ignore"] %}
         <option value="{{ d }}" {% if r.disposition == d %}selected{% endif %}>{{ pres.disposition[d].label }}</option>
@@ -52,6 +52,21 @@
     <button class="btn btn-primary" type="submit">Save</button>
   </div>
 </form>
+
+<dl class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs px-5 pb-5 pt-1" style="color: var(--color-fg-faint);">
+  <div>
+    <dt class="font-medium uppercase tracking-wide mb-0.5">Run from</dt>
+    <dd class="font-mono truncate" title="{{ r.install_dir }}">{{ r.install_dir }}</dd>
+  </div>
+  <div>
+    <dt class="font-medium uppercase tracking-wide mb-0.5">Installed to <span class="normal-case font-normal">(best-effort)</span></dt>
+    <dd class="font-mono truncate" title="{{ r.resolved_path or '' }}">{{ r.resolved_path or "—" }}</dd>
+  </div>
+  <div>
+    <dt class="font-medium uppercase tracking-wide mb-0.5">Installed at</dt>
+    <dd class="font-mono">{{ r.installed_at[:10] }} {{ r.installed_at[11:16] }}</dd>
+  </div>
+</dl>
 
 <datalist id="edit-modal-projects">
   {% for p in projects %}<option value="{{ p }}">{% endfor %}

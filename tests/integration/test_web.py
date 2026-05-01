@@ -230,7 +230,7 @@ def test_dashboard_renders(why_home: Path) -> None:
     c = _client(why_home)
     r = c.get("/dashboard")
     assert r.status_code == 200
-    assert "By disposition" in r.text or "Disposition" in r.text
+    assert "By purpose" in r.text or "Purpose" in r.text
     assert "By manager" in r.text or "Manager" in r.text
     assert "Stale review" in r.text
 
@@ -268,7 +268,7 @@ def test_review_shows_first_pending(why_home: Path) -> None:
     r = c.get("/review")
     assert r.status_code == 200
     assert "fd" in r.text
-    assert "Disposition" in r.text
+    assert "Purpose" in r.text
 
 
 def test_review_post_saves_and_advances(why_home: Path) -> None:

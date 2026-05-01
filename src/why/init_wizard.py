@@ -17,7 +17,7 @@ from why.shells.installer import (
     rc_file_for,
 )
 
-_TIER1 = ("brew", "npm", "pnpm", "yarn", "bun", "pip", "pipx", "uv", "cargo", "git")
+_TIER1 = ("brew", "npm", "pnpm", "yarn", "bun", "pip", "pipx", "uv", "cargo", "gh", "git")
 _TIER2 = ("gem", "go", "apt", "mas", "vscode", "docker")
 
 

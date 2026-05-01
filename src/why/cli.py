@@ -56,7 +56,9 @@ def main(
 
 @app.command("list")
 def list_cmd(
-    disposition: str | None = typer.Option(None),
+    disposition: str | None = typer.Option(
+        None, "--purpose", help="Filter by purpose (doc, setup, experimental, remove, ignore)."
+    ),
     project: str | None = typer.Option(None),
     manager: str | None = typer.Option(None),
     incomplete_only: bool = typer.Option(False, "--incomplete"),
@@ -78,16 +80,21 @@ def list_cmd(
         console.print("No installs.")
         return
     t = Table()
-    for col in ("id", "name", "manager", "project", "disposition", "installed_at"):
+    for col in ("id", "name", "manager", "project", "purpose", "installed_at", "run from"):
         t.add_column(col)
     for r in rows:
+        # Format installed_at as YYYY-MM-DD HH:MM
+        ts = r.installed_at
+        if len(ts) >= 16:
+            ts = ts[:10] + " " + ts[11:16]
         t.add_row(
             str(r.id),
             r.display_name or r.package_name or "",
             r.manager,
             r.project or "",
             r.disposition or "—",
-            r.installed_at,
+            ts,
+            r.install_dir,
         )
     console.print(t)
 
@@ -165,7 +172,7 @@ def review_cmd() -> None:
 def export_cmd(
     fmt: str = typer.Option("md", "--format"),
     out: _P = typer.Option(..., "--out"),  # noqa: B008
-    disposition: str | None = typer.Option(None),
+    disposition: str | None = typer.Option(None, "--purpose", help="Filter by purpose key."),
     project: str | None = typer.Option(None),
 ) -> None:
     """Export installs to a file (md|json)."""

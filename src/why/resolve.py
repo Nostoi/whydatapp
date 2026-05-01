@@ -62,7 +62,7 @@ def resolve_path(*, manager: str, package: str, cwd: str) -> str | None:
                 return _resolve_uv_tool(package)
             case "npm" | "pnpm" | "yarn" | "bun":
                 return _resolve_npm_global(package)
-            case "git":
+            case "git" | "gh":
                 return _resolve_git(package, cwd)
             case _:
                 return None

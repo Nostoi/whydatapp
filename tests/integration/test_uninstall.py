@@ -70,7 +70,7 @@ def test_uninstall_removes_block_and_keeps_data(tmp_path: Path, why_home: Path, 
     rc = tmp_path / ".zshrc"
     rc.write_text("# x\n")
     init_answers = "\n".join(
-        ["lab"] + ["y"]*10 + ["n", "", "n", "y"]
+        ["lab"] + ["y"]*11 + ["n", "", "n", "y"]
     ) + "\n"
     cli_runner.invoke(app, ["init"], input=init_answers)
     assert BLOCK_BEGIN in rc.read_text()
@@ -87,7 +87,7 @@ def test_uninstall_removes_data_when_confirmed(tmp_path: Path, why_home: Path, m
     rc = tmp_path / ".zshrc"
     rc.write_text("")
     init_answers = "\n".join(
-        ["lab"] + ["y"]*10 + ["n", "", "n", "y"]
+        ["lab"] + ["y"]*11 + ["n", "", "n", "y"]
     ) + "\n"
     cli_runner.invoke(app, ["init"], input=init_answers)
 

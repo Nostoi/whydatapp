@@ -113,6 +113,8 @@ src/why/
 ├── migrations/         # numbered .sql files
 ├── detect.py           # patterns + ignore rules (pure)
 ├── resolve.py          # best-effort install path resolution
+├── capture.py          # re-install enrichment logic
+├── humanize.py         # human-readable time-ago formatting
 ├── prompts.py          # interactive metadata prompt (pure-ish)
 ├── markdown.py         # entry → Markdown snippet (shared CLI + web)
 ├── project_infer.py    # cwd → project name (pure)

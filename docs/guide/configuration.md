@@ -45,6 +45,7 @@ pip   = true
 pipx  = true
 uv    = true
 cargo = true
+gh    = true
 git   = true
 # Tier-2 (off by default)
 gem    = false
@@ -71,7 +72,7 @@ enabled = false
 
 ## `presentation.toml`
 
-Default icons, colors, and labels per manager and per disposition. The package ships defaults; create `~/.why/presentation.toml` to override any subset (your overrides deep-merge over the defaults).
+Default icons, colors, and labels per manager and per purpose. The package ships defaults; create `~/.why/presentation.toml` to override any subset (your overrides deep-merge over the defaults).
 
 ```toml
 [brew]
@@ -88,11 +89,11 @@ label = "npm"
 
 [disposition.doc]
 color = "#2563eb"
-label = "Doc"
+label = "Reference"
 
 [disposition.experimental]
 color = "#d97706"
-label = "Experimental"
+label = "Trying out"
 
 # ... per disposition ...
 ```
@@ -169,7 +170,7 @@ When the **shell hook** fires for a package that already has a **complete** reco
   ```
   ↻ ripgrep re-installed (id=47, last seen 14d ago)
   ```
-- No prompt is shown. The existing disposition, project, why, and notes are left untouched.
+- No prompt is shown. The existing purpose, project, why, and notes are left untouched.
 
 When the existing record is **incomplete** (`metadata_complete = 0`):
 

@@ -35,13 +35,13 @@ Sortable, filterable table.
 - **Sort** by clicking any column header.
 - **Edit inline**: click the row's name → an edit form expands in place. Save commits and re-renders just the row.
 - **Share** (per-row): returns the same Markdown snippet as the CLI's `why export --format md`.
-- **Filters live in the URL** (`?disposition=experimental&manager=brew&q=ripgrep`). Back/forward navigation works; you can deep-link or bookmark a filtered view.
+- **Filters live in the URL** (`?purpose=experimental&manager=brew&q=ripgrep`). Back/forward navigation works; you can deep-link or bookmark a filtered view.
 
 ## Dashboard
 
 Five cards:
 
-- **By disposition** — counts per disposition.
+- **By purpose** — counts per purpose.
 - **By manager** — counts per manager, with icon and color from `presentation.toml`.
 - **By project (top 10)** — clickable, links into a filtered Installs view.
 - **Installs per month** — sparkline of the last 12 months.
@@ -66,5 +66,5 @@ Not yet implemented (it's on the [post-MVP roadmap](../superpowers/specs/2026-04
 
 ## Customization
 
-- Icons / colors / labels per manager and per disposition: edit `~/.why/presentation.toml`. See [Configuration](configuration.md#presentationtoml).
+- Icons / colors / labels per manager and per purpose: edit `~/.why/presentation.toml`. See [Configuration](configuration.md#presentationtoml).
 - Dark mode follows your OS preference (`prefers-color-scheme`). A manual toggle is on the roadmap.
