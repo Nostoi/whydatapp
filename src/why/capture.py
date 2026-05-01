@@ -12,10 +12,10 @@ from typing import IO
 from rich.console import Console
 
 from why import store
-from why.detect import match_install
+from why.detect import match_install, match_uninstall
 from why.humanize import time_ago
 from why.project_infer import infer_project
-from why.prompts import run_metadata_prompt
+from why.prompts import RemovalPromptResult, prompt_removal, run_metadata_prompt
 from why.resolve import resolve_path
 
 
@@ -151,4 +151,84 @@ def capture(
         metadata_complete=1 if result.metadata_complete else 0,
     )
     console.print(f"  [green]✓[/green] logged (id={inst.id}).")
+    return inst
+
+
+def capture_removal(
+    db: Path,
+    *,
+    command_str: str,
+    work_dir: str,
+    removed_at: str,
+    console: Console,
+    input: IO[str],
+    output: IO[str],
+) -> store.Install | None:
+    """Run the full removal-capture flow for a single uninstall command.
+
+    1. Tries to find a matching existing install row.
+    2. If found: sets removed_at, then prompts for reason.
+    3. If not found: creates a new removal-only row (purpose=NULL), then prompts.
+    4. Skip / Ctrl-C / EOF leaves metadata_complete=0 (surfaces in review queue).
+
+    Returns the Install row, or None if the command was not recognised.
+    """
+    match = match_uninstall(command_str)
+    if match is None:
+        console.print(
+            f"[yellow]not recognized as an uninstall: {command_str}[/yellow]"
+        )
+        return None
+
+    if store.recent_duplicate_exists(
+        db, command=command_str, install_dir=work_dir, within_seconds=60
+    ):
+        console.print("[dim]recent duplicate; skipping.[/dim]")
+        return None
+
+    user = store.get_solo_user(db)
+    device = store.get_solo_device(db)
+    assert user is not None and device is not None
+
+    primary_pkg = match.packages[0]
+
+    # --- Find existing install row for this package ---
+    existing = store.find_existing_install(
+        db, manager=match.manager, package_name=primary_pkg
+    )
+
+    if existing is not None:
+        # Mark it removed immediately — the event happened regardless of prompt outcome.
+        inst = store.mark_removed(db, existing.id, removed_at=removed_at)
+    else:
+        # No prior record — create a removal-only row.
+        inst = store.create_removal(
+            db,
+            command=command_str,
+            manager=match.manager,
+            package_name=primary_pkg,
+            install_dir=work_dir,
+            removed_at=removed_at,
+            user_id=user.id,
+            device_id=device.id,
+        )
+
+    # --- Prompt for removal reason ---
+    result: RemovalPromptResult = prompt_removal(
+        command=command_str,
+        cwd=work_dir,
+        input=input,
+        output=output,
+    )
+
+    if result.metadata_complete and result.why:
+        inst = store.mark_removed(
+            db, inst.id, removed_at=removed_at, removal_reason=result.why
+        )
+        console.print(f"  [green]✓[/green] removal noted (id={inst.id}).")
+    else:
+        console.print(
+            f"  [dim]skipped — review later via `why review` (id={inst.id})[/dim]"
+        )
+
     return inst

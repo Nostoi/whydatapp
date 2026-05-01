@@ -111,3 +111,43 @@ def run_metadata_prompt(
         metadata_complete=True,
     )
 
+
+@dataclass(frozen=True)
+class RemovalPromptResult:
+    why: str | None          # reason for removal; None means skipped
+    metadata_complete: bool  # True when user provided a reason
+
+
+def prompt_removal(
+    *,
+    command: str,
+    cwd: str,
+    input: IO[str],
+    output: IO[str],
+) -> RemovalPromptResult:
+    """Prompt the user for why they removed a package.
+
+    A single optional question — skip with ↵ or [s].  Ctrl-C / EOF treated as
+    skip (same mechanic as run_metadata_prompt).
+    """
+    output.write(f"\n📝 why? — removed: {command}  ({cwd})\n\n")
+    output.write("  Why did you remove it? (↵ or [s] to skip)\n")
+    output.flush()
+
+    try:
+        output.write("> ")
+        output.flush()
+        line = input.readline()
+    except (KeyboardInterrupt, EOFError):
+        output.write("\n")
+        return RemovalPromptResult(why=None, metadata_complete=False)
+
+    if not line:
+        return RemovalPromptResult(why=None, metadata_complete=False)
+
+    val = line.rstrip("\n").strip()
+    if val.lower() == "s" or val == "":
+        return RemovalPromptResult(why=None, metadata_complete=False)
+
+    return RemovalPromptResult(why=val, metadata_complete=True)
+
