@@ -111,6 +111,39 @@ why list --incomplete                 # only entries missing metadata
 why list --limit 200                  # show more
 ```
 
+## Uninstall capture
+
+When you uninstall a package with a supported manager, the hook automatically records the removal — no extra steps needed.
+
+```
+$ brew uninstall ripgrep
+
+📝 why? — captured removal: brew uninstall ripgrep
+
+  Why did you remove it? (↵ to skip):
+> no longer needed after switching to fd
+  ✓ logged removal (id=1).
+```
+
+The removal prompt is always optional — pressing `↵`, `s`, or `Ctrl-C` records the timestamp and marks the entry removed without a reason. The entry stays in the database so your history is complete; it is just hidden from `why list` and the web UI by default.
+
+**If the package was never logged** (e.g. installed before `why` was set up), a new removal-only row is created so the event isn't lost. The entry will appear in the review queue without a purpose.
+
+**Exit code gate** — if the uninstall command exits non-zero, no removal is recorded.
+
+### Supported managers (uninstall)
+
+Same set as installs: `brew`, `npm`, `pnpm`, `yarn`, `bun`, `pip`/`pip3`, `pipx`, `uv`, `cargo`.
+`git` / `gh` are not tracked (clones aren't uninstalls).
+
+### Viewing removed entries
+
+```bash
+why list --show-removed          # include removed rows in table output
+```
+
+In the web UI, check **"Show removed"** in the filter bar.
+
 ## `why review` — drain the queue
 
 Walks every entry where `metadata_complete=0` and prompts you for the metadata. Same prompts as the live capture flow.

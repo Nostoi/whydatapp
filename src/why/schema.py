@@ -38,6 +38,7 @@ _MIGRATION_FILES = {
     2: "002_reinstall_columns.sql",
     3: "003_purposes.sql",
     4: "004_command_history.sql",
+    5: "005_removed_at.sql",
 }
 
 
@@ -51,6 +52,7 @@ MIGRATIONS = {
     2: lambda: _read_migration(2),
     3: lambda: _read_migration(3),
     4: lambda: _read_migration(4),
+    5: lambda: _read_migration(5),
 }
 
 

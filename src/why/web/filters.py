@@ -15,6 +15,7 @@ class FilterState:
     manager: str | None
     device_id: str | None
     incomplete_only: bool
+    show_removed: bool
     q: str
     order_by: str
     order_dir: str
@@ -29,6 +30,7 @@ class FilterState:
             manager=self.manager,
             device_id=self.device_id,
             incomplete_only=self.incomplete_only,
+            show_removed=self.show_removed,
             limit=self.limit,
             offset=self.offset,
             order_by=self.order_by,
@@ -54,6 +56,7 @@ def parse_query(qp: Mapping[str, str]) -> FilterState:
         manager=_opt("manager"),
         device_id=_opt("device"),
         incomplete_only=qp.get("incomplete") == "1",
+        show_removed=qp.get("show_removed") == "1",
         q=qp.get("q", "").strip(),
         order_by=order_by,
         order_dir=order_dir,

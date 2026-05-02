@@ -150,6 +150,7 @@ class InstallFilters:
     device_id: str | None = None
     incomplete_only: bool = False
     include_deleted: bool = False
+    show_removed: bool = False  # when True, include rows with removed_at set
     limit: int = 1000
     offset: int = 0
     order_by: str = "installed_at"
@@ -231,6 +232,8 @@ def list_installs(db: Path, f: InstallFilters) -> list[Install]:
     params: list[object] = []
     if not f.include_deleted:
         where.append("deleted=0")
+    if not f.show_removed:
+        where.append("removed_at IS NULL")
     if f.disposition:
         where.append("disposition=?")
         params.append(f.disposition)
@@ -503,3 +506,93 @@ def get_command_history(db: Path, install_id: int) -> list[str]:
             (install_id,),
         ).fetchall()
     return [r[0] for r in rows]
+
+
+# ---------------------------------------------------------------------------
+# Removal tracking
+# ---------------------------------------------------------------------------
+
+def mark_removed(
+    db: Path,
+    install_id: int,
+    *,
+    removed_at: str,
+    removal_reason: str | None = None,
+) -> Install:
+    """Set removed_at on an install row.
+
+    Optionally records *removal_reason* into the ``why`` field.
+    Sets ``metadata_complete=1`` when a reason is provided, leaves it
+    untouched (0) otherwise so the entry surfaces in the review queue.
+    Returns the updated Install.
+    """
+    now = _now()
+    with _conn(db) as c:
+        if removal_reason is not None:
+            c.execute(
+                """UPDATE installs
+                   SET removed_at=?, why=?, metadata_complete=1, updated_at=?
+                   WHERE id=?""",
+                (removed_at, removal_reason, now, install_id),
+            )
+        else:
+            c.execute(
+                """UPDATE installs
+                   SET removed_at=?, updated_at=?
+                   WHERE id=?""",
+                (removed_at, now, install_id),
+            )
+        r = c.execute("SELECT * FROM installs WHERE id=?", (install_id,)).fetchone()
+    if not r:
+        raise KeyError(install_id)
+    return _row_to_install(r)
+
+
+def create_removal(
+    db: Path,
+    *,
+    command: str,
+    manager: str,
+    package_name: str,
+    install_dir: str,
+    removed_at: str,
+    removal_reason: str | None = None,
+    user_id: str,
+    device_id: str,
+) -> Install:
+    """Create a new install row representing a removal with no prior install record.
+
+    ``disposition`` (purpose) is left NULL — we don't know why it was installed.
+    ``metadata_complete`` is 0 so it surfaces in the review queue.
+    ``removed_at`` is set immediately.
+    """
+    import uuid as _uuid
+
+    now = _now()
+    sync_id = str(_uuid.uuid4())
+    metadata_complete = 1 if removal_reason is not None else 0
+    with _conn(db) as c:
+        cur = c.execute(
+            """INSERT INTO installs (
+                sync_id, user_id, device_id,
+                command, package_name, manager, install_dir,
+                installed_at, exit_code,
+                removed_at, why,
+                metadata_complete, updated_at, deleted
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,0)""",
+            (
+                sync_id, user_id, device_id,
+                command, package_name, manager, install_dir,
+                removed_at,   # installed_at approximated to removal time
+                0,            # exit_code unknown
+                removed_at,
+                removal_reason,
+                metadata_complete,
+                now,
+            ),
+        )
+        row_id = cur.lastrowid
+        r = c.execute("SELECT * FROM installs WHERE id=?", (row_id,)).fetchone()
+    if not r:
+        raise RuntimeError("failed to create removal record")
+    return _row_to_install(r)

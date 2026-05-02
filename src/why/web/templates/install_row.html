@@ -1,4 +1,4 @@
-<tr id="row-{{ r.id }}" class="group transition-colors duration-100 cursor-pointer {% if r.metadata_complete == 0 %}row-stale{% endif %}"
+<tr id="row-{{ r.id }}" class="group transition-colors duration-100 cursor-pointer {% if r.metadata_complete == 0 %}row-stale{% endif %} {% if r.removed_at %}row-removed{% endif %}"
     data-edit-url="/installs/{{ r.id }}/edit"
     data-hoverable-row="true">
   {# Checkbox — desktop only #}
@@ -10,7 +10,7 @@
   <td class="py-2 pr-4 pl-3 cursor-pointer">
     <a href="/installs/{{ r.id }}/edit" hx-get="/installs/{{ r.id }}/edit"
        hx-target="#edit-modal" hx-swap="innerHTML"
-       class="font-medium hover:underline" style="color: var(--color-fg);">
+       class="font-medium hover:underline {% if r.removed_at %}line-through opacity-50{% endif %}" style="color: var(--color-fg);">
       {{ r.display_name or r.package_name or "—" }}
     </a>
     <div class="text-xs font-mono truncate max-w-xs leading-relaxed" style="color: var(--color-fg-faint);">{{ r.command }}</div>

@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import os
 import sys
+from datetime import UTC, datetime
 
 from rich.console import Console
 
 from why import store
 from why.bootstrap import ensure_ready
-from why.capture import capture
+from why.capture import capture, capture_removal
 from why.config import load_user_ignore_patterns
-from why.detect import IgnoreContext, match_install, should_ignore
+from why.detect import IgnoreContext, match_install, match_uninstall, should_ignore
 from why.paths import log_path
 from why.redact import redact
 
@@ -51,12 +52,9 @@ def _parse_history(raw: str) -> list[str]:
 
 
 def run_hook(*, command: str, cwd: str, exit_code: int, raw_history: str = "") -> int:
-    """Returns 0 always. Triggers `why log` flow only when warranted."""
+    """Returns 0 always. Triggers capture flow only when warranted."""
     try:
         if not command.strip():
-            return 0
-        match = match_install(command)
-        if match is None:
             return 0
 
         db = ensure_ready()
@@ -74,21 +72,39 @@ def run_hook(*, command: str, cwd: str, exit_code: int, raw_history: str = "") -
         if should_ignore(ctx):
             return 0
 
-        install = capture(
-            db,
-            command_str=command,
-            work_dir=cwd,
-            enrich=True,
-            console=Console(),
-            input=sys.stdin,
-            output=sys.stdout,
-        )
+        is_install = match_install(command) is not None
+        is_uninstall = not is_install and match_uninstall(command) is not None
 
-        # Persist ring-buffer history (may be None if capture was skipped).
-        if install is not None:
-            history_cmds = _parse_history(raw_history)
-            if history_cmds:
-                store.save_command_history(db, install.id, history_cmds)
+        if not is_install and not is_uninstall:
+            return 0
+
+        if is_install:
+            install = capture(
+                db,
+                command_str=command,
+                work_dir=cwd,
+                enrich=True,
+                console=Console(),
+                input=sys.stdin,
+                output=sys.stdout,
+            )
+            # Persist ring-buffer history.
+            if install is not None:
+                history_cmds = _parse_history(raw_history)
+                if history_cmds:
+                    store.save_command_history(db, install.id, history_cmds)
+        else:
+            # Uninstall path.
+            removed_at = datetime.now(UTC).isoformat()
+            capture_removal(
+                db,
+                command_str=command,
+                work_dir=cwd,
+                removed_at=removed_at,
+                console=Console(),
+                input=sys.stdin,
+                output=sys.stdout,
+            )
 
         return 0
     except SystemExit:

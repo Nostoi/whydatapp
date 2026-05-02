@@ -161,7 +161,7 @@ def test_hook_enriches_complete_install(why_home: Path, monkeypatch) -> None:
     )
     assert result2.exit_code == 0
     # The re-install confirmation line should appear.
-    assert "re-installed" in result2.output or "re-installed" in result2.stdout
+    assert "reinstalled" in result2.output or "reinstalled" in result2.stdout
 
     # Still only one row (the existing record was updated, not duplicated).
     listed2 = runner.invoke(app, ["list"])
@@ -230,7 +230,7 @@ def test_log_with_enrich_flag(why_home: Path) -> None:
         input="",  # no prompt input — should short-circuit
     )
     assert result.exit_code == 0
-    assert "re-installed" in result.output or "re-installed" in result.stdout
+    assert "reinstalled" in result.output or "reinstalled" in result.stdout
 
     db = ensure_ready()
     rows = store.list_installs(db, InstallFilters(manager="brew"))

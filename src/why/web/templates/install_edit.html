@@ -66,6 +66,12 @@
     <dt class="font-medium uppercase tracking-wide mb-0.5">Installed at</dt>
     <dd class="font-mono">{{ r.installed_at[:10] }} {{ r.installed_at[11:16] }}</dd>
   </div>
+  {% if r.removed_at %}
+  <div>
+    <dt class="font-medium uppercase tracking-wide mb-0.5" style="color: var(--color-danger, #ef4444);">Removed at</dt>
+    <dd class="font-mono">{{ r.removed_at[:10] }} {{ r.removed_at[11:16] }}</dd>
+  </div>
+  {% endif %}
 </dl>
 
 <datalist id="edit-modal-projects">

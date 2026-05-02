@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 import shlex
+from collections.abc import Callable
 from dataclasses import dataclass
 
 
@@ -127,6 +128,94 @@ _HEAD = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Uninstall extractors
+# ---------------------------------------------------------------------------
+
+def _extract_brew_uninstall(tokens: list[str]) -> list[str] | None:
+    if len(tokens) < 3 or tokens[1] not in ("uninstall", "remove", "rm"):
+        return None
+    return _strip_flags(tokens[2:]) or None
+
+
+def _extract_npm_uninstall(tokens: list[str]) -> list[str] | None:
+    if len(tokens) < 4:
+        return None
+    if tokens[1] not in ("uninstall", "remove", "rm", "r", "un"):
+        return None
+    if not any(_GLOBAL_NPM.match(t) for t in tokens[2:]):
+        return None
+    return _strip_flags(tokens[2:]) or None
+
+
+def _extract_pnpm_uninstall(tokens: list[str]) -> list[str] | None:
+    if len(tokens) < 4:
+        return None
+    if tokens[1] not in ("remove", "rm", "uninstall", "un"):
+        return None
+    if not any(t in ("-g", "--global") for t in tokens[2:]):
+        return None
+    return _strip_flags(tokens[2:]) or None
+
+
+def _extract_yarn_uninstall(tokens: list[str]) -> list[str] | None:
+    if len(tokens) >= 4 and tokens[1] == "global" and tokens[2] == "remove":
+        return _strip_flags(tokens[3:]) or None
+    return None
+
+
+def _extract_bun_uninstall(tokens: list[str]) -> list[str] | None:
+    if len(tokens) < 4:
+        return None
+    if tokens[1] not in ("remove", "rm"):
+        return None
+    if not any(t in ("-g", "--global") for t in tokens[2:]):
+        return None
+    return _strip_flags(tokens[2:]) or None
+
+
+def _extract_pip_uninstall(tokens: list[str]) -> list[str] | None:
+    if len(tokens) < 3 or tokens[1] != "uninstall":
+        return None
+    if any(t in ("-r", "--requirement") for t in tokens[2:]):
+        return None
+    return _strip_flags(tokens[2:]) or None
+
+
+def _extract_pipx_uninstall(tokens: list[str]) -> list[str] | None:
+    if len(tokens) < 3 or tokens[1] != "uninstall":
+        return None
+    return _strip_flags(tokens[2:]) or None
+
+
+def _extract_uv_tool_uninstall(tokens: list[str]) -> list[str] | None:
+    if len(tokens) < 4 or tokens[1] != "tool" or tokens[2] != "uninstall":
+        return None
+    return _strip_flags(tokens[3:]) or None
+
+
+def _extract_cargo_uninstall(tokens: list[str]) -> list[str] | None:
+    if len(tokens) < 3 or tokens[1] != "uninstall":
+        return None
+    return _strip_flags(tokens[2:]) or None
+
+
+# Maps CLI head → (manager_name, extractor) for uninstall commands.
+# git and gh are omitted — they have no meaningful uninstall concept.
+_UNINSTALL_HEAD: dict[str, tuple[str, Callable[[list[str]], list[str] | None]]] = {
+    "brew":  ("brew",  _extract_brew_uninstall),
+    "npm":   ("npm",   _extract_npm_uninstall),
+    "pnpm":  ("pnpm",  _extract_pnpm_uninstall),
+    "yarn":  ("yarn",  _extract_yarn_uninstall),
+    "bun":   ("bun",   _extract_bun_uninstall),
+    "pip":   ("pip",   _extract_pip_uninstall),
+    "pip3":  ("pip",   _extract_pip_uninstall),
+    "pipx":  ("pipx",  _extract_pipx_uninstall),
+    "uv":    ("uv",    _extract_uv_tool_uninstall),
+    "cargo": ("cargo", _extract_cargo_uninstall),
+}
+
+
 _SELF_NAMES = frozenset({"why-cli", "why_cli", "whydatapp"})
 
 # Managers where self/source-install filtering applies
@@ -190,6 +279,25 @@ def match_install(command: str) -> MatchResult | None:
     if not pkgs:
         return None
     if is_self_or_source_install(manager, pkgs):
+        return None
+    return MatchResult(manager=manager, packages=pkgs)
+
+
+def match_uninstall(command: str) -> MatchResult | None:
+    """Return a MatchResult if the command is a user-intent uninstall. Else None."""
+    try:
+        tokens = shlex.split(command)
+    except ValueError:
+        return None
+    if not tokens:
+        return None
+    head = tokens[0].rsplit("/", 1)[-1]
+    rule = _UNINSTALL_HEAD.get(head)
+    if not rule:
+        return None
+    manager, extractor = rule
+    pkgs = extractor(tokens)
+    if not pkgs:
         return None
     return MatchResult(manager=manager, packages=pkgs)
 

@@ -3,6 +3,18 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import IO
 
+from rich.console import Console
+from rich.rule import Rule
+from rich.style import Style
+
+_TEAL = Style(color="cyan", bold=True)
+
+
+def _print_banner(output: IO[str], verb: str) -> None:
+    """Print a teal rule line: ─── whydatApp <verb>? ──────────"""
+    console = Console(file=output, highlight=False, markup=False)
+    console.print(Rule(f"whydatApp {verb}?", style=_TEAL, align="left"))
+
 
 @dataclass(frozen=True)
 class PromptResult:
@@ -63,9 +75,15 @@ def run_metadata_prompt(
         numeric_map[str(i)] = key
         parts.append(f"[{i}] {label}")
 
-    output.write(f"\n📝 why? — captured: {command}  ({cwd})\n\n")
-    output.write("  Purpose? " + "  ".join(parts) + "\n")
-    output.write("  [s] Skip for now    [q] Quit (treat as ignore)\n")
+    output.write("\n")
+    _print_banner(output, "installed")
+    output.write(f"  {command}  ({cwd})\n\n")
+    output.write("  Purpose?\n")
+    for part in parts:
+        output.write(f"    {part}\n")
+    output.write("\n")
+    output.write("    [s] Skip for now\n")
+    output.write("    [q] Quit (treat as ignore)\n")
     output.flush()
 
     chosen_key: str | None = None
@@ -97,7 +115,10 @@ def run_metadata_prompt(
 
     name = _ask("Display name", default=default_name or "", input=input, output=output) or None
     what = _ask("What does it do?", default=None, input=input, output=output) or None
-    project = _ask("Project", default=default_project or "", input=input, output=output) or None
+    project = (
+        _ask("Related project", default=default_project or "", input=input, output=output)
+        or None
+    )
     why = _ask("Why install?", default=None, input=input, output=output) or None
     notes = _ask("Notes (optional, ↵ to skip)", default=None, input=input, output=output) or None
 
@@ -110,4 +131,46 @@ def run_metadata_prompt(
         notes=notes,
         metadata_complete=True,
     )
+
+
+@dataclass(frozen=True)
+class RemovalPromptResult:
+    why: str | None          # reason for removal; None means skipped
+    metadata_complete: bool  # True when user provided a reason
+
+
+def prompt_removal(
+    *,
+    command: str,
+    cwd: str,
+    input: IO[str],
+    output: IO[str],
+) -> RemovalPromptResult:
+    """Prompt the user for why they removed a package.
+
+    A single optional question — skip with ↵ or [s].  Ctrl-C / EOF treated as
+    skip (same mechanic as run_metadata_prompt).
+    """
+    output.write("\n")
+    _print_banner(output, "removed")
+    output.write(f"  {command}  ({cwd})\n\n")
+    output.write("  Why did you remove it? (↵ or [s] to skip)\n")
+    output.flush()
+
+    try:
+        output.write("> ")
+        output.flush()
+        line = input.readline()
+    except (KeyboardInterrupt, EOFError):
+        output.write("\n")
+        return RemovalPromptResult(why=None, metadata_complete=False)
+
+    if not line:
+        return RemovalPromptResult(why=None, metadata_complete=False)
+
+    val = line.rstrip("\n").strip()
+    if val.lower() == "s" or val == "":
+        return RemovalPromptResult(why=None, metadata_complete=False)
+
+    return RemovalPromptResult(why=val, metadata_complete=True)
 

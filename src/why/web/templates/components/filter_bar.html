@@ -27,6 +27,10 @@
     {% include "components/checkbox.html" %}
   {% endwith %}
 
+  {% with name="show_removed", value="1", checked=filters.show_removed, label_text="show removed" %}
+    {% include "components/checkbox.html" %}
+  {% endwith %}
+
   {# Preserve active tab/disposition when changing secondary filters #}
   {% if filters.view %}
     <input type="hidden" name="view" value="{{ filters.view }}">
