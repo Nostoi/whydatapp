@@ -342,19 +342,29 @@ def show_cmd(
         console.print(f"[red]No install with id {install_id}[/red]")
         raise typer.Exit(1)
     console.print(f"[bold]#{inst.id}[/bold]  {inst.command}")
-    console.print(f"  Manager:  {inst.manager}")
+    console.print(f"  Manager:   {inst.manager}")
     if inst.display_name:
-        console.print(f"  Name:     {inst.display_name}")
+        console.print(f"  Name:      {inst.display_name}")
     if inst.what_it_does:
-        console.print(f"  Does:     {inst.what_it_does}")
+        console.print(f"  Does:      {inst.what_it_does}")
     if inst.project:
-        console.print(f"  Project:  {inst.project}")
+        console.print(f"  Project:   {inst.project}")
     if inst.why:
-        console.print(f"  Why:      {inst.why}")
+        console.print(f"  Why:       {inst.why}")
     if inst.notes:
-        console.print(f"  Notes:    {inst.notes}")
-    console.print(f"  Purpose:  {inst.disposition or '—'}")
-    console.print(f"  Captured: {inst.installed_at}")
+        console.print(f"  Notes:     {inst.notes}")
+    console.print(f"  Purpose:   {inst.disposition or '—'}")
+    console.print(f"  Run from:  {inst.install_dir}")
+    if inst.resolved_path:
+        console.print(f"  Installed: {inst.resolved_path}")
+    if inst.source_url:
+        console.print(f"  Source:    {inst.source_url}")
+    console.print(f"  Captured:  {inst.installed_at}")
+    if inst.reinstall_count:
+        last = inst.last_installed_at or inst.installed_at
+        console.print(f"  Reinstalls: {inst.reinstall_count}  (last: {last})")
+    if inst.removed_at:
+        console.print(f"  Removed:   {inst.removed_at}")
     history = store.get_command_history(db, install_id)
     if history:
         console.print("\n  [dim]Commands before this install:[/dim]")
