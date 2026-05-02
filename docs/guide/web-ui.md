@@ -30,10 +30,10 @@ The footer indicator is always present. When sync ships post-MVP, it will change
 
 Sortable, filterable table.
 
-- **Filter pills** at the top: disposition (Doc / Setup / Experimental / Remove / Ignore), plus dropdowns for project, manager, device, an "incomplete only" toggle, and a **"Show removed"** checkbox to include packages you've uninstalled.
+- **Filter pills** at the top: purpose (Doc / Setup / Experimental / Remove / Ignore), plus dropdowns for project, manager, device, an "incomplete only" toggle, and a **"Show removed"** checkbox to include packages you've uninstalled.
 - **Search box** in the header runs SQLite FTS5 across name, command, what-it-does, project, why, notes.
 - **Sort** by clicking any column header.
-- **Edit inline**: click the row's name → an edit form expands in place. Save commits and re-renders just the row. For removed entries, the edit panel also shows a **Removed at** timestamp.
+- **Edit**: click the row's name → an edit modal opens. Save commits and re-renders just the row. The modal includes read-only metadata (Run from, Installed to, timestamps, reinstall count when present, source URL when present).
 - **Removed rows** appear with the package name struck through and dimmed when "Show removed" is checked. They are hidden by default.
 - **Share** (per-row): returns the same Markdown snippet as the CLI's `why export --format md`.
 - **Filters live in the URL** (`?purpose=experimental&manager=brew&q=ripgrep`). Back/forward navigation works; you can deep-link or bookmark a filtered view.
@@ -50,7 +50,7 @@ Five cards:
 
 ## Review
 
-A focused, one-at-a-time form for draining the skipped queue. Same fields as the CLI's `why review`. Save & next, Skip, or pick `Ignore` from the disposition dropdown.
+A focused, one-at-a-time form for draining the skipped queue. Same fields as the CLI's `why review`. Save & next, Skip, or pick `Ignore` from the purpose dropdown.
 
 The badge `Review N` in the nav bar shows queue size; it disappears when the queue is empty.
 

@@ -15,7 +15,7 @@
 
 Ever install something, then months later wonder *why* it's on your machine?
 
-`why?` catches every package manager install (`brew`, `npm`, `pip`, `cargo`, `apt`, …) right as it happens via a lightweight shell hook, then prompts you to jot down what the tool is for, which project needed it, whether it's worth keeping, and what to do with it later. Everything stays in a local SQLite database — nothing is sent anywhere. Browse, search, filter, and export your install history through a built-in web UI, or right from the terminal.
+`why?` catches every package manager install (and supported uninstalls) (`brew`, `npm`, `pip`, `cargo`, `apt`, …) right as it happens via a lightweight shell hook, then prompts you to jot down what the tool is for, which project needed it, whether it's worth keeping, and what to do with it later. It also captures a short command-history snippet for context (redacted for secrets) so you can reconstruct what led up to an install. Everything stays in a local SQLite database — nothing is sent anywhere. Browse, search, filter, and export your install history through a built-in web UI, or right from the terminal.
 
 **What you can answer with `why?`:**
 
@@ -25,6 +25,8 @@ Ever install something, then months later wonder *why* it's on your machine?
 - **Is this still useful?** — Mark tools as experimental, for removal, or permanent docs
 - **What's taking up space?** — See resolved install paths and identify candidates to uninstall
 - **Did I ever install X?** — Search by name, command, or description — find it instantly
+- **Did I ever remove X?** — Uninstalls are captured too; removed entries stay in your history
+- **What led up to this install?** — See the recent commands that ran before it (with secret redaction)
 - **What should I clean up?** — Review queue surfaces incomplete entries and stale experimental installs
 - **How do I set up this project elsewhere?** — Export your setup dependencies to Markdown or JSON
 - **Which managers do I use most?** — Dashboard shows install trends by manager, project, and month
@@ -97,7 +99,10 @@ Full install instructions, including building from a wheel: **[Install guide](ht
 | `why log -- <cmd>`| Manually log an install                        |
 | `why review`      | Drain the skipped/incomplete review queue      |
 | `why list`        | Print installs as a table                      |
+| `why show <id>`   | Show full details for one entry                |
+| `why delete <id>` | Soft-delete an entry                           |
 | `why export`      | Export to Markdown or JSON                     |
+| `why purposes`    | Manage purpose categories                      |
 | `why serve`       | Open the local web UI at `127.0.0.1:7873`      |
 | `why uninstall`   | Remove the hook (and optionally the data)      |
 

@@ -87,15 +87,15 @@ label = "npm"
 
 # ... per manager ...
 
-[disposition.doc]
+[purpose.doc]
 color = "#2563eb"
 label = "Reference"
 
-[disposition.experimental]
+[purpose.experimental]
 color = "#d97706"
 label = "Trying out"
 
-# ... per disposition ...
+# ... per purpose ...
 ```
 
 These drive the badges in the web UI's table, dashboard, and edit panel.
