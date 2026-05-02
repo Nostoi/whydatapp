@@ -3,6 +3,18 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import IO
 
+from rich.console import Console
+from rich.rule import Rule
+from rich.style import Style
+
+_TEAL = Style(color="cyan", bold=True)
+
+
+def _print_banner(output: IO[str], verb: str) -> None:
+    """Print a teal rule line: ─── whydatApp <verb>? ──────────"""
+    console = Console(file=output, highlight=False, markup=False)
+    console.print(Rule(f"whydatApp {verb}?", style=_TEAL, align="left"))
+
 
 @dataclass(frozen=True)
 class PromptResult:
@@ -63,7 +75,9 @@ def run_metadata_prompt(
         numeric_map[str(i)] = key
         parts.append(f"[{i}] {label}")
 
-    output.write(f"\n📝 why? — captured: {command}  ({cwd})\n\n")
+    output.write("\n")
+    _print_banner(output, "installed")
+    output.write(f"  {command}  ({cwd})\n\n")
     output.write("  Purpose? " + "  ".join(parts) + "\n")
     output.write("  [s] Skip for now    [q] Quit (treat as ignore)\n")
     output.flush()
@@ -130,7 +144,9 @@ def prompt_removal(
     A single optional question — skip with ↵ or [s].  Ctrl-C / EOF treated as
     skip (same mechanic as run_metadata_prompt).
     """
-    output.write(f"\n📝 why? — removed: {command}  ({cwd})\n\n")
+    output.write("\n")
+    _print_banner(output, "deleted")
+    output.write(f"  {command}  ({cwd})\n\n")
     output.write("  Why did you remove it? (↵ or [s] to skip)\n")
     output.flush()
 
