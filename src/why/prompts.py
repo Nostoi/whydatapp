@@ -78,8 +78,12 @@ def run_metadata_prompt(
     output.write("\n")
     _print_banner(output, "installed")
     output.write(f"  {command}  ({cwd})\n\n")
-    output.write("  Purpose? " + "  ".join(parts) + "\n")
-    output.write("  [s] Skip for now    [q] Quit (treat as ignore)\n")
+    output.write("  Purpose?\n")
+    for part in parts:
+        output.write(f"    {part}\n")
+    output.write("\n")
+    output.write("    [s] Skip for now\n")
+    output.write("    [q] Quit (treat as ignore)\n")
     output.flush()
 
     chosen_key: str | None = None
@@ -111,7 +115,10 @@ def run_metadata_prompt(
 
     name = _ask("Display name", default=default_name or "", input=input, output=output) or None
     what = _ask("What does it do?", default=None, input=input, output=output) or None
-    project = _ask("Project", default=default_project or "", input=input, output=output) or None
+    project = (
+        _ask("Related project", default=default_project or "", input=input, output=output)
+        or None
+    )
     why = _ask("Why install?", default=None, input=input, output=output) or None
     notes = _ask("Notes (optional, ↵ to skip)", default=None, input=input, output=output) or None
 
@@ -145,7 +152,7 @@ def prompt_removal(
     skip (same mechanic as run_metadata_prompt).
     """
     output.write("\n")
-    _print_banner(output, "deleted")
+    _print_banner(output, "removed")
     output.write(f"  {command}  ({cwd})\n\n")
     output.write("  Why did you remove it? (↵ or [s] to skip)\n")
     output.flush()

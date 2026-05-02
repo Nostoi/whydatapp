@@ -15,7 +15,7 @@ from why import store
 from why.detect import match_install, match_uninstall
 from why.humanize import time_ago
 from why.project_infer import infer_project
-from why.prompts import RemovalPromptResult, prompt_removal, run_metadata_prompt
+from why.prompts import RemovalPromptResult, _print_banner, prompt_removal, run_metadata_prompt
 from why.resolve import resolve_path
 
 
@@ -66,9 +66,10 @@ def capture(
             prev_ts = existing.last_installed_at or existing.installed_at
             ago = time_ago(prev_ts)
             display = updated.display_name or primary_pkg
-            sys.stdout.write(
-                f"↻ {display} re-installed (id={updated.id}, last seen {ago})\n"
-            )
+            sys.stdout.write("\n")
+            sys.stdout.flush()
+            _print_banner(sys.stdout, "reinstalled")
+            sys.stdout.write(f"  {display}  (last seen {ago})\n\n")
             sys.stdout.flush()
             return None  # silent path — no new install row
 
