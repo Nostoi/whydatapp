@@ -29,6 +29,63 @@ Ever install something, then months later wonder *why* it's on your machine?
 - **How do I set up this project elsewhere?** — Export your setup dependencies to Markdown or JSON
 - **Which managers do I use most?** — Dashboard shows install trends by manager, project, and month
 
+## Screenshots
+
+**The shell hook catches installs as they happen and prompts you inline:**
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Nostoi/whydatapp/main/docs/assets/screenshot-hook-prompt.png" alt="Shell hook capturing brew install sl with interactive prompt" width="780">
+</p>
+
+**Browse and filter your full install history in the web UI:**
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Nostoi/whydatapp/main/docs/assets/screenshot-web-installs.jpg" alt="Web UI — Installs list with filters and purpose badges" width="780">
+</p>
+
+**The dashboard shows installs by purpose, manager, project, and trend over time:**
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Nostoi/whydatapp/main/docs/assets/screenshot-web-dashboard.jpg" alt="Web UI — Dashboard with stats, breakdowns, and installs-per-month chart" width="780">
+</p>
+
+<details>
+<summary>More screenshots — edit modal, purposes, CLI commands</summary>
+
+**Edit any entry directly in the web UI:**
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Nostoi/whydatapp/main/docs/assets/screenshot-web-edit.jpg" alt="Web UI — Edit install modal" width="780">
+</p>
+
+**Customize or add your own purpose categories:**
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Nostoi/whydatapp/main/docs/assets/screenshot-web-purposes.jpg" alt="Web UI — Purpose categories management" width="780">
+</p>
+
+**The CLI: `why` help, `why list`, and `why show`:**
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Nostoi/whydatapp/main/docs/assets/screenshot-cli-overview.png" alt="why help and why list output" width="780">
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Nostoi/whydatapp/main/docs/assets/screenshot-show.png" alt="why show — full details for a single install" width="780">
+</p>
+
+**The hook also captures removals:**
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Nostoi/whydatapp/main/docs/assets/screenshot-hook-remove.png" alt="Shell hook capturing brew uninstall with removal reason prompt" width="780">
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Nostoi/whydatapp/main/docs/assets/screenshot-serve.png" alt="why serve — web UI startup" width="780">
+</p>
+
+</details>
+
 ## Install
 
 **From PyPI** (recommended):
