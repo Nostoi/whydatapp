@@ -31,12 +31,6 @@ Ever install something, then months later wonder *why* it's on your machine?
 
 ## Screenshots
 
-**The shell hook catches installs as they happen and prompts you inline:**
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/Nostoi/whydatapp/feat/uninstall-tracking/docs/assets/screenshot-hook-prompt.png" alt="Shell hook capturing brew install sl with interactive prompt" width="780">
-</p>
-
 **Browse and filter your full install history in the web UI:**
 
 <p align="center">
@@ -50,7 +44,7 @@ Ever install something, then months later wonder *why* it's on your machine?
 </p>
 
 <details>
-<summary>More screenshots — edit modal, purposes, CLI commands</summary>
+<summary>More screenshots — edit modal, purposes, CLI</summary>
 
 **Edit any entry directly in the web UI:**
 
@@ -64,24 +58,10 @@ Ever install something, then months later wonder *why* it's on your machine?
   <img src="https://raw.githubusercontent.com/Nostoi/whydatapp/feat/uninstall-tracking/docs/assets/screenshot-web-purposes.jpg" alt="Web UI — Purpose categories management" width="780">
 </p>
 
-**The CLI: `why` help, `why list`, and `why show`:**
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/Nostoi/whydatapp/feat/uninstall-tracking/docs/assets/screenshot-cli-overview.png" alt="why help and why list output" width="780">
-</p>
+**`why show` — full details for a single install:**
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/Nostoi/whydatapp/feat/uninstall-tracking/docs/assets/screenshot-show.png" alt="why show — full details for a single install" width="780">
-</p>
-
-**The hook also captures removals:**
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/Nostoi/whydatapp/feat/uninstall-tracking/docs/assets/screenshot-hook-remove.png" alt="Shell hook capturing brew uninstall with removal reason prompt" width="780">
-</p>
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/Nostoi/whydatapp/feat/uninstall-tracking/docs/assets/screenshot-serve.png" alt="why serve — web UI startup" width="780">
 </p>
 
 </details>
