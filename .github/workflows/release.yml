@@ -2,6 +2,7 @@ name: release
 
 on:
   push:
+    branches: [main]
     tags: ["v*"]
   workflow_dispatch:
 
@@ -9,8 +10,71 @@ permissions:
   contents: read
 
 jobs:
+  decide:
+    name: Decide release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.d.outputs.version }}
+      tag: ${{ steps.d.outputs.tag }}
+      should_release: ${{ steps.d.outputs.should_release }}
+      from_tag: ${{ steps.d.outputs.from_tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: d
+        name: Detect version + decide whether to release
+        run: |
+          set -e
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            tag="${GITHUB_REF#refs/tags/}"
+            version="${tag#v}"
+            should_release=true
+            from_tag=true
+          else
+            version=$(grep -m1 -E '^version' pyproject.toml | sed -E 's/version *= *"([^"]+)"/\1/')
+            tag="v$version"
+            from_tag=false
+            if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+              should_release=false
+            else
+              should_release=true
+            fi
+          fi
+          {
+            echo "version=$version"
+            echo "tag=$tag"
+            echo "should_release=$should_release"
+            echo "from_tag=$from_tag"
+          } >> "$GITHUB_OUTPUT"
+          echo "version=$version tag=$tag should_release=$should_release from_tag=$from_tag"
+
+  tag:
+    name: Auto-tag main
+    needs: decide
+    if: needs.decide.outputs.should_release == 'true' && needs.decide.outputs.from_tag == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Create and push tag
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ needs.decide.outputs.tag }}" -m "${{ needs.decide.outputs.tag }}"
+          git push origin "${{ needs.decide.outputs.tag }}"
+
   build:
     name: Build wheel + sdist
+    needs: [decide, tag]
+    if: |
+      always()
+      && needs.decide.outputs.should_release == 'true'
+      && (needs.tag.result == 'success' || needs.tag.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,15 +85,15 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Verify tag matches package version
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Verify package version matches expected tag
         run: |
-          tag="${GITHUB_REF#refs/tags/v}"
-          pkg=$(uv run python -c "import tomllib,sys; print(tomllib.loads(open('pyproject.toml').read())['project']['version'])")
-          init=$(uv run python -c "import re,sys; print(re.search(r'__version__\s*=\s*\"([^\"]+)\"', open('src/why/__init__.py').read()).group(1))")
-          echo "tag=$tag pyproject=$pkg __init__=$init"
-          if [ "$tag" != "$pkg" ] || [ "$tag" != "$init" ]; then
-            echo "::error::Tag $tag does not match pyproject ($pkg) or __init__ ($init). Bump first, then re-tag."
+          set -e
+          expected="${{ needs.decide.outputs.version }}"
+          pkg=$(uv run python -c "import tomllib; print(tomllib.loads(open('pyproject.toml','rb').read())['project']['version'])")
+          init=$(uv run python -c "import re; print(re.search(r'__version__\s*=\s*\"([^\"]+)\"', open('src/why/__init__.py').read()).group(1))")
+          echo "expected=$expected pyproject=$pkg __init__=$init"
+          if [ "$expected" != "$pkg" ] || [ "$expected" != "$init" ]; then
+            echo "::error::Version mismatch — pyproject ($pkg) and __init__ ($init) must both equal $expected."
             exit 1
           fi
 
@@ -48,9 +112,6 @@ jobs:
         run: |
           npx --yes tailwindcss@3 -i src/why/web/static/css/tailwind.src.css \
                                   -o src/why/web/static/css/tailwind.css --minify
-          # Sanity check: refuse to ship a CSS without utility classes.
-          # This catches the "templates didn't exist when CSS was last
-          # built locally" trap.
           if ! grep -q '\.flex' src/why/web/static/css/tailwind.css; then
             echo "::error::tailwind.css is missing utility classes — build failed."
             exit 1
@@ -66,9 +127,9 @@ jobs:
 
   publish-testpypi:
     name: Publish to TestPyPI
-    needs: build
+    needs: [decide, build]
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
+    if: needs.decide.outputs.should_release == 'true' && github.event_name == 'workflow_dispatch'
     environment:
       name: testpypi
       url: https://test.pypi.org/project/why-cli/
@@ -85,9 +146,9 @@ jobs:
 
   publish-pypi:
     name: Publish to PyPI
-    needs: build
+    needs: [decide, build]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: needs.decide.outputs.should_release == 'true' && github.event_name != 'workflow_dispatch'
     environment:
       name: pypi
       url: https://pypi.org/project/why-cli/
@@ -102,13 +163,15 @@ jobs:
 
   github-release:
     name: Publish GitHub Release
-    needs: build
+    needs: [decide, build]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: needs.decide.outputs.should_release == 'true' && github.event_name != 'workflow_dispatch'
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
           name: dist
@@ -116,7 +179,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
+          tag_name: ${{ needs.decide.outputs.tag }}
+          name: ${{ needs.decide.outputs.tag }}
           generate_release_notes: true
           files: dist/*
