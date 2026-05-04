@@ -1151,7 +1151,7 @@ wheels = [
 
 [[package]]
 name = "why-cli"
-version = "1.8.5"
+version = "2.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "rich" },

@@ -43,6 +43,8 @@ def test_log_records_install_with_interactive_input(why_home: Path) -> None:
     listed = runner.invoke(app, ["list"])
     assert "ripgrep" in listed.stdout
     assert "doc" in listed.stdout
+    # Default list hides removed and incomplete; ripgrep is complete and installed.
+    assert "installed" in listed.stdout
 
 
 def test_log_skip_creates_incomplete_entry(why_home: Path) -> None:

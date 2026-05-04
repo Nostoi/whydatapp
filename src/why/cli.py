@@ -61,10 +61,29 @@ def list_cmd(
     ),
     project: str | None = typer.Option(None),
     manager: str | None = typer.Option(None),
-    incomplete_only: bool = typer.Option(False, "--incomplete"),
+    incomplete_only: bool = typer.Option(
+        False, "--incomplete", help="Show ONLY entries with incomplete metadata (the review queue)."
+    ),
+    show_incomplete: bool = typer.Option(
+        False, "--show-incomplete", help="Include entries with incomplete metadata in the output."
+    ),
+    show_removed: bool = typer.Option(
+        False, "--show-removed", help="Include uninstalled entries in the output."
+    ),
+    show_all: bool = typer.Option(
+        False, "--all", "-a", help="Shorthand: include both incomplete and uninstalled entries.",
+    ),
     limit: int = typer.Option(50),
 ) -> None:
-    """List installs as a table."""
+    """List installs as a table.
+
+    By default shows only currently-installed entries with complete metadata. Use
+    --show-incomplete, --show-removed, or --all to broaden the view, or
+    --incomplete to narrow it to the review queue.
+    """
+    if show_all:
+        show_incomplete = True
+        show_removed = True
     db = ensure_ready()
     rows = store.list_installs(
         db,
@@ -73,6 +92,8 @@ def list_cmd(
             project=project,
             manager=manager,
             incomplete_only=incomplete_only,
+            complete_only=not (incomplete_only or show_incomplete),
+            show_removed=show_removed,
             limit=limit,
         ),
     )
@@ -80,23 +101,39 @@ def list_cmd(
         console.print("No installs.")
         return
     t = Table()
-    for col in ("id", "name", "manager", "project", "purpose", "installed_at", "run from"):
-        t.add_column(col)
+    for col in (
+        "id", "name", "status", "manager", "project", "purpose",
+        "installed_at", "uninstalled_at", "run from",
+    ):
+        t.add_column(col, overflow="fold", no_wrap=False)
     for r in rows:
-        # Format installed_at as YYYY-MM-DD HH:MM
         ts = r.installed_at
         if len(ts) >= 16:
             ts = ts[:10] + " " + ts[11:16]
+        if r.removed_at:
+            status = "[red]uninstalled[/red]"
+            removed_ts = r.removed_at[:10] + " " + r.removed_at[11:16]
+        elif r.metadata_complete == 0:
+            status = "[yellow]incomplete[/yellow]"
+            removed_ts = "—"
+        else:
+            status = "[green]installed[/green]"
+            removed_ts = "—"
         t.add_row(
             str(r.id),
             r.display_name or r.package_name or "",
+            status,
             r.manager,
             r.project or "",
             r.disposition or "—",
             ts,
+            removed_ts,
             r.install_dir,
         )
-    console.print(t)
+    # Render to a wide console so cells aren't truncated under non-TTY widths
+    # (e.g. CI, CliRunner). When connected to a real TTY this still respects it.
+    width = console.size.width if console.is_terminal else 200
+    Console(width=width).print(t)
 
 
 @app.command("log")
@@ -341,7 +378,14 @@ def show_cmd(
     if inst is None:
         console.print(f"[red]No install with id {install_id}[/red]")
         raise typer.Exit(1)
+    if inst.removed_at:
+        status = "[red]uninstalled[/red]"
+    elif inst.metadata_complete == 0:
+        status = "[yellow]incomplete[/yellow]"
+    else:
+        status = "[green]installed[/green]"
     console.print(f"[bold]#{inst.id}[/bold]  {inst.command}")
+    console.print(f"  Status:    {status}")
     console.print(f"  Manager:   {inst.manager}")
     if inst.display_name:
         console.print(f"  Name:      {inst.display_name}")
@@ -350,7 +394,9 @@ def show_cmd(
     if inst.project:
         console.print(f"  Project:   {inst.project}")
     if inst.why:
-        console.print(f"  Why:       {inst.why}")
+        # After uninstall, the `why` field holds the removal reason.
+        why_label = "Reason:    " if inst.removed_at else "Why:       "
+        console.print(f"  {why_label}{inst.why}")
     if inst.notes:
         console.print(f"  Notes:     {inst.notes}")
     console.print(f"  Purpose:   {inst.disposition or '—'}")

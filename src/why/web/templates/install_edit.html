@@ -2,7 +2,18 @@
 <header class="flex items-center justify-between gap-3 px-5 py-4 border-b"
         style="border-color: var(--color-border);">
   <div class="min-w-0 flex-1">
-    <h2 class="text-sm font-semibold truncate" style="color: var(--color-fg);">Edit install</h2>
+    <div class="flex items-center gap-2">
+      <h2 class="text-sm font-semibold truncate" style="color: var(--color-fg);">Edit install</h2>
+      {% if r.removed_at %}
+        {% with tone="remove", label="uninstalled" %}{% include "components/pill.html" %}{% endwith %}
+      {% elif r.metadata_complete == 0 %}
+        <span class="text-xs px-1.5 py-0.5 rounded-full leading-none font-medium"
+              style="background-color: var(--color-accent-soft, rgba(251,191,36,0.15)); color: var(--color-accent, #f59e0b);">incomplete</span>
+      {% else %}
+        <span class="text-xs px-1.5 py-0.5 rounded-full leading-none font-medium"
+              style="background-color: var(--color-bg-muted); color: var(--color-fg-faint);">installed</span>
+      {% endif %}
+    </div>
     <p class="text-xs font-mono truncate mt-0.5" style="color: var(--color-fg-faint);">{{ r.command }}</p>
   </div>
   <button type="button"
@@ -28,7 +39,7 @@
     <textarea class="input" name="what_it_does" rows="2">{{ r.what_it_does or '' }}</textarea>
   </label>
   <label class="flex flex-col gap-1 md:col-span-2">
-    <span class="text-xs font-medium" style="color: var(--color-fg-muted);">Why install</span>
+    <span class="text-xs font-medium" style="color: var(--color-fg-muted);">{% if r.removed_at %}Removal reason{% else %}Why install{% endif %}</span>
     <textarea class="input" name="why" rows="2">{{ r.why or '' }}</textarea>
   </label>
   <label class="flex flex-col gap-1">
@@ -82,9 +93,15 @@
     {% endif %}
     {% if r.removed_at %}
     <div>
-      <dt class="font-medium uppercase tracking-wide mb-0.5" style="color: var(--color-danger, #ef4444);">Removed at</dt>
+      <dt class="font-medium uppercase tracking-wide mb-0.5" style="color: var(--color-danger, #ef4444);">Uninstalled at</dt>
       <dd class="font-mono" style="color: var(--color-fg);">{{ r.removed_at[:10] }} {{ r.removed_at[11:16] }}</dd>
     </div>
+    {% if r.why %}
+    <div class="md:col-span-2">
+      <dt class="font-medium uppercase tracking-wide mb-0.5" style="color: var(--color-danger, #ef4444);">Removal reason</dt>
+      <dd style="color: var(--color-fg);">{{ r.why }}</dd>
+    </div>
+    {% endif %}
     {% endif %}
   </dl>
 </div>
