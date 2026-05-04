@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
@@ -40,9 +41,18 @@ def _common_ctx(
 ) -> dict[str, Any]:
     state = parse_query(request.query_params)
 
-    # Route rows depending on view=stale
+    # Route rows depending on view
     if state.view == "stale":
         rows: list[store.Install] = store.stale_review_queue(db)
+    elif state.view == "removed":
+        # Uninstalled tab: show only removed entries, ignoring the default hide.
+        f = state.to_install_filters()
+        rows = [
+            r for r in store.list_installs(
+                db,
+                replace(f, show_removed=True),
+            ) if r.removed_at
+        ]
     elif state.q:
         rows = store.search_installs(db, state.q)
     else:
@@ -52,10 +62,12 @@ def _common_ctx(
     managers = sorted(store.stats_by_manager(db).keys()) or list(pres.keys())
     devices = _devices(db)
 
-    # Tab counts
+    # Tab counts. By default the table view hides uninstalled rows, so the
+    # disposition counts must match (otherwise tab count > visible rows).
     by_disp = store.stats_by_disposition(db)
     total_count = sum(by_disp.values())
     stale_count = _stale_count(db)
+    removed_count = store.count_removed(db)
 
     purpose_map = {p.key: p for p in purposes}
 
@@ -77,6 +89,8 @@ def _common_ctx(
             pass  # clear disposition and view
         elif tab == "stale":
             params["view"] = "stale"
+        elif tab == "removed":
+            params["view"] = "removed"
         else:
             params["disposition"] = tab
         return urlencode(params)
@@ -92,11 +106,14 @@ def _common_ctx(
             for p in purposes
         ],
         {"key": "stale", "label": "Stale", "count": stale_count},
+        {"key": "removed", "label": "Uninstalled", "count": removed_count},
     ]
 
     # Active tab key
     if state.view == "stale":
         active_tab = "stale"
+    elif state.view == "removed":
+        active_tab = "removed"
     elif state.disposition:
         active_tab = state.disposition
     else:

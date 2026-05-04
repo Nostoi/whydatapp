@@ -149,6 +149,7 @@ class InstallFilters:
     manager: str | None = None
     device_id: str | None = None
     incomplete_only: bool = False
+    complete_only: bool = False  # when True, only rows with metadata_complete=1
     include_deleted: bool = False
     show_removed: bool = False  # when True, include rows with removed_at set
     limit: int = 1000
@@ -248,6 +249,8 @@ def list_installs(db: Path, f: InstallFilters) -> list[Install]:
         params.append(f.device_id)
     if f.incomplete_only:
         where.append("metadata_complete=0")
+    elif f.complete_only:
+        where.append("metadata_complete=1")
     sql = "SELECT * FROM installs"
     if where:
         sql += " WHERE " + " AND ".join(where)
@@ -293,13 +296,30 @@ def recent_duplicate_exists(
     return r is not None
 
 
-def stats_by_disposition(db: Path) -> dict[str, int]:
+def stats_by_disposition(db: Path, *, include_removed: bool = False) -> dict[str, int]:
+    """Count of installs grouped by disposition.
+
+    By default excludes uninstalled rows (``removed_at IS NOT NULL``) so the
+    counts match what the default web/CLI views actually render. Pass
+    ``include_removed=True`` to include them (e.g. for an All-time stat).
+    """
+    where = "deleted=0"
+    if not include_removed:
+        where += " AND removed_at IS NULL"
     with _conn(db) as c:
         rows = c.execute(
-            """SELECT COALESCE(disposition,'(unset)') AS d, COUNT(*) AS n
-               FROM installs WHERE deleted=0 GROUP BY d"""
+            f"""SELECT COALESCE(disposition,'(unset)') AS d, COUNT(*) AS n
+                FROM installs WHERE {where} GROUP BY d"""
         ).fetchall()
     return {r["d"]: r["n"] for r in rows}
+
+
+def count_removed(db: Path) -> int:
+    with _conn(db) as c:
+        r = c.execute(
+            "SELECT COUNT(*) AS n FROM installs WHERE deleted=0 AND removed_at IS NOT NULL"
+        ).fetchone()
+    return int(r["n"]) if r else 0
 
 
 def stats_by_manager(db: Path) -> dict[str, int]:

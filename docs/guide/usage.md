@@ -102,12 +102,17 @@ not recognized as an install: ls -la
 
 ## `why list` — table view
 
+By default `why list` shows only currently-installed entries with complete metadata. Each row carries a **status** column: `installed`, `incomplete`, or `uninstalled`. Use the inclusion flags below to broaden the view.
+
 ```bash
-why list                              # all installs (limit 50)
-why list --purpose experimental   # filter by purpose
+why list                              # default: only installed + complete
+why list --show-incomplete            # also include entries missing metadata
+why list --show-removed               # also include uninstalled entries
+why list --all                        # include both
+why list --incomplete                 # narrow to ONLY the review queue
+why list --purpose experimental       # filter by purpose
 why list --project whydatapp          # filter by project
 why list --manager brew               # filter by manager
-why list --incomplete                 # only entries missing metadata
 why list --limit 200                  # show more
 ```
 
@@ -140,9 +145,10 @@ Same set as installs: `brew`, `npm`, `pnpm`, `yarn`, `bun`, `pip`/`pip3`, `pipx`
 
 ```bash
 why list --show-removed          # include removed rows in table output
+why show <id>                    # see full uninstall metadata (status, removal time, reason)
 ```
 
-In the web UI, check **"Show removed"** in the filter bar.
+In the web UI, check **"Show removed"** in the filter bar. Removed rows show an `uninstalled` status pill, an **Uninstalled** date column in the table, and the edit modal labels the `why` field as **Removal reason** with the timestamp shown in the read-only metadata panel.
 
 ## `why review` — drain the queue
 
@@ -268,8 +274,10 @@ Print full metadata and command history for a single install by ID:
 why show 42
 ```
 
-Output includes display name, manager, project, why, purpose, captured
+Output includes a colored **status** line (`installed`, `incomplete`, or
+`uninstalled`), display name, manager, project, why, purpose, captured
 timestamp, and — when available — the list of commands that ran immediately
-before the install in that shell session.
+before the install in that shell session. For uninstalled entries the `why`
+field is shown as `Reason:` and the removal timestamp appears as `Removed:`.
 
 IDs appear in `why list` output.

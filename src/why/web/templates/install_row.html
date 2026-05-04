@@ -16,9 +16,16 @@
          title="{{ r.what_it_does or '' }}">
         {{ r.display_name or r.package_name or "—" }}
       </a>
-      {% if r.metadata_complete == 0 %}
+      {% if r.removed_at %}
+        {% with tone="remove", label="uninstalled" %}
+          {% include "components/pill.html" %}
+        {% endwith %}
+      {% elif r.metadata_complete == 0 %}
         <span class="text-xs px-1.5 py-0.5 rounded-full leading-none font-medium"
               style="background-color: var(--color-accent-soft, rgba(251,191,36,0.15)); color: var(--color-accent, #f59e0b);">needs review</span>
+      {% else %}
+        <span class="text-xs px-1.5 py-0.5 rounded-full leading-none font-medium"
+              style="background-color: var(--color-bg-muted); color: var(--color-fg-faint);">installed</span>
       {% endif %}
     </div>
     <div class="text-xs font-mono truncate max-w-xs leading-relaxed" style="color: var(--color-fg-faint);">{{ r.command }}</div>
@@ -40,6 +47,7 @@
     {% endif %}
   </td>
   <td class="py-2 pr-4 text-right font-mono text-xs tabular-nums cursor-pointer" style="color: var(--color-fg-muted);">{{ r.installed_at[:10] }} {{ r.installed_at[11:16] }}</td>
+  <td class="py-2 pr-4 text-right font-mono text-xs tabular-nums cursor-pointer" style="color: var(--color-fg-muted);">{% if r.removed_at %}{{ r.removed_at[:10] }} {{ r.removed_at[11:16] }}{% else %}<span style="color: var(--color-fg-faint);">—</span>{% endif %}</td>
   <td class="py-2 pr-3 text-right w-20 cursor-pointer">
     {# Action reveal: hidden until row hover or focus-within #}
     <div class="opacity-0 focus-within:opacity-100 transition-opacity duration-100" data-row-actions="true">

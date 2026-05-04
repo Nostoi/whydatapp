@@ -30,11 +30,14 @@ The footer indicator is always present. When sync ships post-MVP, it will change
 
 Sortable, filterable table.
 
-- **Filter pills** at the top: purpose (Doc / Setup / Experimental / Remove / Ignore), plus dropdowns for project, manager, device, an "incomplete only" toggle, and a **"Show removed"** checkbox to include packages you've uninstalled.
+- **Tabs** at the top: `All`, one per purpose, `Stale`, and `Uninstalled`. Counts on each tab match what's actually visible (uninstalled rows don't inflate the disposition tabs). The **Uninstalled** tab lists every package you've removed, regardless of original purpose.
+- **Filter pills** below the tabs: dropdowns for project, manager, device, an "incomplete only" toggle, and a **"Show removed"** checkbox to mix uninstalled rows into a regular tab view.
 - **Search box** in the header runs SQLite FTS5 across name, command, what-it-does, project, why, notes.
 - **Sort** by clicking any column header.
 - **Edit**: click the row's name → an edit modal opens. Save commits and re-renders just the row. The modal includes read-only metadata (Run from, Installed to, timestamps, reinstall count when present, source URL when present).
-- **Removed rows** appear with the package name struck through and dimmed when "Show removed" is checked. They are hidden by default.
+- **Status badge** next to each name shows one of three states: `installed` (default), `needs review` (metadata incomplete), or `uninstalled` (row was removed).
+- **Uninstalled** column shows the date/time a package was removed (or `—` for currently-installed rows).
+- **Removed rows** also appear with the package name struck through and dimmed when "Show removed" is checked. They are hidden by default.
 - **Share** (per-row): returns the same Markdown snippet as the CLI's `why export --format md`.
 - **Filters live in the URL** (`?purpose=experimental&manager=brew&q=ripgrep`). Back/forward navigation works; you can deep-link or bookmark a filtered view.
 
