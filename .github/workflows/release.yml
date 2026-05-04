@@ -89,7 +89,7 @@ jobs:
         run: |
           set -e
           expected="${{ needs.decide.outputs.version }}"
-          pkg=$(uv run python -c "import tomllib; print(tomllib.loads(open('pyproject.toml','rb').read())['project']['version'])")
+          pkg=$(uv run python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
           init=$(uv run python -c "import re; print(re.search(r'__version__\s*=\s*\"([^\"]+)\"', open('src/why/__init__.py').read()).group(1))")
           echo "expected=$expected pyproject=$pkg __init__=$init"
           if [ "$expected" != "$pkg" ] || [ "$expected" != "$init" ]; then
