@@ -68,7 +68,7 @@ enabled = false
 # endpoint = "https://..."   # post-MVP
 ```
 
-> Note: the `[managers]` flags are read by the wizard for first-run defaults but are **not yet enforced** at hook time — the hook currently uses the in-code Tier-1 pattern set. Enforcement of per-manager toggles is a near-term follow-up.
+The shell hook enforces these flags for installs and supported uninstalls. Set a manager to `false` to make the hook ignore that manager entirely. Manual `why log -- <cmd>` still works for disabled managers because it is an explicit capture.
 
 ## `presentation.toml`
 
@@ -133,7 +133,7 @@ Beyond `ignore.toml`, the hook drops events when any of these are true:
 
 1. The command exited non-zero.
 2. The shell is non-interactive.
-3. The `WHY_SUPPRESS=1` env var is set (used internally to prevent recursion).
+3. The detected manager is disabled in `[managers]`.
 4. The parent process is one of: `brew`, `pip`, `pip3`, `npm`, `pnpm`, `yarn`, `bun`, `cargo`, `make`, `docker`, `nix`, `asdf`, `mise`, `volta`, `nvm`, `why`. Catches "tool installs its own deps."
 5. A dependency-restore command (no explicit packages): bare `npm install`, `pnpm install`, `yarn`, `pip install -r ...`, `cargo build`, etc.
 6. The same `(command, cwd)` was logged in the last 60 seconds (debounce).

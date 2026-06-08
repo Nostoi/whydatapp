@@ -7,6 +7,7 @@ import pytest
 
 from why import store
 from why.bootstrap import ensure_ready
+from why.config import load_config, write_config
 from why.hook_runner import run_hook
 
 
@@ -84,6 +85,25 @@ def test_hook_ignores_uninstall_on_nonzero_exit(
     inst = store.find_existing_install(db, manager="brew", package_name="ripgrep")
     assert inst is not None
     assert inst.removed_at is None
+
+
+def test_hook_ignores_uninstall_for_disabled_manager(
+    why_home: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    db = ensure_ready()
+    inst = _seed_install(db)
+    cfg = load_config()
+    cfg["managers"]["brew"] = False
+    write_config(cfg)
+
+    import io
+    monkeypatch.setattr("sys.stdin", io.StringIO("s\n"))
+
+    run_hook(command="brew uninstall ripgrep", cwd="/tmp", exit_code=0)
+
+    updated = store.get_install(db, inst.id)
+    assert updated is not None
+    assert updated.removed_at is None
 
 
 def test_hook_still_captures_installs(

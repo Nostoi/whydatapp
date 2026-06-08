@@ -49,7 +49,7 @@ If your install pattern is unusual (a custom installer script, `flatpak`, `pkg a
     "^npm install --save-dev"
   ]
   ```
-- **Toggle a whole manager off**: re-run `why init` and answer `n` to the manager's prompt. (Per-manager toggle enforcement at hook time is rolling out as a follow-up; the patterns are on by default in the meantime.)
+- **Toggle a whole manager off**: re-run `why init` and answer `n` to the manager's prompt, or edit `~/.why/config.toml` and set that manager under `[managers]` to `false`. The hook ignores disabled managers for both installs and supported uninstalls.
 
 ## "recent duplicate; skipping" appeared and I didn't expect it
 

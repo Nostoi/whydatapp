@@ -9,7 +9,7 @@ from rich.console import Console
 from why import store
 from why.bootstrap import ensure_ready
 from why.capture import capture, capture_removal
-from why.config import load_user_ignore_patterns
+from why.config import load_config, load_user_ignore_patterns
 from why.detect import IgnoreContext, match_install, match_uninstall, should_ignore
 from why.paths import log_path
 from why.redact import redact
@@ -72,13 +72,18 @@ def run_hook(*, command: str, cwd: str, exit_code: int, raw_history: str = "") -
         if should_ignore(ctx):
             return 0
 
-        is_install = match_install(command) is not None
-        is_uninstall = not is_install and match_uninstall(command) is not None
+        install_match = match_install(command)
+        uninstall_match = None if install_match is not None else match_uninstall(command)
+        match = install_match or uninstall_match
 
-        if not is_install and not is_uninstall:
+        if match is None:
             return 0
 
-        if is_install:
+        cfg = load_config()
+        if cfg["managers"].get(match.manager) is not True:
+            return 0
+
+        if install_match is not None:
             install = capture(
                 db,
                 command_str=command,

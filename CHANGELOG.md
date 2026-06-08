@@ -6,6 +6,15 @@ Versioning follows [SemVer](https://semver.org/).
 
 ---
 
+## [2.1.0] — 2026-06-08
+
+### Changed
+- The shell hook now enforces `[managers]` toggles from `~/.why/config.toml`
+  for both installs and supported uninstalls. Disabled managers are ignored
+  silently by the hook; manual `why log -- <cmd>` still captures explicitly.
+
+---
+
 ## [1.7.0] — 2026-05-01
 
 ### Added

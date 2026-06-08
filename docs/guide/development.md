@@ -221,13 +221,12 @@ If a release is broken: yank it, bump PATCH, fix, re-release.
 In rough priority order:
 
 1. PyPI publication (so `uv tool install why-cli` works).
-2. Per-manager toggle enforcement at hook time (read `[managers]` from config, not just at wizard time).
-3. Custom-patterns wiring (consume `~/.why/patterns.toml` in the matcher).
-4. UI editor for `patterns.toml` and `presentation.toml`.
-5. Homebrew tap.
-6. Sync (pluggable backend + auth).
-7. AI enrichment, source scraping, update discovery.
-8. One-click remote install.
+2. Custom-patterns wiring (consume `~/.why/patterns.toml` in the matcher).
+3. UI editor for `patterns.toml` and `presentation.toml`.
+4. Homebrew tap.
+5. Sync (pluggable backend + auth).
+6. AI enrichment, source scraping, update discovery.
+7. One-click remote install.
 
 ## Contributing
 
