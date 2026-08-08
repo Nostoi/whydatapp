@@ -75,10 +75,30 @@ def test_uninstall_removes_block_and_keeps_data(tmp_path: Path, why_home: Path, 
     cli_runner.invoke(app, ["init"], input=init_answers)
     assert BLOCK_BEGIN in rc.read_text()
 
+    assert (why_home / "hook.zsh").exists()
+
     result = cli_runner.invoke(app, ["uninstall"], input="n\n")
     assert result.exit_code == 0
     assert BLOCK_BEGIN not in rc.read_text()
     assert (why_home / "data.db").exists()
+    # The payload must go with the block. Left behind, the 2.3.0 auto-refresh would
+    # keep maintaining an orphan and tell an uninstalled user to restart their shell
+    # on every future WHY_HOOK_VERSION bump.
+    assert not (why_home / "hook.zsh").exists()
+
+
+def test_uninstall_is_convergent_when_the_hook_is_already_gone(
+    tmp_path: Path, why_home: Path, monkeypatch
+):
+    """Re-running uninstall, or running it after a manual cleanup, must not crash."""
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("SHELL", "/bin/zsh")
+    (tmp_path / ".zshrc").write_text("# x\n")
+
+    result = cli_runner.invoke(app, ["uninstall"], input="n\n")
+
+    assert result.exit_code == 0
+    assert not (why_home / "hook.zsh").exists()
 
 
 def test_uninstall_removes_data_when_confirmed(tmp_path: Path, why_home: Path, monkeypatch):

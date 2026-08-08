@@ -6,6 +6,7 @@ so a hook bugfix only reached a user who independently re-ran `why init`.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -107,6 +108,7 @@ def test_refresh_never_downgrades_a_newer_hook(why_home: Path):
     assert target.read_text() == text
 
 
+@pytest.mark.skipif(os.geteuid() == 0, reason="root ignores file permissions")
 def test_refresh_is_silent_when_the_hook_is_unwritable(why_home: Path):
     """A read-only ~/.why must degrade, not raise: hook.log is unwritable too."""
     target = why_home / "hook.zsh"

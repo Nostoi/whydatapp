@@ -98,7 +98,9 @@ If you decline the reload (or skip it in a script), restart your shell or run `s
 why uninstall
 ```
 
-Removes the rc-file hook block and any autostart unit. It asks before deleting `~/.why/`; answer `n` to keep your install history, `y` to wipe it.
+Removes the rc-file hook block, the `~/.why/hook.*` scripts themselves (all shells, not just your current one), and any autostart unit. It then asks before deleting `~/.why/`; answer `n` to keep your install history, `y` to wipe it.
+
+Answering `n` leaves a working `~/.why` you can still browse with `why list` and `why serve`; re-run `why init` whenever you want capture back.
 
 ## Next steps
 

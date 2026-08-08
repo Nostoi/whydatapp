@@ -31,6 +31,13 @@ Versioning follows [SemVer](https://semver.org/).
 - `tests/integration/test_init.py` derives the expected hook version instead of asserting
   the literal `WHY_HOOK_VERSION=2`.
 
+### Fixed
+- **`why uninstall` now deletes `~/.why/hook.*` as well as the rc-file block**, for every
+  shell rather than just `$SHELL`. It only ever stripped the block, leaving the payload
+  behind; with auto-refresh in place that orphan would be actively maintained, nagging an
+  uninstalled user to restart their shell on every future version bump. Uninstall is now
+  convergent, and safe to re-run when the files are already gone.
+
 ### Notes
 - The refresh never creates a hook that was not already installed (keeping `why uninstall`
   convergent), never downgrades a newer hook, refreshes every installed shell rather than

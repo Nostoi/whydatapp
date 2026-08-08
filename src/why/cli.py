@@ -366,12 +366,28 @@ def uninstall_cmd() -> None:
     import sys
 
     from why.paths import why_home as _wh
-    from why.shells.installer import detect_shell, rc_file_for, remove_from_rc
+    from why.shells.installer import (
+        SHELLS,
+        detect_shell,
+        hook_target_for,
+        rc_file_for,
+        remove_from_rc,
+    )
 
     shell = detect_shell()
     rc = rc_file_for(shell)
     remove_from_rc(rc)
     console.print(f"[green]✓[/green] removed hook block from {rc}")
+
+    # Remove the payload too, for every shell — not just $SHELL. Leaving it behind
+    # would strand an orphan that the stale-hook auto-refresh then keeps updating,
+    # nagging an uninstalled user to restart their shell on every version bump.
+    home = _wh()
+    for sh in SHELLS:
+        target = hook_target_for(sh, home)
+        if target.exists():
+            target.unlink()
+            console.print(f"[green]✓[/green] removed {target}")
 
     if sys.platform == "darwin":
         from why.autostart import uninstall_macos_launchd
