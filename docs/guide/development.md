@@ -189,6 +189,19 @@ The product was designed before it was built. The reference docs:
 
 Read the spec before proposing structural changes.
 
+## Continuous integration
+
+Two workflows, deliberately separate:
+
+| Workflow | Triggers | Does |
+|---|---|---|
+| [`ci.yml`](../../.github/workflows/ci.yml) | `pull_request`, manual | Full gate (pytest with zsh + fish, no-skipped-shell-tests assertion, ruff, mypy, version-file agreement) plus a wheel job that installs the built artifact with **fresh dependency resolution** and asserts its data files are present. Publishes nothing. |
+| [`release.yml`](../../.github/workflows/release.yml) | push to `main`, tags, manual | The same gate, then tag, build, and publish. |
+
+They are not merged into one on purpose: `release.yml`'s `publish-pypi` job is gated on `github.event_name != 'workflow_dispatch'`, which a `pull_request` event satisfies — adding a PR trigger there would publish to PyPI from a pull request.
+
+The wheel job exists because the gate runs against `uv.lock` while users get whatever the resolver picks from `pyproject.toml`. That divergence shipped 2.2.1 with a crash on every command for CLI-only installs. See "What our test suite does NOT cover" in `CLAUDE.md`.
+
 ## Publishing to PyPI
 
 Releases are automated by [`.github/workflows/release.yml`](../../.github/workflows/release.yml). It uses **Trusted Publishing** — no API tokens are stored in the repo or GitHub Secrets.

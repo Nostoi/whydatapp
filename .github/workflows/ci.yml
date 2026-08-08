@@ -1,0 +1,110 @@
+name: ci
+
+# Deliberately a separate workflow from release.yml rather than a `pull_request`
+# trigger added to it. release.yml's publish jobs are gated on
+# `github.event_name != 'workflow_dispatch'` — a pull_request event satisfies that,
+# so teaching release.yml about PRs would publish to PyPI from a pull request.
+# This workflow runs the same gate and ships nothing.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Quality gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Verify the two version files agree
+        run: |
+          set -e
+          pkg=$(uv run python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          init=$(uv run python -c "import re; print(re.search(r'__version__\s*=\s*\"([^\"]+)\"', open('src/why/__init__.py').read()).group(1))")
+          echo "pyproject=$pkg __init__=$init"
+          if [ "$pkg" != "$init" ]; then
+            echo "::error::Version mismatch — pyproject ($pkg) and __init__ ($init) must match."
+            exit 1
+          fi
+
+      # ubuntu-latest ships neither zsh nor fish, and the hook tests skip when their
+      # shell is absent. Without this the tests that drive the real hook scripts
+      # silently do not run — which is how a hook that disabled all recording on zsh
+      # once passed a fully green gate.
+      - name: Install shells under test
+        run: sudo apt-get update && sudo apt-get install -y zsh fish
+
+      - name: Run quality gate
+        run: |
+          uv pip install -e '.[dev,web]'
+          uv run pytest -q
+          uv run ruff check src tests
+          uv run mypy src/why
+
+      - name: Assert no shell tests were skipped
+        run: |
+          uv run pytest -q -rs 2>&1 | tee /tmp/pytest-skips.txt
+          if grep -qiE 'SKIPPED.*(zsh|bash|fish) not available' /tmp/pytest-skips.txt; then
+            echo "::error::A shell under test was unavailable, so its hook tests did not run."
+            grep -iE 'SKIPPED.*(zsh|bash|fish) not available' /tmp/pytest-skips.txt
+            exit 1
+          fi
+
+  wheel:
+    name: Wheel installs and runs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Build distributions
+        run: uv build
+
+      # The gate above runs against uv.lock; users get whatever the resolver picks
+      # from pyproject.toml. That gap shipped 2.2.1 with a crash on every command for
+      # CLI-only installs (typer >= 0.27 vendored click and dropped the dependency,
+      # so `import click` failed) while the whole suite passed against the pinned
+      # typer 0.25. Install the real wheel with fresh resolution and run it.
+      - name: Smoke-test the built wheel with freshly resolved dependencies
+        run: |
+          set -euo pipefail
+          WHEEL=$(ls dist/why_cli-*.whl)
+          for variant in "$WHEEL" "$WHEEL[web]"; do
+            echo "::group::$variant"
+            rm -rf /tmp/smoke && uv venv -q /tmp/smoke
+            uv pip install -q --python /tmp/smoke/bin/python "$variant"
+            /tmp/smoke/bin/python -c "import typer; print('typer', typer.__version__)"
+            /tmp/smoke/bin/why --version
+            WHY_HOME=$(mktemp -d) /tmp/smoke/bin/why list
+            WHY_HOME=$(mktemp -d) /tmp/smoke/bin/why --help > /dev/null
+            echo "::endgroup::"
+          done
+
+      - name: Confirm the wheel ships its data files
+        run: |
+          set -euo pipefail
+          WHEEL=$(ls dist/why_cli-*.whl)
+          for path in \
+            why/shells/hook.zsh why/shells/hook.bash why/shells/hook.fish \
+            why/presentation.toml why/web/static/css/tailwind.css; do
+            if ! unzip -l "$WHEEL" | grep -q "$path"; then
+              echo "::error::$path is missing from the built wheel."
+              exit 1
+            fi
+          done
+          echo "all expected data files present"

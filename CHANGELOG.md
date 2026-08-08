@@ -6,6 +6,28 @@ Versioning follows [SemVer](https://semver.org/).
 
 ---
 
+## [2.3.3] — 2026-08-08
+
+### Added
+- **`.github/workflows/ci.yml` — pull requests now run the gate.** Until now `release.yml`
+  was the only workflow and it triggers solely on push-to-main and `workflow_dispatch`, so
+  a PR ran **no CI at all**; the first automated check on any change happened during the
+  release that published it.
+- The new workflow runs the full quality gate (pytest with zsh + fish installed, the
+  no-skipped-shell-tests assertion, ruff, mypy), verifies the two version files agree,
+  and — in a parallel job — builds the wheel, installs it into a clean venv with **fresh
+  dependency resolution** (bare and `[web]`), runs it, and asserts the packaged data files
+  (all three hook scripts, `presentation.toml`, `tailwind.css`) are actually in the archive.
+
+### Notes
+- Deliberately a **separate workflow** rather than adding a `pull_request` trigger to
+  `release.yml`. That workflow's `publish-pypi` job is gated on
+  `github.event_name != 'workflow_dispatch'` — a `pull_request` event satisfies that
+  condition, so teaching `release.yml` about pull requests would have published to PyPI
+  from a pull request. `ci.yml` ships nothing.
+
+---
+
 ## [2.3.2] — 2026-08-08
 
 ### Fixed
