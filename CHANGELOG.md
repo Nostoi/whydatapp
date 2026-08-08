@@ -6,6 +6,45 @@ Versioning follows [SemVer](https://semver.org/).
 
 ---
 
+## [2.3.2] — 2026-08-08
+
+### Fixed
+- **Every CLI-only install was broken, including the published 2.2.1.** `src/why/cli.py`
+  did `import click`, which was only ever satisfied transitively through typer. typer 0.27
+  vendored click as `typer._click` and dropped the top-level dependency, so
+  `uv tool install why-cli` produced a tool that died with
+  `ModuleNotFoundError: No module named 'click'` on **every** command, `why --version`
+  included. The recommended `why-cli[web]` install survived only by accident — uvicorn
+  happens to pull click in.
+- **A quieter second failure on `[web]` installs:** with typer ≥ 0.27, `typer.Abort` is
+  `typer._click.exceptions.Abort` and is *not* a subclass of `click.Abort`, so
+  `except (click.Abort, EOFError)` in `why review` and `why purposes delete` had stopped
+  catching user aborts — reintroducing the non-TTY bug the 2.2.0 review fixed.
+- Both are fixed by dropping click entirely in favour of typer's own re-exports
+  (`typer.echo`, `typer.Abort`), which resolve correctly on old and new typer alike. click
+  is deliberately *not* added as a dependency.
+
+### Why the tests didn't catch it
+The suite runs against `uv.lock`, which pinned typer 0.25.0; users get whatever the
+resolver picks from `typer>=0.12`. 365 tests passed against a resolution no user has had
+for some time. Three things now close that gap:
+
+- `uv.lock` moved to typer 0.27.1, so the dev env matches what a new install resolves to.
+- `tests/unit/test_packaging.py` fails if any module under `src/why/` imports click, or if
+  click is added to `pyproject.toml` dependencies to paper over it.
+- The release workflow installs the built wheel into a clean venv with **fresh dependency
+  resolution** — both bare and `[web]` — and runs `why --version`, `why list`, and
+  `why --help` before publishing. This is the check that would have caught it.
+
+`CLAUDE.md` records the rule and the reasoning under "What our test suite does NOT cover".
+
+### Notes
+- Found by running the real-shell hook verification for 2.3.0 against an actual
+  `uv tool install`ed binary rather than `uv run`. The 2.3.0 feature itself was fine; the
+  install underneath it was not.
+
+---
+
 ## [2.3.1] — 2026-08-08
 
 ### Fixed

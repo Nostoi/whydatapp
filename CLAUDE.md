@@ -64,6 +64,10 @@ These things have no automated check; verify them by hand whenever the change pl
 - **Real shell-hook behavior in production.** Integration tests invoke `_hook` via Typer's `CliRunner`, which does not inherit env vars set by a shell wrapper (e.g. `WHY_SUPPRESS=1`). Bugs that depend on the hook's actual production env (shell, parent PID, env-var inheritance) can pass tests and still break in zsh/bash/fish. After non-trivial hook changes, install locally and run a real install to confirm the prompt fires.
 - **Autostart units actually loading.** `tests/unit/test_autostart.py` only checks that the generated plist/unit text is correct; it does not run `launchctl load` or `systemctl --user enable`.
 - **The shipped wheel.** `uv build` succeeds doesn't mean the wheel contains the right files. After packaging changes (force-include, new dirs under `src/why/`), `unzip -l dist/why_cli-*.whl` and confirm templates, static, shells, migrations, and presentation.toml are all present.
+- **The dependency resolution users actually get.** The whole test suite runs against `uv.lock`; users get whatever the resolver picks from the ranges in `pyproject.toml`. Those diverged far enough to ship 2.2.1 with a **crash on every command** for CLI-only installs: `uv.lock` pinned `typer` 0.25 (which depends on click) while `pyproject.toml` says `typer>=0.12`, and typer 0.27 vendored click as `typer._click` and dropped the dependency — so `import click` in `cli.py` failed for every real user while 365 tests passed locally. Rules that follow from this:
+  - **Never `import click`.** Use `typer.echo` / `typer.Abort` / `typer.Context`; they resolve correctly on both the pre- and post-vendoring typer layouts. `tests/unit/test_packaging.py` enforces this.
+  - When you widen or touch a dependency range, run `uv lock --upgrade-package <name>` and re-run the gate, so the dev env sits on the same resolution a new user gets.
+  - The release workflow now installs the built wheel into a clean venv with fresh resolution (both bare and `[web]`) and runs it. That job is the only thing standing between a resolver drift and a broken release — don't weaken it.
 
 ## Documentation
 

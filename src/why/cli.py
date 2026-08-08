@@ -4,8 +4,8 @@ import json
 import os
 import sys
 from pathlib import Path as _P
+from typing import Any
 
-import click
 import typer
 from rich.console import Console
 from rich.table import Table
@@ -21,9 +21,13 @@ from why.store import InstallFilters
 
 
 class WhyGroup(typer.core.TyperGroup):
-    def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
+    # `ctx` is Any rather than click.Context on purpose: typer >= 0.27 vendors click as
+    # typer._click and no longer depends on the top-level package, so importing click
+    # here breaks every CLI-only install. Everything below goes through typer's own
+    # re-exports, which resolve to the right classes on both the old and new layouts.
+    def parse_args(self, ctx: Any, args: list[str]) -> list[str]:
         if not args and self.no_args_is_help and not ctx.resilient_parsing:
-            click.echo(ctx.get_help(), color=ctx.color)
+            typer.echo(ctx.get_help(), color=ctx.color)
             ctx.exit()
         return super().parse_args(ctx, args)
 
@@ -596,7 +600,7 @@ def recall_cmd(
             console.print(f"{index:2}. [{entry.exit_code}] {entry.command}")
         try:
             selection = typer.prompt("Select commands")
-        except (click.Abort, EOFError):
+        except (typer.Abort, EOFError):
             # Non-TTY fallback (CLAUDE.md): save the whole window rather than
             # aborting. Detected by the failed read, not by isatty(), because
             # stdin is not a TTY even when input has been piped in.
@@ -836,7 +840,7 @@ def llm_configure() -> None:
             "Confirm before send (always/remote/never)",
             default=str(llm_cfg["confirm_before_send"]),
         )
-    except (click.Abort, EOFError):
+    except (typer.Abort, EOFError):
         # CLAUDE.md: never assume a TTY. Scripts, Dockerfiles and CI must be able
         # to call this without hanging or aborting.
         console.print(

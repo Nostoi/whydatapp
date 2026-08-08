@@ -144,6 +144,25 @@ jobs:
       - name: Build distributions
         run: uv build
 
+      # The quality gate above runs against uv.lock; users get whatever the resolver
+      # picks from pyproject.toml. That gap shipped a release where every CLI-only
+      # install crashed on `import click` (typer >= 0.27 vendored click and dropped
+      # the dependency) while all 365 tests passed against the pinned typer 0.25.
+      # Install the actual wheel with fresh resolution and run it.
+      - name: Smoke-test the built wheel with freshly resolved dependencies
+        run: |
+          set -euo pipefail
+          WHEEL=$(ls dist/why_cli-*.whl)
+          for variant in "$WHEEL" "$WHEEL[web]"; do
+            echo "::group::$variant"
+            rm -rf /tmp/smoke && uv venv -q /tmp/smoke
+            uv pip install -q --python /tmp/smoke/bin/python "$variant"
+            /tmp/smoke/bin/why --version
+            WHY_HOME=$(mktemp -d) /tmp/smoke/bin/why list
+            WHY_HOME=$(mktemp -d) /tmp/smoke/bin/why --help > /dev/null
+            echo "::endgroup::"
+          done
+
       - uses: actions/upload-artifact@v4
         with:
           name: dist
