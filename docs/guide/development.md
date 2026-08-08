@@ -249,15 +249,16 @@ If a release is broken: yank it, bump PATCH, fix, re-release.
 
 - **PyPI publication** — `uv tool install why-cli` works; releases are automated (see `.github/workflows/release.yml`).
 - **Task sessions + opt-in LLM recaps** (2.2.0) — `why follow`, `why recall`, `why sessions`, `why llm`, and the `/sessions` + `/settings/llm` web views. This was not on the original roadmap; it is recorded here so the plan matches the product.
+- **Stale shell-hook auto-refresh** (2.3.0) — `WHY_HOOK_VERSION` is finally read. Any user-facing command rewrites an out-of-date `~/.why/hook.*` in place and prints a one-time notice. Half of roadmap item 1; see "Shell-hook auto-refresh" in `configuration.md`.
 
 ### Next, in rough priority order
 
-1. **Upgrade ergonomics.** There is no update mechanism beyond `uv tool upgrade why-cli`: nothing checks whether a newer version exists, and nothing detects a stale `~/.why/hook.*` after an upgrade. The hooks carry `WHY_HOOK_VERSION` but no code reads it, so a user whose hook predates a fix gets no signal — they simply stop being captured. See "Upgrade path" below.
+1. **Update discovery.** The stale-hook half of upgrade ergonomics shipped in 2.3.0, but nothing still checks whether a newer `why-cli` exists — the user has to decide to run `uv tool upgrade why-cli` on their own. Deliberately deferred: it is a network call on a local-first tool and needs its own privacy decision, opt-out, and cache design. See "Upgrade path" below.
 2. **UI editor for `patterns.toml` and `presentation.toml`.** `/settings` currently manages purposes only.
 3. **Homebrew tap.**
 4. **Sync** (pluggable backend + auth). Schema already carries `sync_id` / `updated_at` / `deleted` on every table, including task sessions.
 5. **AI supplementation** — enrich `what_it_does` / `why` from the command plus a scraped homepage. Cheaper than originally scoped: 2.2.0 already ships the `[llm]` config block and an OpenAI-compatible client (`why/llm.py`) that this can reuse rather than rebuild.
-6. **Source scraping and update discovery.** `source_url` exists on `installs` and is displayed, but nothing populates it.
+6. **Source scraping.** `source_url` exists on `installs` and is displayed, but nothing populates it.
 7. **One-click remote install.**
 
 ### Known follow-ups
@@ -273,10 +274,16 @@ What happens today when a user upgrades:
 |---|---|
 | Schema migrations | **Automatic.** `ensure_ready()` runs `migrate()` on every command, with a pre-migration backup in `~/.why/backups/`. |
 | New config keys | **Automatic.** `load_config()` deep-merges over current defaults. |
-| Shell hook refresh | **Manual.** Requires re-running `why init`; `copy_hook_to_home` overwrites unconditionally, but nothing prompts the user to do it. |
+| Shell hook refresh | **Automatic since 2.3.0.** Every user-facing command compares `WHY_HOOK_VERSION` in each installed `~/.why/hook.*` against the packaged one and rewrites in place, printing a one-time notice on stderr. Suppressed for `_hook` / `_record` / `init` / `uninstall` and whenever `WHY_SUPPRESS` is set. |
 | Knowing an update exists | **Nothing.** No version check anywhere. |
 
-The last two rows are the gap behind roadmap item 1, and they matter more than they look: a hook fix only reaches users who happen to re-run `why init`.
+The last row is what's left of roadmap item 1.
+
+Notes for anyone touching the hook refresh:
+
+- The check lives in the `main()` Typer group callback (`cli.py`), **not** `ensure_ready()`. `ensure_ready()` also runs from `why/web/deps.py` and the init wizard, and sits on the per-prompt hot path via `why _record` — a `console.print` there would land in server logs or corrupt the terminal.
+- The notice goes to **stderr** because `why export` writes markdown to stdout and `why follow status --porcelain` is machine-parsed. Same tty either way, so the user still sees it.
+- **Bump `WHY_HOOK_VERSION` in all three hook scripts** whenever you change hook behaviour. `tests/unit/test_hook_refresh.py` fails if the three drift apart or a marker goes missing. Never assert a literal version in a test — derive it from `packaged_hook_version()`.
 
 ## Contributing
 

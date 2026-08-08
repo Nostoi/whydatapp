@@ -17,6 +17,7 @@ All configuration lives under `~/.why/`. Override the home directory with the `W
 ├── hook.zsh               # the hook script your rc file sources
 ├── hook.bash
 ├── hook.fish
+│                          # each declares WHY_HOOK_VERSION; see "Shell-hook auto-refresh"
 ├── hook.log               # paranoid hook errors
 ├── web.log                # web UI errors
 └── backups/               # pre-migration database snapshots
@@ -187,13 +188,45 @@ Beyond `ignore.toml`, the hook drops events when any of these are true:
 5. A dependency-restore command (no explicit packages): bare `npm install`, `pnpm install`, `yarn`, `pip install -r ...`, `cargo build`, etc.
 6. The same `(command, cwd)` was logged in the last 60 seconds (debounce).
 
+## Shell-hook auto-refresh
+
+Each packaged hook declares a `WHY_HOOK_VERSION` integer, bumped whenever the hook's
+behaviour changes. Since 2.3.0 the CLI reads it.
+
+On any user-facing command, whydatApp compares the version in each `~/.why/hook.<shell>`
+against the one shipped with the installed `why`. If the installed file is older, it is
+rewritten in place and you get a one-time notice on stderr:
+
+```
+↻ zsh shell hook updated (v2 → v3). Restart your shell or run:
+    exec $SHELL -l
+```
+
+Details worth knowing:
+
+- **Only the payload changes.** The `# >>> why-cli hook >>>` block in your `.zshrc` /
+  `.bashrc` / `config.fish` is never touched, which is what makes an unprompted rewrite
+  safe. Nothing about your shell configuration changes.
+- **You still need a fresh shell.** An already-running shell holds the old functions in
+  memory. whydatApp will not `exec` anything on your behalf.
+- **It never creates a hook you didn't install.** Only files already present in `~/.why`
+  are refreshed, so `why uninstall` stays convergent.
+- **It never downgrades.** A hook newer than the running `why` is left alone.
+- **It is silent** when everything is current, when `WHY_SUPPRESS` is set (i.e. inside the
+  prompt cycle), during `why init` / `why uninstall`, and when `~/.why` is read-only.
+- Every installed shell is refreshed, not just your current one — so a dual zsh + fish
+  setup doesn't end up half-patched.
+
+There is no version check against PyPI; upgrading the tool itself is still
+`uv tool upgrade why-cli`.
+
 ## Environment variables
 
 | Variable                  | Purpose                                                    |
 |---------------------------|------------------------------------------------------------|
 | `WHY_HOME`                | Override `~/.why` (used by tests and sandboxed installs).  |
 | `WHY_INIT_NO_RELOAD=1`    | Disable the post-`why init` shell-reload prompt. Useful for scripts, Dockerfiles, and any non-interactive context where exec'ing a fresh shell would be wrong. |
-| `WHY_SUPPRESS=1`          | Internal — set by the shell hook around the `why _hook` invocation as a *shell-level* recursion guard. Python does not read it. |
+| `WHY_SUPPRESS=1`          | Internal — set by the shell hook around every `why` call it makes (`_hook`, `_record`, `follow status`). It is a shell-level recursion guard, and since 2.3.0 it also tells the CLI it is running inside the prompt cycle, so the stale-hook notice stays silent there. |
 | `WHY_HOOK_FORCE_PROMPT=1` | Force interactive prompt path (used by integration tests). |
 | `WHY_LLM_API_KEY`         | Default env var read by `why sessions summarize` for OpenAI-compatible endpoints. You can change the name with `[llm].api_key_env`. |
 

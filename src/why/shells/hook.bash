@@ -1,5 +1,5 @@
 # why-cli shell hook for bash.
-WHY_HOOK_VERSION=2
+WHY_HOOK_VERSION=3
 if [[ -n "$WHY_HOOK_LOADED" ]]; then
   return 0 2>/dev/null || exit 0
 fi

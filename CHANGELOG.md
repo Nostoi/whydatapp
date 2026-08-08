@@ -6,6 +6,41 @@ Versioning follows [SemVer](https://semver.org/).
 
 ---
 
+## [2.3.0] — 2026-08-08
+
+### Added
+- **Stale shell hooks now refresh themselves.** Every user-facing command compares the
+  `WHY_HOOK_VERSION` in each installed `~/.why/hook.<shell>` against the version shipped
+  with the running `why`, rewrites the file in place when it is older, and prints a
+  one-time notice telling the user to start a new shell. Previously a hook bugfix only
+  reached users who independently thought to re-run `why init` — and a broken hook fails
+  silently, which is indistinguishable from "I haven't installed anything lately."
+- `packaged_hook_text`, `packaged_hook_version`, `installed_hook_version`,
+  `refresh_stale_hooks`, and `SHELLS` in `why.shells.installer`.
+
+### Changed
+- `WHY_HOOK_VERSION` bumped `2` → `3` in all three hook scripts. It had been stuck at `2`
+  across the 2.2.0 hook rewrite, since nothing read it.
+- `WHY_SUPPRESS` gains a second meaning: as well as being the shell-level recursion guard,
+  it now tells the CLI it is running inside the prompt cycle and must stay quiet. Old
+  hooks already set it on every `why` they invoke, so the gate works for the very users
+  being upgraded.
+- The notice is written to **stderr**, not stdout — `why export` emits markdown and
+  `why follow status --porcelain` is machine-parsed, so stdout has to stay clean. Both
+  streams reach the same terminal, so the user sees it either way.
+- `tests/integration/test_init.py` derives the expected hook version instead of asserting
+  the literal `WHY_HOOK_VERSION=2`.
+
+### Notes
+- The refresh never creates a hook that was not already installed (keeping `why uninstall`
+  convergent), never downgrades a newer hook, refreshes every installed shell rather than
+  just `$SHELL`, and is silent during `_hook`, `_record`, `init`, `uninstall`, and when
+  `~/.why` is read-only. Nothing is ever auto-`exec`'d.
+- Still no PyPI version check — deliberately out of scope, it needs its own privacy and
+  caching design.
+
+---
+
 ## [2.2.1] — 2026-08-08
 
 ### Fixed

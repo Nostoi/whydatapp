@@ -36,12 +36,47 @@ app = typer.Typer(
     help="Track why you installed every tool.",
 )
 console = Console()
+err_console = Console(stderr=True)
+
+# Commands that must never emit the stale-hook notice:
+#   _hook / _record — run inside the shell's precmd; printing corrupts the terminal.
+#   init / uninstall — rewrite or remove the hook themselves, so a notice is noise.
+_NO_HOOK_NOTICE = frozenset({"_hook", "_record", "init", "uninstall"})
 
 
 def _version_callback(value: bool) -> None:
     if value:
         console.print(f"why {__version__}")
         raise typer.Exit()
+
+
+def _refresh_hooks_if_stale(subcommand: str | None) -> None:
+    """Bring `~/.why/hook.*` up to date and tell the user, once.
+
+    Deliberately not in `ensure_ready()`: that also runs from the web app and the
+    init wizard, and sits on the per-prompt hot path via `why _record`. Here it
+    only runs for user-facing commands.
+
+    `WHY_SUPPRESS` is set by every hook-initiated invocation — including
+    `why follow status`, which is not a hidden command — so it doubles as the
+    "we are inside the prompt cycle, do not print" signal. Old hooks set it too,
+    which is what makes this safe for the very users we're upgrading.
+    """
+    if subcommand in _NO_HOOK_NOTICE or os.environ.get("WHY_SUPPRESS"):
+        return
+    try:
+        from why.paths import why_home
+        from why.shells.installer import refresh_stale_hooks
+
+        refreshed = refresh_stale_hooks(why_home())
+    except Exception:  # noqa: BLE001 - an upgrade notice must never fail a command
+        return
+    for shell, old, new in refreshed:
+        was = f"v{old}" if old is not None else "unversioned"
+        err_console.print(
+            f"[yellow]↻[/yellow] {shell} shell hook updated ({was} → v{new}). "
+            "Restart your shell or run:\n    [bold]exec $SHELL -l[/bold]"
+        )
 
 
 @app.callback(invoke_without_command=True, no_args_is_help=True)
@@ -53,6 +88,7 @@ def main(
     if ctx.invoked_subcommand is None:
         console.print(ctx.get_help())
         raise typer.Exit()
+    _refresh_hooks_if_stale(ctx.invoked_subcommand)
 
 
 @app.command("list")

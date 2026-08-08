@@ -108,6 +108,23 @@ tail -20 ~/.why/hook.log
    ```
    If that works but the hook doesn't, the issue is in the shell-side wiring.
 
+## "↻ shell hook updated (v2 → v3)" appeared — what do I do?
+
+Nothing is wrong. You upgraded `why-cli`, the new release ships a newer hook, and whydatApp
+rewrote `~/.why/hook.<shell>` for you instead of waiting for you to re-run `why init`.
+
+**Do open a new shell** (or `exec $SHELL -l`) when convenient. The rewrite lands on disk
+immediately, but your current shell already loaded the old functions into memory and keeps
+using them until it restarts. whydatApp will not restart it for you.
+
+The notice prints once per upgrade, on stderr, and never during the prompt cycle — so it
+won't corrupt piped output from `why export` or `why follow status --porcelain`.
+
+The reverse case is quieter and worth knowing about: if `~/.why/hook.<shell>` is read-only
+or owned by another user, the refresh fails and stays **silent** (a read-only `~/.why` also
+means `hook.log` is unwritable, so there is nowhere to report it). Symptom: an old hook that
+never updates. Check with `ls -l ~/.why/hook.*`, fix the permissions, or run `why init`.
+
 ## The prompt fires but my command isn't recognized
 
 The Tier-1 patterns are conservative on purpose (high signal, low false-positive). Tier-2 managers (`gem`, `go`, `apt`, `mas`, `vscode`, `docker`) are off by default. Re-run `why init` and opt in to the ones you want.
