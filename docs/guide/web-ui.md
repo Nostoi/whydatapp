@@ -109,7 +109,7 @@ LLM support is off by default.
 
 ## Keyboard shortcuts
 
-Not yet implemented (it's on the [post-MVP roadmap](../superpowers/specs/2026-04-29-whydatapp-design.md#15-post-mvp-roadmap-priority-order)). The whole UI is mouse-and-form-driven for now.
+Not yet implemented — see the [roadmap](development.md#roadmap). The whole UI is mouse-and-form-driven for now.
 
 ## Customization
 
