@@ -109,7 +109,7 @@ shell hook (~/.why/hook.zsh)  →  why _hook / why _record (Python)
 - **`why.web`** never imports `why.cli`. The CLI never imports `why.web`. Both depend on `why.store`.
 - **The shell hook** is a thin wrapper. All real logic is in `why _hook` (`hook_runner.py`). Any failure exits 0 and logs to `~/.why/hook.log` — the user's terminal is never broken.
 
-Full architecture is in [`docs/superpowers/specs/2026-04-29-whydatapp-design.md`](../superpowers/specs/2026-04-29-whydatapp-design.md). The implementation plans are in [`docs/superpowers/plans/`](../superpowers/plans/).
+Fuller architectural rationale lives in the design spec under `docs/superpowers/`, which is **gitignored and local to the maintainer's checkout** — it is a working design record, not published documentation. Everything a contributor needs is in this guide and the rest of `docs/guide/`; if something structural is only explained in the spec, that is a gap in these docs worth filing.
 
 ## Project layout
 
@@ -180,14 +180,18 @@ Coverage targets: ≥85% on `detect.py`, `store.py`, `prompts.py`. Run with `uv 
 
 ## Plans and specs
 
-The product was designed before it was built. The reference docs:
+The product was designed before it was built. Those design records — a spec and the
+per-area implementation plans — live under `docs/superpowers/`, which is **gitignored**:
+they are the maintainer's working notes and are not part of the published repository, so
+the paths below resolve only in a local checkout that has them.
 
-- Spec: [`docs/superpowers/specs/2026-04-29-whydatapp-design.md`](../superpowers/specs/2026-04-29-whydatapp-design.md)
-- Plan 1 (core CLI): [`docs/superpowers/plans/2026-04-29-plan-1-core-cli.md`](../superpowers/plans/2026-04-29-plan-1-core-cli.md)
-- Plan 2 (web UI): [`docs/superpowers/plans/2026-04-29-plan-2-web-ui.md`](../superpowers/plans/2026-04-29-plan-2-web-ui.md)
-- Plan 3 (distribution): [`docs/superpowers/plans/2026-04-29-plan-3-distribution-init.md`](../superpowers/plans/2026-04-29-plan-3-distribution-init.md)
+- Spec: `docs/superpowers/specs/2026-04-29-whydatapp-design.md`
+- Plans: `docs/superpowers/plans/2026-04-29-plan-{1-core-cli,2-web-ui,3-distribution-init}.md`, plus later plans by date
 
-Read the spec before proposing structural changes.
+If you have them, read the spec before proposing structural changes. If you don't, this
+guide plus `CLAUDE.md` are the contract — anything binding that appears only in the spec
+should be promoted into `docs/guide/` rather than left behind a file most readers can't
+open.
 
 ## Continuous integration
 
@@ -262,22 +266,27 @@ If a release is broken: yank it, bump PATCH, fix, re-release.
 
 - **PyPI publication** — `uv tool install why-cli` works; releases are automated (see `.github/workflows/release.yml`).
 - **Task sessions + opt-in LLM recaps** (2.2.0) — `why follow`, `why recall`, `why sessions`, `why llm`, and the `/sessions` + `/settings/llm` web views. This was not on the original roadmap; it is recorded here so the plan matches the product.
-- **Stale shell-hook auto-refresh** (2.3.0) — `WHY_HOOK_VERSION` is finally read. Any user-facing command rewrites an out-of-date `~/.why/hook.*` in place and prints a one-time notice. Half of roadmap item 1; see "Shell-hook auto-refresh" in `configuration.md`.
+- **Stale shell-hook auto-refresh** (2.3.0) — `WHY_HOOK_VERSION` is finally read. Any user-facing command rewrites an out-of-date `~/.why/hook.*` in place and prints a one-time notice. See "Shell-hook auto-refresh" in `configuration.md`.
+- **Working CLI-only installs** (2.3.2) — `import click` had been satisfied only transitively through typer; typer 0.27 vendored click and dropped it, so `uv tool install why-cli` shipped a tool that crashed on every command. Fixed, with `tests/unit/test_packaging.py` and a wheel smoke-test to keep it fixed.
+- **CI on pull requests** (2.3.3) — `ci.yml`. Before this, PRs ran no automated checks at all; the first gate a change met was the release that published it.
 
-### Next, in rough priority order
+### Next, in priority order
 
-1. **Update discovery.** The stale-hook half of upgrade ergonomics shipped in 2.3.0, but nothing still checks whether a newer `why-cli` exists — the user has to decide to run `uv tool upgrade why-cli` on their own. Deliberately deferred: it is a network call on a local-first tool and needs its own privacy decision, opt-out, and cache design. See "Upgrade path" below.
-2. **UI editor for `patterns.toml` and `presentation.toml`.** `/settings` currently manages purposes only.
-3. **Homebrew tap.**
-4. **Sync** (pluggable backend + auth). Schema already carries `sync_id` / `updated_at` / `deleted` on every table, including task sessions.
-5. **AI supplementation** — enrich `what_it_does` / `why` from the command plus a scraped homepage. Cheaper than originally scoped: 2.2.0 already ships the `[llm]` config block and an OpenAI-compatible client (`why/llm.py`) that this can reuse rather than rebuild.
-6. **Source scraping.** `source_url` exists on `installs` and is displayed, but nothing populates it.
-7. **One-click remote install.**
+The order is the argument — read the reasons, not just the list. Reordered 2026-08-08 after
+2.3.x shipped; the previous order had been inherited rather than re-derived.
+
+1. **Configure a TestPyPI trusted publisher.** Highest value per unit of effort on this list and **blocked on the repo owner** — nobody else can do it. Roughly five minutes at test.pypi.org. `workflow_dispatch` currently runs the entire gate and then dies at publish with `invalid-publisher`, so the release rehearsal can never complete. That rehearsal is not ceremonial: it is how the missing-shells gap in CI was found, and 2.3.2 proved that release plumbing is where this project's real bugs live.
+2. **Homebrew tap.** Distribution reach, and this project's stated thesis is that it lives or dies on setup friction. `brew install` is how most macOS developers find CLI tools. Deliberately promoted above every remaining feature: both genuine bugs found on 2026-08-08 were in distribution, not in features.
+3. **AI supplementation** — enrich `what_it_does` / `why` from the command plus a scraped homepage. Much cheaper than originally scoped: 2.2.0 already ships the `[llm]` config block and an OpenAI-compatible client (`why/llm.py`) to reuse rather than rebuild. Best feature-value-per-effort remaining.
+4. **Source scraping.** `source_url` exists on `installs` and is displayed, but nothing populates it. Natural pair with item 3 — the same fetch answers both, so doing them together is cheaper than doing either alone.
+5. **UI editor for `patterns.toml` and `presentation.toml`.** `/settings` currently manages purposes only. Real but bounded value: the files are hand-editable today and documented in `configuration.md`.
+6. **Update discovery.** Nothing checks whether a newer `why-cli` exists; the user must decide to run `uv tool upgrade why-cli` unprompted. **Demoted from #1**, where it sat only because it shared a heading with the stale-hook problem. That was the painful half and it shipped in 2.3.0 — a user whose hook now self-heals is not badly hurt by running a version behind. It is also the most design-encumbered item here: a network call from a local-first tool needs its own privacy decision, opt-out, and cache design. See "Upgrade path" below.
+7. **Sync** (pluggable backend + auth). By far the largest item, and the only one that turns a local-first tool into a service — it carries an auth and hosted-backend problem the rest of the roadmap does not. The schema already carries `sync_id` / `updated_at` / `deleted` on every table including task sessions, which means it can wait cheaply. That is a reason to leave it, not a reason to start it.
+8. **One-click remote install.**
 
 ### Known follow-ups
 
-- **TestPyPI has no trusted publisher.** `workflow_dispatch` runs the full gate and then fails at publish with `invalid-publisher`. Everything before that step is still a useful dry run — it is how the missing-shells gap in CI was found — but configuring it at test.pypi.org would make the rehearsal complete.
-- **`.github/workflows/release.yml` `Auto-tag main`** is now gated on `github.ref == 'refs/heads/main'`. Without that, a dispatch from a feature branch tags that branch and the stray tag makes the next real merge skip its release.
+- Nothing outstanding. (`release.yml`'s `Auto-tag main` gating, previously listed here, shipped in 2.2.1 and is covered by the CI section above. The TestPyPI publisher was promoted to roadmap item 1 — it is a task, not a note.)
 
 ## Upgrade path
 

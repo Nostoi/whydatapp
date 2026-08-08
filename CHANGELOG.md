@@ -6,6 +6,32 @@ Versioning follows [SemVer](https://semver.org/).
 
 ---
 
+## [2.3.4] — 2026-08-08
+
+### Changed
+- **Roadmap reordered in `docs/guide/development.md`, with the reasoning recorded** so the
+  order survives instead of being re-derived or inherited. Notable moves:
+  - *Configure a TestPyPI trusted publisher* promoted from a footnote to **item 1**. It is
+    the best value-per-effort item on the list, it is blocked on the repo owner alone, and
+    the release rehearsal it unblocks is what found the missing-shells CI gap.
+  - *Homebrew tap* promoted above every remaining feature. Both real bugs found on
+    2026-08-08 were in distribution, not features, and the project's stated thesis is that
+    it lives or dies on setup friction.
+  - *Update discovery* demoted from #1 to #6. It sat at the top only because it shared a
+    heading with the stale-hook problem; that was the painful half and it shipped in 2.3.0.
+  - *Source scraping* moved adjacent to *AI supplementation* — the same fetch serves both.
+- "Known follow-ups" is now empty and says so; both entries were resolved or promoted.
+- Shipped list records 2.3.2 (CLI-only installs) and 2.3.3 (CI on pull requests).
+
+### Fixed
+- **Broken public links.** `README.md` linked to a design spec under `docs/superpowers/`,
+  which is gitignored — the link was a 404 for every reader on GitHub. Replaced with a link
+  to the roadmap. `development.md` and `web-ui.md` carried four more of the same; those
+  paths are now described as maintainer-local working notes rather than presented as
+  documentation a reader can open.
+
+---
+
 ## [2.3.3] — 2026-08-08
 
 ### Added
