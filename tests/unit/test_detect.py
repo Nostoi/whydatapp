@@ -50,6 +50,31 @@ def test_no_match_for_non_install_or_dependency_restore(cmd: str) -> None:
     assert match_install(cmd) is None
 
 
+def test_custom_pattern_matches_named_package_group() -> None:
+    patterns = [
+        {
+            "manager": "flatpak",
+            "regex": r"^flatpak\s+install\s+(?:--user\s+)?(?P<package>\S+)$",
+        }
+    ]
+
+    m = match_install("flatpak install --user org.gnome.Builder", custom_patterns=patterns)
+
+    assert m is not None
+    assert m.manager == "flatpak"
+    assert m.packages == ["org.gnome.Builder"]
+
+
+def test_custom_pattern_without_package_group_uses_last_non_flag_token() -> None:
+    patterns = [{"manager": "pkg", "regex": r"^pkg\s+add\s+\S+"}]
+
+    m = match_install("pkg add --global ripgrep", custom_patterns=patterns)
+
+    assert m is not None
+    assert m.manager == "pkg"
+    assert m.packages == ["ripgrep"]
+
+
 
 @pytest.mark.parametrize("cmd", [
     "uv tool install --editable '.[web]'",

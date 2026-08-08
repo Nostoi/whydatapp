@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import tomllib
 from importlib import resources
 from typing import Any
@@ -20,6 +21,18 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "web": {"host": "127.0.0.1", "port": 7873, "autostart": False},
     "ui": {},
     "sync": {"enabled": False},
+    "journal": {"max_commands": 500, "max_age_hours": 24},
+    "llm": {
+        "enabled": False,
+        "provider": "openai-compatible",
+        "base_url": "http://localhost:11434/v1",
+        "model": "llama3.1",
+        "api_key_env": "WHY_LLM_API_KEY",
+        "timeout_seconds": 60,
+        "max_input_commands": 200,
+        "store_summaries": True,
+        "confirm_before_send": "remote",
+    },
 }
 
 
@@ -33,10 +46,27 @@ def load_config() -> dict[str, Any]:
 
 
 def write_config(cfg: dict[str, Any]) -> None:
+    """Persist config, but only when it actually changed.
+
+    `ensure_ready()` calls this on every CLI invocation, and the shell hook now runs
+    on every prompt. An unconditional rewrite would strip the user's comments (tomli_w
+    cannot preserve them) within one prompt of installing. The write is also staged
+    through a temp file so a crash or a concurrent shell cannot leave a torn config.
+    """
     ensure_home()
     p = config_path("config")
-    with p.open("wb") as f:
+    if p.exists():
+        try:
+            if load_config() == cfg:
+                return
+        except (OSError, tomllib.TOMLDecodeError):
+            pass  # unreadable or corrupt: fall through and rewrite it
+    tmp = p.with_name(p.name + ".tmp")
+    with tmp.open("wb") as f:
         tomli_w.dump(cfg, f)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, p)
 
 
 def _default_presentation() -> dict[str, Any]:
@@ -56,6 +86,15 @@ def load_presentation() -> dict[str, Any]:
 
 def load_user_ignore_patterns() -> tuple[str, ...]:
     p = why_home() / "ignore.toml"
+    if not p.exists():
+        return ()
+    with p.open("rb") as f:
+        data = tomllib.load(f)
+    return tuple(data.get("patterns", ()))
+
+
+def load_llm_ignore_patterns() -> tuple[str, ...]:
+    p = why_home() / "llm-ignore.toml"
     if not p.exists():
         return ()
     with p.open("rb") as f:

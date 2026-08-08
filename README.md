@@ -100,6 +100,10 @@ Full install instructions, including building from a wheel: **[Install guide](ht
 | `why review`      | Drain the skipped/incomplete review queue      |
 | `why list`        | Print installs as a table                      |
 | `why show <id>`   | Show full details for one entry                |
+| `why follow`      | Record a terminal task transcript              |
+| `why recall`      | Save recent command history as a transcript    |
+| `why sessions`    | View transcripts and manually summarize them   |
+| `why llm`         | Configure optional LLM task recaps             |
 | `why delete <id>` | Soft-delete an entry                           |
 | `why export`      | Export to Markdown or JSON                     |
 | `why purposes`    | Manage purpose categories                      |
@@ -121,10 +125,12 @@ Detailed usage with examples: **[Usage guide](https://github.com/Nostoi/whydatap
 
 ## Privacy
 
-- All data lives in `~/.why/data.db`. No network calls.
+- All data lives in `~/.why/data.db` unless you explicitly run `why sessions summarize` or click Summarize in the web UI. Both surfaces enforce `confirm_before_send`: with the default `remote` policy, anything leaving the machine is confirmed first, and the web UI names the endpoint, model, and command count before you approve.
+- Recorded transcripts can be removed — `why sessions delete <id>` hides one, `--purge` erases it and its commands and summaries.
 - The web UI binds to `127.0.0.1` only.
 - All static assets vendored locally — no CDN, no Google Fonts, no analytics.
 - The shell hook ignores any install triggered by another tracked installer (no false positives from `brew` resolving deps).
+- LLM summaries are opt-in. Command text is redacted on a best-effort basis before storage and before LLM submission, but review payloads with `why sessions summarize <id> --print-payload` when privacy matters.
 
 ## License
 

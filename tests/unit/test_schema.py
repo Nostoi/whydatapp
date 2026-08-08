@@ -54,6 +54,18 @@ def test_migrate_v3_adds_purposes_table(tmp_path: Path) -> None:
     assert keys == ["doc", "setup", "experimental", "remove", "ignore"]
 
 
+def test_migration_006_creates_task_session_tables(tmp_path: Path) -> None:
+    db = tmp_path / "sessions.db"
+    migrate(db)
+    assert current_version(db) == _MAX_VERSION
+    with sqlite3.connect(db) as conn:
+        tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert "task_sessions" in tables
+    assert "task_session_commands" in tables
+    assert "task_session_summaries" in tables
+    assert "command_journal" in tables
+
+
 def test_migrate_v1_to_latest_takes_backup(tmp_path: Path) -> None:
     """Migrating a v1 database to latest takes a backup of the existing file."""
     import why.schema as schema_mod

@@ -13,6 +13,7 @@ All configuration lives under `~/.why/`. Override the home directory with the `W
 ├── presentation.toml      # icons/colors per manager (optional override)
 ├── patterns.toml          # custom install-detection patterns (optional)
 ├── ignore.toml            # custom ignore-regex patterns (optional)
+├── llm-ignore.toml        # commands to keep local but exclude from LLM payloads (optional)
 ├── hook.zsh               # the hook script your rc file sources
 ├── hook.bash
 ├── hook.fish
@@ -66,7 +67,37 @@ autostart = false
 [sync]
 enabled = false
 # endpoint = "https://..."   # post-MVP
+
+[journal]
+max_commands = 500
+max_age_hours = 24
+
+[llm]
+enabled = false
+provider = "openai-compatible"
+base_url = "http://localhost:11434/v1"
+model = "llama3.1"
+api_key_env = "WHY_LLM_API_KEY"
+timeout_seconds = 60
+max_input_commands = 200
+store_summaries = true
+confirm_before_send = "remote" # always|remote|never
 ```
+
+Notes on these keys:
+
+- `max_input_commands` caps how many commands go into a payload. When a session has
+  more, the **most recent** commands are kept — the recap asks for the final useful
+  commands, so the oldest are dropped. The payload's `omissions` block reports both
+  `truncated_commands` and `truncated_from` so the model knows what it is missing.
+  Values below `1` are clamped to `1`.
+- `confirm_before_send` is enforced by **both** the CLI and the web UI. `remote`
+  prompts for any endpoint that is not `localhost`/`127.0.0.1`/`::1`. In the web UI
+  the confirmation names the endpoint, the model, and the exact command count before
+  anything leaves the machine.
+- `api_key_env` is the only source of the API key. There is no fallback to any other
+  environment variable, so a stale key from a previous provider is never sent.
+- `store_summaries = false` returns the recap without writing it to the database. The CLI still prints it; the web UI shows the run as complete without a stored copy.
 
 The shell hook enforces these flags for installs and supported uninstalls. Set a manager to `false` to make the hook ignore that manager entirely. Manual `why log -- <cmd>` still works for disabled managers because it is an explicit capture.
 
@@ -102,16 +133,15 @@ These drive the badges in the web UI's table, dashboard, and edit panel.
 
 ## `patterns.toml` (custom install patterns)
 
-Empty by default. The schema is reserved for extending detection to new package managers without changing code:
+Empty by default. Use this file to extend detection to new package managers without changing code:
 
 ```toml
-# Example (planned schema; user-extensibility UI is post-MVP):
-# [[pattern]]
-# manager = "flatpak"
-# regex   = "^flatpak\\s+install\\s+\\S+"
+[[pattern]]
+manager = "flatpak"
+regex   = "^flatpak\\s+install\\s+(?:--user\\s+)?(?P<package>\\S+)$"
 ```
 
-Right now this file is read but the loader returns the entries as data — the wiring into the matcher arrives in a post-MVP task. Until then, you can use `ignore.toml` for fine-grained negative control.
+Patterns are checked with Python `re.search` against the full command string. If the regex has a named `(?P<package>...)` group, that value becomes the package name. Otherwise whydatApp uses the last non-flag token in the command.
 
 ## `ignore.toml` (custom ignore regexes)
 
@@ -126,6 +156,25 @@ patterns = [
 ```
 
 Patterns are checked with Python `re.search` against the full command string.
+
+## `llm-ignore.toml` (exclude commands from LLM payloads)
+
+Empty by default. Add command-line regexes that should stay in local transcripts
+but never be sent to an LLM payload:
+
+```toml
+patterns = [
+  "secret-project",
+  "^aws .*production"
+]
+```
+
+Each entry is a Python regular expression. An invalid pattern is reported as a
+configuration error naming the offending pattern — `why sessions summarize` exits
+with a message rather than a traceback, and the web UI marks the session failed and
+logs the reason to `~/.why/hook.log` instead of returning a server error.
+
+Patterns are checked with Python `re.search` against each redacted command.
 
 ## Ignore rules (always-on)
 
@@ -146,6 +195,7 @@ Beyond `ignore.toml`, the hook drops events when any of these are true:
 | `WHY_INIT_NO_RELOAD=1`    | Disable the post-`why init` shell-reload prompt. Useful for scripts, Dockerfiles, and any non-interactive context where exec'ing a fresh shell would be wrong. |
 | `WHY_SUPPRESS=1`          | Internal — set by the shell hook around the `why _hook` invocation as a *shell-level* recursion guard. Python does not read it. |
 | `WHY_HOOK_FORCE_PROMPT=1` | Force interactive prompt path (used by integration tests). |
+| `WHY_LLM_API_KEY`         | Default env var read by `why sessions summarize` for OpenAI-compatible endpoints. You can change the name with `[llm].api_key_env`. |
 
 ## Database
 
@@ -161,6 +211,16 @@ As of schema v2 (whydatApp 1.3.0), two additional columns track re-installs:
 | `last_installed_at` | `TEXT` (ISO timestamp) | Timestamp of the most recent re-install enrichment (NULL until first re-install). |
 
 Both columns are backwards-compatible (default 0 / NULL; no constraint changes).
+
+Schema v6 adds task transcript tables for `why follow`, `why recall`, and LLM
+summaries:
+
+| Table                    | Meaning                                                   |
+|--------------------------|-----------------------------------------------------------|
+| `task_sessions`          | One saved follow/recall transcript.                       |
+| `task_session_commands`  | Ordered command timeline for a session.                   |
+| `task_session_summaries` | Saved generated summaries with provider/model metadata.   |
+| `command_journal`        | Rolling recent command journal used by `why recall`.      |
 
 ## Re-installs
 
@@ -199,8 +259,11 @@ secret-looking values with `[REDACTED]`. Patterns covered:
 - Environment-variable prefixes where the variable name contains a sensitive
   word: e.g. `GITHUB_TOKEN=`, `DATABASE_PASSWORD=`, `MY_API_KEY=`.
 
-Redaction is conservative — only clearly sensitive patterns are stripped.
-The command text is otherwise preserved as-is to remain useful for context.
+Redaction is conservative best-effort protection — only clearly sensitive
+patterns are stripped. The command text is otherwise preserved as-is to remain
+useful for context. Path names are stored exactly and may reveal private project
+or customer names.
 
-There is currently no user-configurable allowlist/blocklist for redaction
-patterns. This is on the roadmap.
+Use `why sessions summarize <id> --print-payload` before sending to inspect the
+exact JSON payload, and use `llm-ignore.toml` to exclude commands from LLM
+requests while keeping them in the local transcript.

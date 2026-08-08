@@ -39,6 +39,7 @@ _MIGRATION_FILES = {
     3: "003_purposes.sql",
     4: "004_command_history.sql",
     5: "005_removed_at.sql",
+    6: "006_task_sessions.sql",
 }
 
 
@@ -53,6 +54,7 @@ MIGRATIONS = {
     3: lambda: _read_migration(3),
     4: lambda: _read_migration(4),
     5: lambda: _read_migration(5),
+    6: lambda: _read_migration(6),
 }
 
 

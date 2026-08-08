@@ -13,6 +13,7 @@ from rich.table import Table
 from why import __version__, store
 from why.bootstrap import ensure_ready
 from why.capture import capture
+from why.config import load_config, load_custom_patterns, write_config
 from why.detect import match_install
 from why.markdown import to_markdown
 from why.prompts import run_metadata_prompt
@@ -152,7 +153,7 @@ def log_cmd(
     command_str = " ".join(cmd)
     work_dir = cwd or os.getcwd()
 
-    match = match_install(command_str)
+    match = match_install(command_str, custom_patterns=load_custom_patterns())
     if match is None:
         console.print(
             f"[yellow]not recognized as an install: {command_str}[/yellow]"
@@ -368,6 +369,28 @@ def hook_cmd(
     raise typer.Exit(code=rc)
 
 
+@app.command("_record", hidden=True)
+def record_cmd(
+    cmd: str = typer.Option(...),
+    cwd: str = typer.Option(...),
+    code: int = typer.Option(...),
+    shell: str | None = typer.Option(None),
+) -> None:
+    """Internal: record one shell command for follow/recall.
+
+    Runs on every shell prompt, so it must never break the user's terminal:
+    log and exit 0 on any failure, exactly like `why _hook`.
+    """
+    from why.paths import log_error
+    from why.sessions import record_command_event
+
+    try:
+        db = ensure_ready()
+        record_command_event(db, command=cmd, cwd=cwd, shell=shell, exit_code=code)
+    except Exception as e:  # noqa: BLE001 - never fail the prompt
+        log_error(f"record error: {e!r} cmd={cmd!r}")
+
+
 @app.command("show")
 def show_cmd(
     install_id: int = typer.Argument(..., help="Install ID (from why list)"),
@@ -416,6 +439,395 @@ def show_cmd(
         console.print("\n  [dim]Commands before this install:[/dim]")
         for i, h in enumerate(history, 1):
             console.print(f"    {i:2}. {h}")
+
+
+# ---------------------------------------------------------------------------
+# follow / recall / sessions / llm
+# ---------------------------------------------------------------------------
+
+follow_app = typer.Typer(help="Record an intentional terminal task session.")
+app.add_typer(follow_app, name="follow")
+
+
+@follow_app.command("start")
+def follow_start(
+    title: str | None = typer.Option(None, "--title"),
+    project: str | None = typer.Option(None, "--project"),
+    shell: str | None = typer.Option(None, "--shell", help="Override detected shell."),
+) -> None:
+    from why.sessions import start_follow_session
+
+    db = ensure_ready()
+    try:
+        session = start_follow_session(
+            db,
+            title=title,
+            project=project,
+            shell=shell or os.environ.get("SHELL", "").rsplit("/", 1)[-1] or None,
+            cwd=os.getcwd(),
+        )
+    except RuntimeError as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(1) from e
+    console.print(f"[green]Recording session #{session.id}[/green]")
+
+
+@follow_app.command("stop")
+def follow_stop() -> None:
+    from why.sessions import stop_follow_session
+
+    db = ensure_ready()
+    try:
+        session = stop_follow_session(db, cwd=os.getcwd())
+    except RuntimeError as e:
+        console.print(f"[yellow]{e}[/yellow]")
+        raise typer.Exit(1) from e
+    name = session.title or "untitled"
+    console.print(f"Saved session #{session.id}: {name}")
+    console.print(f"View the transcript: why sessions show {session.id}")
+    console.print(
+        f"Send it to your configured LLM for a task recap: why sessions summarize {session.id}"
+    )
+    console.print(f"Mark it as not needing an LLM summary: why sessions ignore-llm {session.id}")
+
+
+@follow_app.command("status")
+def follow_status(
+    porcelain: bool = typer.Option(False, "--porcelain", help="Print active/inactive only."),
+) -> None:
+    db = ensure_ready()
+    active = store.get_active_task_session(db)
+    if porcelain:
+        console.print("active" if active else "inactive")
+        return
+    if active is None:
+        console.print("No active follow session.")
+    else:
+        console.print(f"Recording session #{active.id}: {active.title or 'untitled'}")
+
+
+@follow_app.command("cancel")
+def follow_cancel() -> None:
+    from why.sessions import cancel_follow_session
+
+    db = ensure_ready()
+    try:
+        session = cancel_follow_session(db)
+    except RuntimeError as e:
+        console.print(f"[yellow]{e}[/yellow]")
+        raise typer.Exit(1) from e
+    console.print(f"Cancelled session #{session.id}.")
+
+
+def _parse_selected_positions(selection: str, *, max_position: int) -> set[int]:
+    from why.sessions import parse_selection
+
+    return parse_selection(selection, max_position=max_position)
+
+
+@app.command("recall")
+def recall_cmd(
+    last: int = typer.Option(30, "--last", min=1),
+    interactive: bool = typer.Option(False, "--interactive"),
+    title: str | None = typer.Option(None, "--title"),
+) -> None:
+    from why.sessions import create_recall_session
+
+    db = ensure_ready()
+    selected: set[int] | None = None
+    if interactive:
+        entries = list(reversed(store.list_recent_command_journal(db, limit=last)))
+        if not entries:
+            console.print("[yellow]No recent commands to recall.[/yellow]")
+            raise typer.Exit(1)
+        for index, entry in enumerate(entries, 1):
+            console.print(f"{index:2}. [{entry.exit_code}] {entry.command}")
+        try:
+            selection = typer.prompt("Select commands")
+        except (click.Abort, EOFError):
+            # Non-TTY fallback (CLAUDE.md): save the whole window rather than
+            # aborting. Detected by the failed read, not by isatty(), because
+            # stdin is not a TTY even when input has been piped in.
+            console.print("\n[yellow]No input available — saving all recent commands.[/yellow]")
+            selection = ""
+        if selection:
+            try:
+                selected = _parse_selected_positions(selection, max_position=len(entries))
+            except ValueError as e:
+                console.print(f"[red]{e}[/red]")
+                raise typer.Exit(2) from e
+    try:
+        session = create_recall_session(db, limit=last, title=title, selected_positions=selected)
+    except ValueError as e:
+        console.print(f"[yellow]{e}[/yellow]")
+        raise typer.Exit(1) from e
+    console.print(f"Saved recall session #{session.id}: {session.title or 'untitled'}")
+    console.print(f"View the transcript: why sessions show {session.id}")
+    console.print(
+        f"Send it to your configured LLM for a task recap: why sessions summarize {session.id}"
+    )
+
+
+sessions_app = typer.Typer(help="Browse and summarize task sessions.")
+app.add_typer(sessions_app, name="sessions")
+
+
+@sessions_app.command("list")
+def sessions_list(
+    summary_status: str | None = typer.Option(None, "--summary-status"),
+    limit: int = typer.Option(100, "--limit"),
+) -> None:
+    db = ensure_ready()
+    rows = store.list_task_sessions(db, summary_status=summary_status, limit=limit)
+    if not rows:
+        console.print("No sessions.")
+        return
+    t = Table()
+    for col in ("id", "source", "status", "summary", "title", "started"):
+        t.add_column(col, overflow="fold", no_wrap=False)
+    for row in rows:
+        t.add_row(
+            str(row.id),
+            row.source,
+            row.status,
+            row.summary_status,
+            row.title or "",
+            row.started_at[:16].replace("T", " "),
+        )
+    Console(width=console.size.width if console.is_terminal else 160).print(t)
+
+
+@sessions_app.command("show")
+def sessions_show(session_id: int) -> None:
+    db = ensure_ready()
+    session = store.get_task_session(db, session_id)
+    if session is None:
+        console.print(f"[red]No session with id {session_id}[/red]")
+        raise typer.Exit(1)
+    console.print(f"[bold]Session #{session.id}[/bold]  {session.title or 'untitled'}")
+    console.print(f"  Source:    {session.source}")
+    console.print(f"  Status:    {session.status}")
+    console.print(f"  Summary:   {session.summary_status}")
+    console.print(f"  Project:   {session.project or '—'}")
+    console.print(f"  Started:   {session.started_at}")
+    if session.ended_at:
+        console.print(f"  Ended:     {session.ended_at}")
+    console.print("\n  [dim]Transcript:[/dim]")
+    for command in store.list_task_session_commands(db, session.id):
+        code = "?" if command.exit_code is None else str(command.exit_code)
+        console.print(f"    {command.position + 1:2}. [{code}] {command.command}")
+        console.print(f"        cwd: {command.cwd}")
+    summaries = store.list_task_session_summaries(db, session.id)
+    if summaries:
+        console.print("\n  [dim]Latest summary:[/dim]")
+        console.print(summaries[0].summary_markdown)
+
+
+def _known_installs_for_commands(
+    db: _P, commands: list[store.TaskSessionCommand]
+) -> list[store.Install]:
+    installs: list[store.Install] = []
+    seen: set[int] = set()
+    for command in commands:
+        if command.matched_install_id is None or command.matched_install_id in seen:
+            continue
+        inst = store.get_install(db, command.matched_install_id)
+        if inst is not None:
+            installs.append(inst)
+            seen.add(inst.id)
+    return installs
+
+
+def _requires_confirmation(policy: str, base_url: str) -> bool:
+    """Thin alias; the policy lives in why.llm so CLI and web share one rule."""
+    from why.llm import requires_confirmation
+
+    return requires_confirmation(policy, base_url)
+
+
+@sessions_app.command("summarize")
+def sessions_summarize(
+    session_id: int,
+    print_payload: bool = typer.Option(False, "--print-payload"),
+) -> None:
+    from why.config import load_llm_ignore_patterns
+    from why.llm import (
+        PROMPT_VERSION,
+        SYSTEM_PROMPT_V1,
+        build_task_payload,
+        build_user_prompt,
+        normalized_payload_hash,
+        summarize_openai_compatible,
+    )
+
+    db = ensure_ready()
+    session = store.get_task_session(db, session_id)
+    if session is None:
+        console.print(f"[red]No session with id {session_id}[/red]")
+        raise typer.Exit(1)
+    commands = store.list_task_session_commands(db, session.id)
+    cfg = load_config()
+    llm_cfg = cfg["llm"]
+    payload = build_task_payload(
+        session,
+        commands,
+        _known_installs_for_commands(db, commands),
+        max_commands=int(llm_cfg["max_input_commands"]),
+        llm_ignore_patterns=load_llm_ignore_patterns(),
+    )
+    if print_payload:
+        console.print(json.dumps(payload, indent=2, sort_keys=True))
+        return
+    if not llm_cfg["enabled"]:
+        console.print("[yellow]LLM is disabled. Run `why llm configure` first.[/yellow]")
+        raise typer.Exit(1)
+    if _requires_confirmation(str(llm_cfg["confirm_before_send"]), str(llm_cfg["base_url"])):
+        console.print(f"Endpoint: {llm_cfg['base_url']}")
+        console.print(f"Model:    {llm_cfg['model']}")
+        if not typer.confirm("Send this transcript to the configured LLM?", default=False):
+            raise typer.Exit(0)
+    user_prompt = build_user_prompt(payload)
+    try:
+        summary = summarize_openai_compatible(
+            base_url=str(llm_cfg["base_url"]),
+            api_key=os.environ.get(str(llm_cfg["api_key_env"])),
+            model=str(llm_cfg["model"]),
+            system_prompt=SYSTEM_PROMPT_V1,
+            user_prompt=user_prompt,
+            timeout_seconds=int(llm_cfg["timeout_seconds"]),
+        )
+    except RuntimeError as e:
+        store.set_task_session_summary_status(db, session.id, "failed")
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(1) from e
+    if llm_cfg["store_summaries"]:
+        store.save_task_session_summary(
+            db,
+            session.id,
+            provider=str(llm_cfg["provider"]),
+            model=str(llm_cfg["model"]),
+            endpoint=str(llm_cfg["base_url"]),
+            prompt_version=PROMPT_VERSION,
+            input_hash=normalized_payload_hash(payload),
+            summary_markdown=summary,
+        )
+    else:
+        # save_task_session_summary is what normally sets 'complete'. Without this the
+        # session would stay 'none' and reappear in "needs summary" views forever.
+        store.set_task_session_summary_status(db, session.id, "complete")
+        console.print("[dim]store_summaries = false — not saved to the database.[/dim]")
+    console.print(summary)
+
+
+@sessions_app.command("ignore-llm")
+def sessions_ignore_llm(session_id: int) -> None:
+    db = ensure_ready()
+    store.set_task_session_summary_status(db, session_id, "ignored")
+    console.print(f"Session #{session_id} marked as not needing an LLM summary.")
+
+
+@sessions_app.command("delete")
+def sessions_delete(
+    session_id: int,
+    purge: bool = typer.Option(
+        False,
+        "--purge",
+        help="Irreversibly remove the transcript and its commands and summaries, "
+        "instead of hiding it.",
+    ),
+) -> None:
+    """Delete a saved session.
+
+    By default this is a soft delete: the session disappears from the CLI and web UI
+    but the row remains, matching `why delete` for installs. Use --purge to remove
+    the transcript from the database entirely.
+    """
+    db = ensure_ready()
+    if store.get_task_session(db, session_id) is None:
+        console.print(f"[red]No session with id {session_id}[/red]")
+        raise typer.Exit(1)
+    if purge:
+        store.purge_task_session(db, session_id)
+        console.print(f"Purged session #{session_id} and its transcript.")
+    else:
+        store.soft_delete_task_session(db, session_id)
+        console.print(f"Deleted session #{session_id}. Use --purge to erase the transcript.")
+
+
+@sessions_app.command("unignore-llm")
+def sessions_unignore_llm(session_id: int) -> None:
+    """Make a session eligible for an LLM summary again (undoes `ignore-llm`)."""
+    db = ensure_ready()
+    store.set_task_session_summary_status(db, session_id, "none")
+    console.print(f"Session #{session_id} is eligible for an LLM summary again.")
+
+
+llm_app = typer.Typer(help="Configure LLM task summaries.")
+app.add_typer(llm_app, name="llm")
+
+
+@llm_app.command("configure")
+def llm_configure() -> None:
+    cfg = load_config()
+    llm_cfg = cfg["llm"]
+    try:
+        llm_cfg["enabled"] = typer.confirm(
+            "Enable LLM summaries?", default=bool(llm_cfg["enabled"])
+        )
+        llm_cfg["provider"] = typer.prompt("Provider", default=str(llm_cfg["provider"]))
+        llm_cfg["base_url"] = typer.prompt("Base URL", default=str(llm_cfg["base_url"]))
+        llm_cfg["model"] = typer.prompt("Model", default=str(llm_cfg["model"]))
+        llm_cfg["api_key_env"] = typer.prompt(
+            "API key env var", default=str(llm_cfg["api_key_env"])
+        )
+        llm_cfg["confirm_before_send"] = typer.prompt(
+            "Confirm before send (always/remote/never)",
+            default=str(llm_cfg["confirm_before_send"]),
+        )
+    except (click.Abort, EOFError):
+        # CLAUDE.md: never assume a TTY. Scripts, Dockerfiles and CI must be able
+        # to call this without hanging or aborting.
+        console.print(
+            "\n[yellow]No input available — LLM settings unchanged.[/yellow]\n"
+            r"Edit the \[llm] section of ~/.why/config.toml, or use the web UI "
+            "at /settings/llm."
+        )
+        return
+    write_config(cfg)
+    console.print("LLM settings saved.")
+
+
+@llm_app.command("test")
+def llm_test() -> None:
+    cfg = load_config()["llm"]
+    if not cfg["enabled"]:
+        console.print("[yellow]LLM is disabled.[/yellow]")
+        raise typer.Exit(1)
+    from why.llm import summarize_openai_compatible
+
+    console.print(f"Provider: {cfg['provider']}")
+    console.print(f"Endpoint: {cfg['base_url']}")
+    console.print(f"Model: {cfg['model']}")
+    # Actually contact the endpoint. Printing config and exiting 0 meant a wrong key
+    # or an unreachable host still "passed", and only failed later at summarize time.
+    #
+    # Deliberately NOT gated on confirm_before_send: that policy protects terminal
+    # transcripts, and this sends only the fixed two-line probe below - no session
+    # data. The user ran `llm test` precisely to contact the endpoint, so prompting
+    # for confirmation would be asking them to confirm the thing they just asked for.
+    try:
+        summarize_openai_compatible(
+            base_url=str(cfg["base_url"]),
+            api_key=os.environ.get(str(cfg["api_key_env"])),
+            model=str(cfg["model"]),
+            system_prompt="You are a connectivity check.",
+            user_prompt="Reply with the single word: ok",
+            timeout_seconds=int(cfg["timeout_seconds"]),
+        )
+    except RuntimeError as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(1) from e
+    console.print("[green]✓[/green] endpoint reachable and responded.")
 
 
 # ---------------------------------------------------------------------------

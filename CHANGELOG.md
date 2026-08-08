@@ -6,6 +6,112 @@ Versioning follows [SemVer](https://semver.org/).
 
 ---
 
+## [2.2.0] — 2026-07-08
+
+### Added
+- `why follow start|stop|status|cancel` records an intentional terminal task
+  transcript, with `[why rec]` prompt indicators in zsh, bash, and fish hooks.
+- `why recall` saves recent command history after the fact, including
+  interactive selection from a numbered list.
+- `why sessions list|show|summarize|ignore-llm` lets users inspect saved
+  transcripts locally, print the exact LLM payload, manually summarize a
+  session, or mark a session as not needing LLM processing.
+- `why llm configure|test` adds opt-in configuration for OpenAI-compatible
+  task recap endpoints, including local Ollama-compatible URLs.
+- Web UI sessions pages (`/sessions`, `/sessions/{id}`) for viewing
+  transcripts, summary state, latest recap output, and summary history.
+- Web UI LLM settings page (`/settings/llm`) for optional task recap
+  configuration.
+- Schema v6 task transcript tables: `task_sessions`,
+  `task_session_commands`, `task_session_summaries`, and `command_journal`.
+- Versioned LLM prompt builder and OpenAI-compatible HTTP client.
+- `~/.why/llm-ignore.toml` for keeping commands in local transcripts while
+  excluding them from LLM payloads.
+
+### Changed
+- Shell hooks now record a rolling command journal via internal `why _record`
+  so `why recall` has recent commands even when `why follow` was not started.
+- `~/.why/patterns.toml` custom install patterns are now active in the matcher
+  for hook capture and manual `why log`.
+- Documentation now covers follow/recall sessions, manual LLM processing,
+  upgrade expectations, privacy review with `--print-payload`, and schema v6.
+
+### Fixed
+- Shell hooks no longer declare a local named `status`, which is read-only in both
+  zsh and fish. In zsh this aborted `_why_precmd` entirely, silently disabling
+  command recording *and* the pre-existing install capture; in fish it printed an
+  error on every prompt draw and suppressed the `[why rec]` indicator.
+- The `[why rec]` indicator now derives from the current prompt instead of a
+  load-time snapshot, so themes that recompute the prompt each draw (starship,
+  powerlevel10k, git-status prompts) are no longer frozen.
+- In bash the prompt update now runs last in `PROMPT_COMMAND`, so a user entry
+  that rewrites `PS1` no longer defeats the indicator, while command recording
+  still runs first to observe the correct exit code.
+- `why _record` now logs and exits 0 on any failure, matching `why _hook`, so a
+  corrupt `config.toml` can no longer put a traceback on every prompt.
+- Shell hooks create `~/.why` at load time; the `hook.log` redirect previously
+  failed to the terminal when the directory was absent, and skipped recording.
+- The web summarize route now honours `confirm_before_send`. It previously sent
+  transcripts to a remote endpoint on a single click even when the user had
+  configured `always` confirm. The confirmation names the endpoint, the model, and
+  the exact command count before anything leaves the machine.
+- Command positions are now assigned inside the INSERT, so two terminals recording
+  into the same follow session can no longer produce duplicate positions and a
+  nondeterministically ordered transcript.
+- `~/.why/config.toml` is only rewritten when it actually changed, and the write is
+  staged through a temp file. Previously every prompt rewrote it, stripping any
+  comments the user had added.
+- LLM payload truncation now keeps the **most recent** commands rather than the
+  oldest, and reports `truncated_from` so the model knows which end was cut.
+- `max_input_commands` is clamped to at least 1 server-side; a negative value
+  previously beheaded the newest commands and reported a nonsensical omission count.
+- An invalid regex in `llm-ignore.toml` is now a clean configuration error instead of
+  a CLI traceback and an HTTP 500.
+- LLM request timeouts and non-JSON responses are reported as clean errors instead of
+  raw `TimeoutError` / `JSONDecodeError` tracebacks.
+- The API key is read only from the configured `api_key_env`; the hardcoded
+  `WHY_LLM_API_KEY` fallback that could send a stale credential is gone.
+- `why sessions summarize` reports LLM failures cleanly and marks the session
+  `failed`, matching the web path.
+- Web summarize failures are logged to `~/.why/hook.log` instead of being silently
+  swallowed by a blanket `contextlib.suppress(Exception)`.
+- `why recall` refuses to create a zero-command session when the journal is empty.
+- `PRAGMA busy_timeout` is now set explicitly rather than relying on the sqlite3
+  driver default.
+- The `/sessions` empty state shows session-specific copy. It passed `title=`/`body=`
+  to a partial that reads `line=`, so Jinja silently ignored both and rendered the
+  "No installs yet" default with escaped HTML.
+- The web footer no longer claims "no network" when LLM summaries are enabled; it now
+  reads "sends only when you summarize".
+- `[llm].store_summaries = false` is now honoured by both the CLI and the web UI.
+  It was documented and written into every config but read nowhere.
+- `why llm test` now makes a real request and fails on an unreachable endpoint, a
+  wrong key, or a malformed response. It previously printed config and exited 0.
+- `why llm configure` and `why recall --interactive` have non-TTY fallbacks instead of
+  aborting, so scripts, Dockerfiles, and CI can call them.
+- `close_task_session`, `cancel_task_session`, and `set_task_session_summary_status`
+  no longer report success for a soft-deleted session. Their `UPDATE` filtered
+  `deleted=0` but the following `SELECT` did not, so a no-op write returned a stale
+  row as though it had succeeded.
+- A successful summarize with `store_summaries = false` now marks the session
+  `complete`; it previously stayed `none` and reappeared in "needs summary" views.
+
+### Added
+- Hook tests that drive the real zsh, bash, and fish scripts through an actual prompt
+  cycle (`tests/integration/test_hook_prompt_cycle.py`). The previous shell test
+  sourced the hook but hand-wrote its own `why _hook` call, so it could not catch a
+  hook whose control flow never reached it.
+- CI now installs zsh and fish and fails the build if any shell test skips. Neither
+  shell was present on the runner, so the hook tests were silently not running.
+- `why sessions unignore-llm <id>` — the web UI had this action; the CLI did not.
+- `why sessions delete <id>` and `--purge`, plus **Delete** / **Erase transcript**
+  buttons on the session page. Saved transcripts previously could not be removed from
+  either surface — the only recovery from an unwanted recording was hand-editing
+  SQLite. Soft delete keeps a sync tombstone; `--purge` removes the session and
+  cascades to its commands and summaries.
+
+---
+
 ## [2.1.0] — 2026-06-08
 
 ### Changed

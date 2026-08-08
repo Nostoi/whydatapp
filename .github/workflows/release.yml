@@ -97,12 +97,30 @@ jobs:
             exit 1
           fi
 
+      # The shell-hook tests skip when their shell is absent, and ubuntu-latest ships
+      # neither zsh nor fish. Without this the tests that exercise the real hook
+      # scripts silently do not run in CI — which is how a hook that disabled all
+      # recording on zsh once passed a fully green gate.
+      - name: Install shells under test
+        run: sudo apt-get update && sudo apt-get install -y zsh fish
+
       - name: Run quality gate
         run: |
           uv pip install -e '.[dev,web]'
           uv run pytest -q
           uv run ruff check src tests
           uv run mypy src/why
+
+      # A skip is a claim we have not checked. Fail loudly rather than let a missing
+      # shell quietly shrink coverage back to nothing.
+      - name: Assert no shell tests were skipped
+        run: |
+          uv run pytest -q -rs 2>&1 | tee /tmp/pytest-skips.txt
+          if grep -qiE 'SKIPPED.*(zsh|bash|fish) not available' /tmp/pytest-skips.txt; then
+            echo "::error::A shell under test was unavailable, so its hook tests did not run."
+            grep -iE 'SKIPPED.*(zsh|bash|fish) not available' /tmp/pytest-skips.txt
+            exit 1
+          fi
 
       - uses: actions/setup-node@v4
         with:

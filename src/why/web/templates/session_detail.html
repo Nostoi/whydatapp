@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="space-y-6">
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <a href="/sessions" class="text-sm hover:underline" style="color: var(--color-fg-muted);">← Sessions</a>
+      <h1 class="text-2xl font-semibold tracking-tight mt-2">{{ session.title or "untitled" }}</h1>
+      <p class="text-sm mt-1" style="color: var(--color-fg-muted);">
+        {{ session.source }} · {{ session.status }} · summary {{ session.summary_status }} · {{ commands|length }} commands
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <form method="post" action="/sessions/{{ session.id }}/summarize">
+        <input type="hidden" name="csrf_token" value="{{ request.cookies.get('why_csrf', '') }}">
+        <button class="btn btn-primary" type="submit">Summarize</button>
+      </form>
+      {% if session.summary_status == "ignored" %}
+        <form method="post" action="/sessions/{{ session.id }}/unignore-llm">
+          <input type="hidden" name="csrf_token" value="{{ request.cookies.get('why_csrf', '') }}">
+          <button class="btn" type="submit">Un-ignore</button>
+        </form>
+      {% else %}
+        <form method="post" action="/sessions/{{ session.id }}/ignore-llm">
+          <input type="hidden" name="csrf_token" value="{{ request.cookies.get('why_csrf', '') }}">
+          <button class="btn" type="submit">Ignore for LLM</button>
+        </form>
+      {% endif %}
+      <form method="post" action="/sessions/{{ session.id }}/delete">
+        <input type="hidden" name="csrf_token" value="{{ request.cookies.get('why_csrf', '') }}">
+        <button class="btn" type="submit">Delete</button>
+      </form>
+      <form method="post" action="/sessions/{{ session.id }}/delete"
+            onsubmit="return confirm('Permanently erase this transcript and its {{ commands|length }} command(s)? This cannot be undone.');">
+        <input type="hidden" name="csrf_token" value="{{ request.cookies.get('why_csrf', '') }}">
+        <input type="hidden" name="purge" value="1">
+        <button class="btn" type="submit">Erase transcript</button>
+      </form>
+    </div>
+  </div>
+
+  {% if confirm_send %}
+    <div class="rounded-lg border p-4" style="border-color: var(--color-border); background-color: var(--color-bg-muted);">
+      <p class="text-sm font-medium">Send this transcript off this machine?</p>
+      <p class="text-sm mt-1" style="color: var(--color-fg-muted);">
+        {{ commands|length }} command{{ "" if commands|length == 1 else "s" }} will be sent to
+        <span class="font-mono">{{ llm_endpoint }}</span> using model
+        <span class="font-mono">{{ llm_model }}</span>.
+      </p>
+      <div class="flex flex-wrap gap-2 mt-3">
+        <form method="post" action="/sessions/{{ session.id }}/summarize">
+          <input type="hidden" name="csrf_token" value="{{ request.cookies.get('why_csrf', '') }}">
+          <input type="hidden" name="confirmed" value="1">
+          <button class="btn btn-primary" type="submit">Send and summarize</button>
+        </form>
+        <a class="btn" href="/sessions/{{ session.id }}">Cancel</a>
+      </div>
+    </div>
+  {% endif %}
+
+  <section class="space-y-3">
+    <h2 class="text-sm font-semibold uppercase tracking-wide" style="color: var(--color-fg-muted);">Summary</h2>
+    {% if latest_summary %}
+      <div class="border rounded-lg p-4 space-y-3" style="border-color: var(--color-border); background-color: var(--color-bg-elevated);">
+        <div class="text-xs font-mono" style="color: var(--color-fg-muted);">
+          {{ latest_summary.provider }} · {{ latest_summary.model }} · prompt v{{ latest_summary.prompt_version }} · {{ latest_summary.created_at[:16].replace("T", " ") }}
+        </div>
+        <pre class="whitespace-pre-wrap text-sm leading-relaxed">{{ latest_summary.summary_markdown }}</pre>
+      </div>
+    {% else %}
+      <div class="border rounded-lg p-4 text-sm" style="border-color: var(--color-border); background-color: var(--color-bg-elevated); color: var(--color-fg-muted);">
+        No summary saved.
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="space-y-3">
+    <h2 class="text-sm font-semibold uppercase tracking-wide" style="color: var(--color-fg-muted);">Transcript</h2>
+    <div class="border rounded-lg divide-y" style="border-color: var(--color-border); background-color: var(--color-bg-elevated);">
+      {% for command in commands %}
+        <div class="p-3">
+          <div class="flex items-start gap-3">
+            <span class="font-mono text-xs tabular-nums" style="color: var(--color-fg-muted);">{{ command.position + 1 }}</span>
+            <div class="min-w-0 flex-1">
+              <div class="font-mono text-sm whitespace-pre-wrap">{{ command.command }}</div>
+              <div class="text-xs mt-1" style="color: var(--color-fg-muted);">
+                exit {{ command.exit_code if command.exit_code is not none else "?" }} · {{ command.cwd }} · {{ command.started_at[:16].replace("T", " ") }}
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% if summaries|length > 1 %}
+    <section class="space-y-2">
+      <h2 class="text-sm font-semibold uppercase tracking-wide" style="color: var(--color-fg-muted);">Summary history</h2>
+      {% for summary in summaries[1:] %}
+        <details class="border rounded-lg p-3" style="border-color: var(--color-border); background-color: var(--color-bg-elevated);">
+          <summary class="cursor-pointer text-sm">{{ summary.model }} · {{ summary.created_at[:16].replace("T", " ") }}</summary>
+          <pre class="whitespace-pre-wrap text-sm mt-3">{{ summary.summary_markdown }}</pre>
+        </details>
+      {% endfor %}
+    </section>
+  {% endif %}
+</div>
+{% endblock %}

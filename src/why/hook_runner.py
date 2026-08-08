@@ -9,9 +9,9 @@ from rich.console import Console
 from why import store
 from why.bootstrap import ensure_ready
 from why.capture import capture, capture_removal
-from why.config import load_config, load_user_ignore_patterns
+from why.config import load_config, load_custom_patterns, load_user_ignore_patterns
 from why.detect import IgnoreContext, match_install, match_uninstall, should_ignore
-from why.paths import log_path
+from why.paths import log_error
 from why.redact import redact
 
 
@@ -32,11 +32,8 @@ def _parent_process_name() -> str | None:
 
 
 def _log_error(msg: str) -> None:
-    try:
-        with log_path("hook").open("a") as f:
-            f.write(msg + "\n")
-    except Exception:
-        pass
+    """Kept as a local alias; the implementation lives in why.paths."""
+    log_error(msg)
 
 
 def _parse_history(raw: str) -> list[str]:
@@ -72,7 +69,7 @@ def run_hook(*, command: str, cwd: str, exit_code: int, raw_history: str = "") -
         if should_ignore(ctx):
             return 0
 
-        install_match = match_install(command)
+        install_match = match_install(command, custom_patterns=load_custom_patterns())
         uninstall_match = None if install_match is not None else match_uninstall(command)
         match = install_match or uninstall_match
 
