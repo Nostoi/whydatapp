@@ -7,7 +7,7 @@ from typer.testing import CliRunner
 
 from why import init_wizard
 from why.cli import app
-from why.shells.installer import BLOCK_BEGIN
+from why.shells.installer import BLOCK_BEGIN, packaged_hook_version
 
 runner = CliRunner()
 
@@ -31,7 +31,8 @@ def test_init_creates_home_and_rc_block(why_home: Path, tmp_path: Path, monkeypa
     assert (why_home / "data.db").exists()
     assert (why_home / "hook.zsh").exists()
     hook_text = (why_home / "hook.zsh").read_text()
-    assert "WHY_HOOK_VERSION=2" in hook_text
+    # Derived, not hardcoded: a literal pinned this to v2 and broke on the next bump.
+    assert f"WHY_HOOK_VERSION={packaged_hook_version('zsh')}" in hook_text
     assert "why _record" in hook_text
     assert BLOCK_BEGIN in rc.read_text()
 

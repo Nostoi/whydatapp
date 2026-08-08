@@ -1,4 +1,4 @@
-set -g WHY_HOOK_VERSION 2
+set -g WHY_HOOK_VERSION 3
 if set -q WHY_HOOK_LOADED
     exit 0
 end

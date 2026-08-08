@@ -25,15 +25,22 @@ To upgrade later:
 uv tool upgrade why-cli           # or: pipx upgrade why-cli
 ```
 
-After upgrades that change shell-hook behavior, re-run:
+That is the whole procedure. Everything else catches up on its own the next time you
+run any `why` command:
 
-```bash
-why init
-```
+| Concern | What happens |
+|---|---|
+| Database schema | Migrated automatically, after a backup into `~/.why/backups/`. |
+| New config keys | Merged into `~/.why/config.toml` over the current defaults. |
+| Shell hook (`~/.why/hook.*`) | Rewritten automatically when it predates the installed version (2.3.0+). You'll see `↻ zsh shell hook updated (v2 → v3)`. |
 
-Then reload or restart your shell. Database migrations run automatically on the
-next `why` command and create a backup under `~/.why/backups/` before upgrading
-an existing database.
+The one thing whydatApp can't do for you is restart your shell — the old hook functions
+live in the running shell's memory until it reloads. When you see the refresh notice,
+open a new terminal or run `exec $SHELL -l` at your convenience. Nothing breaks in the
+meantime; you're just still on the old hook.
+
+Re-running `why init` after an upgrade is no longer necessary. It remains safe, and is
+still how you *change* settings or reinstall the rc-file block if you removed it.
 
 ## Option B — From source (for development or pre-release)
 
@@ -98,7 +105,9 @@ If you decline the reload (or skip it in a script), restart your shell or run `s
 why uninstall
 ```
 
-Removes the rc-file hook block and any autostart unit. It asks before deleting `~/.why/`; answer `n` to keep your install history, `y` to wipe it.
+Removes the rc-file hook block, the `~/.why/hook.*` scripts themselves (all shells, not just your current one), and any autostart unit. It then asks before deleting `~/.why/`; answer `n` to keep your install history, `y` to wipe it.
+
+Answering `n` leaves a working `~/.why` you can still browse with `why list` and `why serve`; re-run `why init` whenever you want capture back.
 
 ## Next steps
 

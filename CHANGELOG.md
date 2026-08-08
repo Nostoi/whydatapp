@@ -6,6 +6,127 @@ Versioning follows [SemVer](https://semver.org/).
 
 ---
 
+## [2.3.3] — 2026-08-08
+
+### Added
+- **`.github/workflows/ci.yml` — pull requests now run the gate.** Until now `release.yml`
+  was the only workflow and it triggers solely on push-to-main and `workflow_dispatch`, so
+  a PR ran **no CI at all**; the first automated check on any change happened during the
+  release that published it.
+- The new workflow runs the full quality gate (pytest with zsh + fish installed, the
+  no-skipped-shell-tests assertion, ruff, mypy), verifies the two version files agree,
+  and — in a parallel job — builds the wheel, installs it into a clean venv with **fresh
+  dependency resolution** (bare and `[web]`), runs it, and asserts the packaged data files
+  (all three hook scripts, `presentation.toml`, `tailwind.css`) are actually in the archive.
+
+### Notes
+- Deliberately a **separate workflow** rather than adding a `pull_request` trigger to
+  `release.yml`. That workflow's `publish-pypi` job is gated on
+  `github.event_name != 'workflow_dispatch'` — a `pull_request` event satisfies that
+  condition, so teaching `release.yml` about pull requests would have published to PyPI
+  from a pull request. `ci.yml` ships nothing.
+
+---
+
+## [2.3.2] — 2026-08-08
+
+### Fixed
+- **Every CLI-only install was broken, including the published 2.2.1.** `src/why/cli.py`
+  did `import click`, which was only ever satisfied transitively through typer. typer 0.27
+  vendored click as `typer._click` and dropped the top-level dependency, so
+  `uv tool install why-cli` produced a tool that died with
+  `ModuleNotFoundError: No module named 'click'` on **every** command, `why --version`
+  included. The recommended `why-cli[web]` install survived only by accident — uvicorn
+  happens to pull click in.
+- **A quieter second failure on `[web]` installs:** with typer ≥ 0.27, `typer.Abort` is
+  `typer._click.exceptions.Abort` and is *not* a subclass of `click.Abort`, so
+  `except (click.Abort, EOFError)` in `why review` and `why purposes delete` had stopped
+  catching user aborts — reintroducing the non-TTY bug the 2.2.0 review fixed.
+- Both are fixed by dropping click entirely in favour of typer's own re-exports
+  (`typer.echo`, `typer.Abort`), which resolve correctly on old and new typer alike. click
+  is deliberately *not* added as a dependency.
+
+### Why the tests didn't catch it
+The suite runs against `uv.lock`, which pinned typer 0.25.0; users get whatever the
+resolver picks from `typer>=0.12`. 365 tests passed against a resolution no user has had
+for some time. Three things now close that gap:
+
+- `uv.lock` moved to typer 0.27.1, so the dev env matches what a new install resolves to.
+- `tests/unit/test_packaging.py` fails if any module under `src/why/` imports click, or if
+  click is added to `pyproject.toml` dependencies to paper over it.
+- The release workflow installs the built wheel into a clean venv with **fresh dependency
+  resolution** — both bare and `[web]` — and runs `why --version`, `why list`, and
+  `why --help` before publishing. This is the check that would have caught it.
+
+`CLAUDE.md` records the rule and the reasoning under "What our test suite does NOT cover".
+
+### Notes
+- Found by running the real-shell hook verification for 2.3.0 against an actual
+  `uv tool install`ed binary rather than `uv run`. The 2.3.0 feature itself was fine; the
+  install underneath it was not.
+
+---
+
+## [2.3.1] — 2026-08-08
+
+### Fixed
+- **Upgrade docs contradicted the feature shipped one commit earlier.** `install.md` still
+  said "after upgrades that change shell-hook behavior, re-run `why init`", and both
+  hook-recovery recipes in `troubleshooting.md` prescribed `uv tool upgrade && why init`.
+  All three now say what's true: `uv tool upgrade why-cli`, then any `why` command
+  refreshes the hook, then restart your shell. `why init` remains the answer when the
+  *rc-file block* is missing — auto-refresh updates the hook script, not your shell config.
+- `install.md` gains a table of what an upgrade handles automatically (schema, config keys,
+  hook) and states the one thing it can't: restarting your shell.
+
+### Added
+- README has an **upgrade** section. It had install and uninstall but never said how to
+  update, which is the single most-asked question a CLI gets.
+
+---
+
+## [2.3.0] — 2026-08-08
+
+### Added
+- **Stale shell hooks now refresh themselves.** Every user-facing command compares the
+  `WHY_HOOK_VERSION` in each installed `~/.why/hook.<shell>` against the version shipped
+  with the running `why`, rewrites the file in place when it is older, and prints a
+  one-time notice telling the user to start a new shell. Previously a hook bugfix only
+  reached users who independently thought to re-run `why init` — and a broken hook fails
+  silently, which is indistinguishable from "I haven't installed anything lately."
+- `packaged_hook_text`, `packaged_hook_version`, `installed_hook_version`,
+  `refresh_stale_hooks`, and `SHELLS` in `why.shells.installer`.
+
+### Changed
+- `WHY_HOOK_VERSION` bumped `2` → `3` in all three hook scripts. It had been stuck at `2`
+  across the 2.2.0 hook rewrite, since nothing read it.
+- `WHY_SUPPRESS` gains a second meaning: as well as being the shell-level recursion guard,
+  it now tells the CLI it is running inside the prompt cycle and must stay quiet. Old
+  hooks already set it on every `why` they invoke, so the gate works for the very users
+  being upgraded.
+- The notice is written to **stderr**, not stdout — `why export` emits markdown and
+  `why follow status --porcelain` is machine-parsed, so stdout has to stay clean. Both
+  streams reach the same terminal, so the user sees it either way.
+- `tests/integration/test_init.py` derives the expected hook version instead of asserting
+  the literal `WHY_HOOK_VERSION=2`.
+
+### Fixed
+- **`why uninstall` now deletes `~/.why/hook.*` as well as the rc-file block**, for every
+  shell rather than just `$SHELL`. It only ever stripped the block, leaving the payload
+  behind; with auto-refresh in place that orphan would be actively maintained, nagging an
+  uninstalled user to restart their shell on every future version bump. Uninstall is now
+  convergent, and safe to re-run when the files are already gone.
+
+### Notes
+- The refresh never creates a hook that was not already installed (keeping `why uninstall`
+  convergent), never downgrades a newer hook, refreshes every installed shell rather than
+  just `$SHELL`, and is silent during `_hook`, `_record`, `init`, `uninstall`, and when
+  `~/.why` is read-only. Nothing is ever auto-`exec`'d.
+- Still no PyPI version check — deliberately out of scope, it needs its own privacy and
+  caching design.
+
+---
+
 ## [2.2.1] — 2026-08-08
 
 ### Fixed

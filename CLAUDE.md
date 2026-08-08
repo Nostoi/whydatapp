@@ -17,6 +17,22 @@ Version lives in **two** files and **must stay in sync**:
 
 If a single push contains changes that would warrant different bumps, take the highest. Pre-1.0 conventions don't apply — we shipped 1.0 at MVP.
 
+### The other version: `WHY_HOOK_VERSION`
+
+`src/why/shells/hook.{zsh,bash,fish}` each declare a `WHY_HOOK_VERSION` integer. It is
+independent of the package version and tracks only the hook scripts.
+
+**If you change what a hook script does, bump it in all three files** — even if only one
+shell changed. Since 2.3.0 the CLI reads it: on any user-facing command, an installed
+`~/.why/hook.<shell>` older than the packaged one is rewritten in place and the user is
+told to restart their shell. Forget the bump and your fix reaches nobody until they
+happen to re-run `why init`, which is the exact failure this mechanism exists to end.
+This is easy to forget precisely because nothing breaks when you do.
+
+`tests/unit/test_hook_refresh.py` catches the two mechanical failures — the three files
+drifting apart, and a marker going missing — but it cannot tell whether you *should* have
+bumped. Never assert a literal version in a test; derive it from `packaged_hook_version()`.
+
 ### Required before every push
 
 1. Decide the bump per the rules above.
@@ -48,6 +64,10 @@ These things have no automated check; verify them by hand whenever the change pl
 - **Real shell-hook behavior in production.** Integration tests invoke `_hook` via Typer's `CliRunner`, which does not inherit env vars set by a shell wrapper (e.g. `WHY_SUPPRESS=1`). Bugs that depend on the hook's actual production env (shell, parent PID, env-var inheritance) can pass tests and still break in zsh/bash/fish. After non-trivial hook changes, install locally and run a real install to confirm the prompt fires.
 - **Autostart units actually loading.** `tests/unit/test_autostart.py` only checks that the generated plist/unit text is correct; it does not run `launchctl load` or `systemctl --user enable`.
 - **The shipped wheel.** `uv build` succeeds doesn't mean the wheel contains the right files. After packaging changes (force-include, new dirs under `src/why/`), `unzip -l dist/why_cli-*.whl` and confirm templates, static, shells, migrations, and presentation.toml are all present.
+- **The dependency resolution users actually get.** The whole test suite runs against `uv.lock`; users get whatever the resolver picks from the ranges in `pyproject.toml`. Those diverged far enough to ship 2.2.1 with a **crash on every command** for CLI-only installs: `uv.lock` pinned `typer` 0.25 (which depends on click) while `pyproject.toml` says `typer>=0.12`, and typer 0.27 vendored click as `typer._click` and dropped the dependency — so `import click` in `cli.py` failed for every real user while 365 tests passed locally. Rules that follow from this:
+  - **Never `import click`.** Use `typer.echo` / `typer.Abort` / `typer.Context`; they resolve correctly on both the pre- and post-vendoring typer layouts. `tests/unit/test_packaging.py` enforces this.
+  - When you widen or touch a dependency range, run `uv lock --upgrade-package <name>` and re-run the gate, so the dev env sits on the same resolution a new user gets.
+  - The release workflow now installs the built wheel into a clean venv with fresh resolution (both bare and `[web]`) and runs it. That job is the only thing standing between a resolver drift and a broken release — don't weaken it.
 
 ## Documentation
 

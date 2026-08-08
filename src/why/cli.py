@@ -4,8 +4,8 @@ import json
 import os
 import sys
 from pathlib import Path as _P
+from typing import Any
 
-import click
 import typer
 from rich.console import Console
 from rich.table import Table
@@ -21,9 +21,13 @@ from why.store import InstallFilters
 
 
 class WhyGroup(typer.core.TyperGroup):
-    def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
+    # `ctx` is Any rather than click.Context on purpose: typer >= 0.27 vendors click as
+    # typer._click and no longer depends on the top-level package, so importing click
+    # here breaks every CLI-only install. Everything below goes through typer's own
+    # re-exports, which resolve to the right classes on both the old and new layouts.
+    def parse_args(self, ctx: Any, args: list[str]) -> list[str]:
         if not args and self.no_args_is_help and not ctx.resilient_parsing:
-            click.echo(ctx.get_help(), color=ctx.color)
+            typer.echo(ctx.get_help(), color=ctx.color)
             ctx.exit()
         return super().parse_args(ctx, args)
 
@@ -36,12 +40,47 @@ app = typer.Typer(
     help="Track why you installed every tool.",
 )
 console = Console()
+err_console = Console(stderr=True)
+
+# Commands that must never emit the stale-hook notice:
+#   _hook / _record — run inside the shell's precmd; printing corrupts the terminal.
+#   init / uninstall — rewrite or remove the hook themselves, so a notice is noise.
+_NO_HOOK_NOTICE = frozenset({"_hook", "_record", "init", "uninstall"})
 
 
 def _version_callback(value: bool) -> None:
     if value:
         console.print(f"why {__version__}")
         raise typer.Exit()
+
+
+def _refresh_hooks_if_stale(subcommand: str | None) -> None:
+    """Bring `~/.why/hook.*` up to date and tell the user, once.
+
+    Deliberately not in `ensure_ready()`: that also runs from the web app and the
+    init wizard, and sits on the per-prompt hot path via `why _record`. Here it
+    only runs for user-facing commands.
+
+    `WHY_SUPPRESS` is set by every hook-initiated invocation — including
+    `why follow status`, which is not a hidden command — so it doubles as the
+    "we are inside the prompt cycle, do not print" signal. Old hooks set it too,
+    which is what makes this safe for the very users we're upgrading.
+    """
+    if subcommand in _NO_HOOK_NOTICE or os.environ.get("WHY_SUPPRESS"):
+        return
+    try:
+        from why.paths import why_home
+        from why.shells.installer import refresh_stale_hooks
+
+        refreshed = refresh_stale_hooks(why_home())
+    except Exception:  # noqa: BLE001 - an upgrade notice must never fail a command
+        return
+    for shell, old, new in refreshed:
+        was = f"v{old}" if old is not None else "unversioned"
+        err_console.print(
+            f"[yellow]↻[/yellow] {shell} shell hook updated ({was} → v{new}). "
+            "Restart your shell or run:\n    [bold]exec $SHELL -l[/bold]"
+        )
 
 
 @app.callback(invoke_without_command=True, no_args_is_help=True)
@@ -53,6 +92,7 @@ def main(
     if ctx.invoked_subcommand is None:
         console.print(ctx.get_help())
         raise typer.Exit()
+    _refresh_hooks_if_stale(ctx.invoked_subcommand)
 
 
 @app.command("list")
@@ -330,12 +370,28 @@ def uninstall_cmd() -> None:
     import sys
 
     from why.paths import why_home as _wh
-    from why.shells.installer import detect_shell, rc_file_for, remove_from_rc
+    from why.shells.installer import (
+        SHELLS,
+        detect_shell,
+        hook_target_for,
+        rc_file_for,
+        remove_from_rc,
+    )
 
     shell = detect_shell()
     rc = rc_file_for(shell)
     remove_from_rc(rc)
     console.print(f"[green]✓[/green] removed hook block from {rc}")
+
+    # Remove the payload too, for every shell — not just $SHELL. Leaving it behind
+    # would strand an orphan that the stale-hook auto-refresh then keeps updating,
+    # nagging an uninstalled user to restart their shell on every version bump.
+    home = _wh()
+    for sh in SHELLS:
+        target = hook_target_for(sh, home)
+        if target.exists():
+            target.unlink()
+            console.print(f"[green]✓[/green] removed {target}")
 
     if sys.platform == "darwin":
         from why.autostart import uninstall_macos_launchd
@@ -544,7 +600,7 @@ def recall_cmd(
             console.print(f"{index:2}. [{entry.exit_code}] {entry.command}")
         try:
             selection = typer.prompt("Select commands")
-        except (click.Abort, EOFError):
+        except (typer.Abort, EOFError):
             # Non-TTY fallback (CLAUDE.md): save the whole window rather than
             # aborting. Detected by the failed read, not by isatty(), because
             # stdin is not a TTY even when input has been piped in.
@@ -784,7 +840,7 @@ def llm_configure() -> None:
             "Confirm before send (always/remote/never)",
             default=str(llm_cfg["confirm_before_send"]),
         )
-    except (click.Abort, EOFError):
+    except (typer.Abort, EOFError):
         # CLAUDE.md: never assume a TTY. Scripts, Dockerfiles and CI must be able
         # to call this without hanging or aborting.
         console.print(

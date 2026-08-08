@@ -299,14 +299,18 @@ LAN exposure is opt-in. There's no auth on the UI yet, so anyone on your network
 
 ## `why uninstall`
 
-Removes the rc-file hook block and any autostart unit (`launchctl unload` on macOS, `systemctl --user disable` on Linux). Then asks whether to delete `~/.why/`:
+Removes the rc-file hook block, the `~/.why/hook.*` scripts it sourced (every shell, not just your current one), and any autostart unit (`launchctl unload` on macOS, `systemctl --user disable` on Linux). Then asks whether to delete `~/.why/`:
 
 ```
 ✓ removed hook block from /Users/you/.zshrc
+✓ removed /Users/you/.why/hook.zsh
+✓ removed /Users/you/.why/hook.fish
 Also delete data directory /Users/you/.why? This wipes your install history. [y/N]:
 ```
 
-Answer `n` (the default) to keep your data; answer `y` to wipe it.
+Answer `n` (the default) to keep your data; answer `y` to wipe it. Either way it is safe to re-run — files already gone are skipped silently.
+
+Answering `n` leaves a browsable `~/.why`: `why list`, `why show`, `why export`, and `why serve` all keep working, you just stop capturing new installs. Run `why init` to turn capture back on.
 
 ## Exit codes
 

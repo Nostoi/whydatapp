@@ -14,17 +14,20 @@ If you're on 1.1.1+ and still don't see the prompt, the section below applies.
 
 ## `why follow` or `why recall` is not recording commands
 
-These commands require the newer shell hook. Upgrade the package, then refresh
-the copied hook script and rc block:
+These commands require the newer shell hook. Upgrade the package and run any `why`
+command — the next one refreshes `~/.why/hook.*` for you:
 
 ```bash
 uv tool upgrade why-cli
-why init
+why list                    # prints "↻ shell hook updated" if yours was stale
 ```
 
-Restart or reload your shell afterwards. Existing install capture may keep
-working with an older hook, but follow/recall recording needs the hook that
-calls `why _record`.
+Restart or reload your shell afterwards; the running shell keeps the old functions
+until it does. Existing install capture may keep working with an older hook, but
+follow/recall recording needs the hook that calls `why _record`.
+
+If the rc-file block itself is missing (see below), run `why init` — auto-refresh
+updates the hook script, not your shell configuration.
 
 ## Errors on every prompt, or `[why rec]` never appears (versions ≤ 2.1.0)
 
@@ -35,7 +38,7 @@ included. Refresh the hook:
 
 ```bash
 uv tool upgrade why-cli
-why init
+why list                    # the refresh happens here
 ```
 
 Then restart your shell. Related symptom on the same versions: a prompt that stops
@@ -107,6 +110,23 @@ tail -20 ~/.why/hook.log
    why log -- brew install ripgrep
    ```
    If that works but the hook doesn't, the issue is in the shell-side wiring.
+
+## "↻ shell hook updated (v2 → v3)" appeared — what do I do?
+
+Nothing is wrong. You upgraded `why-cli`, the new release ships a newer hook, and whydatApp
+rewrote `~/.why/hook.<shell>` for you instead of waiting for you to re-run `why init`.
+
+**Do open a new shell** (or `exec $SHELL -l`) when convenient. The rewrite lands on disk
+immediately, but your current shell already loaded the old functions into memory and keeps
+using them until it restarts. whydatApp will not restart it for you.
+
+The notice prints once per upgrade, on stderr, and never during the prompt cycle — so it
+won't corrupt piped output from `why export` or `why follow status --porcelain`.
+
+The reverse case is quieter and worth knowing about: if `~/.why/hook.<shell>` is read-only
+or owned by another user, the refresh fails and stays **silent** (a read-only `~/.why` also
+means `hook.log` is unwritable, so there is nowhere to report it). Symptom: an old hook that
+never updates. Check with `ls -l ~/.why/hook.*`, fix the permissions, or run `why init`.
 
 ## The prompt fires but my command isn't recognized
 
