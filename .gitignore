@@ -10,5 +10,6 @@ build/
 .coverage
 htmlcov/
 node_modules/
+.DS_Store
 .why-sandbox/
 docs/superpowers/

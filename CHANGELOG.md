@@ -6,6 +6,24 @@ Versioning follows [SemVer](https://semver.org/).
 
 ---
 
+## [2.2.1] — 2026-08-08
+
+### Fixed
+- `Auto-tag main` in the release workflow is now gated on `github.ref == 'refs/heads/main'`.
+  A `workflow_dispatch` run from a feature branch tagged that branch's HEAD as the
+  release; the stray tag then made the next real merge report `should_release=false`
+  and skip publishing entirely.
+
+### Changed
+- Roadmap in `docs/guide/development.md` rewritten to match reality: PyPI publication
+  and 2.2.0 task sessions moved to "Shipped", upgrade ergonomics added as the top
+  remaining item, and known follow-ups recorded.
+- `docs/guide/development.md` documents what an upgrade does and does not do
+  automatically (migrations and config keys yes; hook refresh and update checks no).
+- `.DS_Store` added to `.gitignore`.
+
+---
+
 ## [2.2.0] — 2026-07-08
 
 ### Added

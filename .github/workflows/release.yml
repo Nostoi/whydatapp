@@ -52,7 +52,13 @@ jobs:
   tag:
     name: Auto-tag main
     needs: decide
-    if: needs.decide.outputs.should_release == 'true' && needs.decide.outputs.from_tag == 'false'
+    # Must be branch-gated: a workflow_dispatch from a feature branch would otherwise
+    # tag that branch's HEAD as the release. A stray tag then makes `decide` report
+    # should_release=false on the real merge, silently skipping the release.
+    if: >-
+      needs.decide.outputs.should_release == 'true'
+      && needs.decide.outputs.from_tag == 'false'
+      && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write

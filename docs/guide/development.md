@@ -245,14 +245,38 @@ If a release is broken: yank it, bump PATCH, fix, re-release.
 
 ## Roadmap
 
-In rough priority order:
+### Shipped
 
-1. PyPI publication (so `uv tool install why-cli` works).
-2. UI editor for `patterns.toml` and `presentation.toml`.
-3. Homebrew tap.
-4. Sync (pluggable backend + auth).
-5. Source scraping and update discovery.
-6. One-click remote install.
+- **PyPI publication** — `uv tool install why-cli` works; releases are automated (see `.github/workflows/release.yml`).
+- **Task sessions + opt-in LLM recaps** (2.2.0) — `why follow`, `why recall`, `why sessions`, `why llm`, and the `/sessions` + `/settings/llm` web views. This was not on the original roadmap; it is recorded here so the plan matches the product.
+
+### Next, in rough priority order
+
+1. **Upgrade ergonomics.** There is no update mechanism beyond `uv tool upgrade why-cli`: nothing checks whether a newer version exists, and nothing detects a stale `~/.why/hook.*` after an upgrade. The hooks carry `WHY_HOOK_VERSION` but no code reads it, so a user whose hook predates a fix gets no signal — they simply stop being captured. See "Upgrade path" below.
+2. **UI editor for `patterns.toml` and `presentation.toml`.** `/settings` currently manages purposes only.
+3. **Homebrew tap.**
+4. **Sync** (pluggable backend + auth). Schema already carries `sync_id` / `updated_at` / `deleted` on every table, including task sessions.
+5. **AI supplementation** — enrich `what_it_does` / `why` from the command plus a scraped homepage. Cheaper than originally scoped: 2.2.0 already ships the `[llm]` config block and an OpenAI-compatible client (`why/llm.py`) that this can reuse rather than rebuild.
+6. **Source scraping and update discovery.** `source_url` exists on `installs` and is displayed, but nothing populates it.
+7. **One-click remote install.**
+
+### Known follow-ups
+
+- **TestPyPI has no trusted publisher.** `workflow_dispatch` runs the full gate and then fails at publish with `invalid-publisher`. Everything before that step is still a useful dry run — it is how the missing-shells gap in CI was found — but configuring it at test.pypi.org would make the rehearsal complete.
+- **`.github/workflows/release.yml` `Auto-tag main`** is now gated on `github.ref == 'refs/heads/main'`. Without that, a dispatch from a feature branch tags that branch and the stray tag makes the next real merge skip its release.
+
+## Upgrade path
+
+What happens today when a user upgrades:
+
+| Concern | Status |
+|---|---|
+| Schema migrations | **Automatic.** `ensure_ready()` runs `migrate()` on every command, with a pre-migration backup in `~/.why/backups/`. |
+| New config keys | **Automatic.** `load_config()` deep-merges over current defaults. |
+| Shell hook refresh | **Manual.** Requires re-running `why init`; `copy_hook_to_home` overwrites unconditionally, but nothing prompts the user to do it. |
+| Knowing an update exists | **Nothing.** No version check anywhere. |
+
+The last two rows are the gap behind roadmap item 1, and they matter more than they look: a hook fix only reaches users who happen to re-run `why init`.
 
 ## Contributing
 
