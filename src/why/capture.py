@@ -12,6 +12,7 @@ from typing import IO
 from rich.console import Console
 
 from why import store
+from why.config import load_custom_patterns
 from why.detect import match_install, match_uninstall
 from why.humanize import time_ago
 from why.project_infer import infer_project
@@ -34,7 +35,7 @@ def capture(
     Returns the Install row that was created or updated, or None when the
     command was skipped / not recognised / was a silent re-install.
     """
-    match = match_install(command_str)
+    match = match_install(command_str, custom_patterns=load_custom_patterns())
     if match is None:
         console.print(
             f"[yellow]not recognized as an install: {command_str}[/yellow]"

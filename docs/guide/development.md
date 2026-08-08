@@ -18,7 +18,15 @@ uv pip install -e '.[dev,web]'
 # and runs ruff before every commit):
 pip install pre-commit
 pre-commit install
+
+# Shells under test. The hook tests SKIP for any shell that isn't installed,
+# so without these you get a green run that never exercised those hooks.
+# macOS ships zsh and bash; fish does not.
+brew install fish                      # macOS
+sudo apt-get install -y zsh fish       # Debian/Ubuntu
 ```
+
+These are system shells, not Python packages, so they can't live in `pyproject.toml`. CI installs them explicitly and **fails the build if any shell test skips** — see `.github/workflows/release.yml`.
 
 Run an isolated `why init` against a sandbox home (so you don't touch your real `~/.why/`):
 
@@ -83,7 +91,7 @@ WHY_HOME=$(pwd)/.why uv run why init
 Five pieces, one process model.
 
 ```
-shell hook (~/.why/hook.zsh)  →  why _hook (Python)
+shell hook (~/.why/hook.zsh)  →  why _hook / why _record (Python)
                                        │
                                        ▼
                                  why.detect  (pure: pattern + ignore rules)
@@ -93,7 +101,7 @@ shell hook (~/.why/hook.zsh)  →  why _hook (Python)
                        ┌───────────────┴───────────────┐
                        ▼                               ▼
                   why CLI (Typer)                why.web (FastAPI + HTMX)
-                  log/review/list/...            installs/dashboard/review
+                  log/review/follow/...          installs/dashboard/sessions
 ```
 
 - **`why.store`** is the only module that touches SQLite. CLI and web both go through it.
@@ -114,6 +122,8 @@ src/why/
 ├── detect.py           # patterns + ignore rules (pure)
 ├── resolve.py          # best-effort install path resolution
 ├── capture.py          # re-install enrichment logic
+├── sessions.py         # follow/recall session orchestration
+├── llm.py              # versioned task recap prompts + OpenAI-compatible client
 ├── humanize.py         # human-readable time-ago formatting
 ├── prompts.py          # interactive metadata prompt (pure-ish)
 ├── markdown.py         # entry → Markdown snippet (shared CLI + web)
@@ -131,7 +141,7 @@ src/why/
     ├── csrf.py         # CSRF middleware
     ├── filters.py      # query-param → InstallFilters
     ├── deps.py         # FastAPI deps (db path, presentation)
-    ├── routes/         # installs / dashboard / review / share / export
+    ├── routes/         # installs / dashboard / review / sessions / share / export
     ├── templates/      # Jinja partials + pages
     └── static/         # tailwind.css, htmx.min.js, logos
 ```
@@ -148,6 +158,23 @@ See [`CLAUDE.md`](../../CLAUDE.md) at the repo root. TL;DR:
 
 - `tests/unit/` — pure-function tests for `detect`, `store`, `resolve`, `config`, `prompts`, `project_infer`, `markdown`, web `filters`, `autostart`, `paths`, `schema`.
 - `tests/integration/` — Typer `CliRunner`, FastAPI `TestClient`, real-shell smoke test (`tests/integration/test_hook_shell.py`, skipped if zsh missing).
+- `tests/integration/test_hook_prompt_cycle.py` — drives the **real** hook scripts through an actual prompt cycle in zsh, bash, and fish, using a shimmed `why` on `PATH`. This is the layer `test_hook_shell.py` misses: that file sources the hook but then hand-writes its own `why _hook` call, so it cannot catch a hook whose control flow never reaches it.
+
+### Shell coverage depends on which shells are installed
+
+Each shell's tests skip when that shell is absent, so a green run does **not** mean every shell was checked. Watch the skip count.
+
+```bash
+uv run pytest -q                      # note "N skipped"
+uv run pytest -q -rs                  # show exactly which shells were skipped
+brew install fish                     # then fish is covered too
+```
+
+macOS ships zsh and bash, so those run by default; **fish must be installed to be covered.** Two bugs in this area were shipped precisely because a shell's own control flow was never executed — a local named `status` (read-only in both zsh and fish) and a load-time prompt snapshot that froze dynamic prompts.
+
+### Non-TTY tests must use a subprocess
+
+`CliRunner(input="")` is **not** a faithful non-TTY harness — it reports no abort where a real `< /dev/null` pipe does. Test non-TTY fallbacks with `subprocess.run(..., stdin=subprocess.DEVNULL)`. For the same reason, prefer catching `click.Abort`/`EOFError` over checking `sys.stdin.isatty()`: stdin is not a TTY under `CliRunner` even when input has been piped in.
 
 Coverage targets: ≥85% on `detect.py`, `store.py`, `prompts.py`. Run with `uv run pytest --cov=why --cov-report=term-missing`.
 
@@ -221,13 +248,11 @@ If a release is broken: yank it, bump PATCH, fix, re-release.
 In rough priority order:
 
 1. PyPI publication (so `uv tool install why-cli` works).
-2. Per-manager toggle enforcement at hook time (read `[managers]` from config, not just at wizard time).
-3. Custom-patterns wiring (consume `~/.why/patterns.toml` in the matcher).
-4. UI editor for `patterns.toml` and `presentation.toml`.
-5. Homebrew tap.
-6. Sync (pluggable backend + auth).
-7. AI enrichment, source scraping, update discovery.
-8. One-click remote install.
+2. UI editor for `patterns.toml` and `presentation.toml`.
+3. Homebrew tap.
+4. Sync (pluggable backend + auth).
+5. Source scraping and update discovery.
+6. One-click remote install.
 
 ## Contributing
 

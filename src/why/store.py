@@ -5,7 +5,7 @@ import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 
@@ -23,6 +23,9 @@ def _conn(db_path: Path) -> Iterator[sqlite3.Connection]:
     c.row_factory = sqlite3.Row
     c.execute("PRAGMA journal_mode=WAL")
     c.execute("PRAGMA foreign_keys=ON")
+    # Declared explicitly rather than relying on sqlite3.connect()'s default
+    # timeout=5.0, which silently disappears if this connect call is ever changed.
+    c.execute("PRAGMA busy_timeout=5000")
     try:
         yield c
         c.commit()
@@ -140,6 +143,64 @@ class Install:
     deleted: int
     reinstall_count: int
     last_installed_at: str | None
+
+
+@dataclass(frozen=True)
+class TaskSession:
+    id: int
+    sync_id: str
+    user_id: str
+    device_id: str
+    title: str | None
+    project: str | None
+    source: str
+    status: str
+    shell: str | None
+    started_at: str
+    ended_at: str | None
+    cwd_start: str | None
+    cwd_end: str | None
+    summary_status: str
+    created_at: str
+    updated_at: str
+    deleted: int
+
+
+@dataclass(frozen=True)
+class TaskSessionCommand:
+    id: int
+    session_id: int
+    position: int
+    command: str
+    cwd: str
+    exit_code: int | None
+    started_at: str
+    ended_at: str | None
+    matched_install_id: int | None
+    redaction_version: int
+
+
+@dataclass(frozen=True)
+class TaskSessionSummary:
+    id: int
+    session_id: int
+    provider: str
+    model: str
+    endpoint: str | None
+    prompt_version: int
+    input_hash: str
+    summary_markdown: str
+    created_at: str
+
+
+@dataclass(frozen=True)
+class CommandJournalEntry:
+    id: int
+    command: str
+    cwd: str
+    shell: str | None
+    exit_code: int | None
+    ran_at: str
 
 
 @dataclass(frozen=True)
@@ -526,6 +587,332 @@ def get_command_history(db: Path, install_id: int) -> list[str]:
             (install_id,),
         ).fetchall()
     return [r[0] for r in rows]
+
+
+# ---------------------------------------------------------------------------
+# Task sessions and command journal
+# ---------------------------------------------------------------------------
+
+_SUMMARY_STATUSES = {"none", "ignored", "pending", "complete", "failed"}
+
+
+def _row_to_task_session(r: sqlite3.Row) -> TaskSession:
+    return TaskSession(**dict(r))
+
+
+def _row_to_task_session_command(r: sqlite3.Row) -> TaskSessionCommand:
+    return TaskSessionCommand(**dict(r))
+
+
+def _row_to_task_session_summary(r: sqlite3.Row) -> TaskSessionSummary:
+    return TaskSessionSummary(**dict(r))
+
+
+def _row_to_command_journal_entry(r: sqlite3.Row) -> CommandJournalEntry:
+    return CommandJournalEntry(**dict(r))
+
+
+def create_task_session(
+    db: Path,
+    *,
+    user_id: str,
+    device_id: str,
+    source: str,
+    status: str,
+    title: str | None,
+    project: str | None,
+    shell: str | None,
+    cwd_start: str | None,
+) -> TaskSession:
+    sid = _new_id()
+    now = _now()
+    with _conn(db) as c:
+        cur = c.execute(
+            """INSERT INTO task_sessions(
+                sync_id,user_id,device_id,title,project,source,status,shell,
+                started_at,cwd_start,created_at,updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                sid,
+                user_id,
+                device_id,
+                title,
+                project,
+                source,
+                status,
+                shell,
+                now,
+                cwd_start,
+                now,
+                now,
+            ),
+        )
+        new_id = cur.lastrowid
+        r = c.execute("SELECT * FROM task_sessions WHERE id=?", (new_id,)).fetchone()
+    return _row_to_task_session(r)
+
+
+def close_task_session(db: Path, session_id: int, *, cwd_end: str | None) -> TaskSession:
+    now = _now()
+    with _conn(db) as c:
+        c.execute(
+            """UPDATE task_sessions
+               SET status='closed', ended_at=?, cwd_end=?, updated_at=?
+               WHERE id=? AND deleted=0""",
+            (now, cwd_end, now, session_id),
+        )
+        r = c.execute(
+            "SELECT * FROM task_sessions WHERE id=? AND deleted=0", (session_id,)
+        ).fetchone()
+    if not r:
+        raise KeyError(session_id)
+    return _row_to_task_session(r)
+
+
+def cancel_task_session(db: Path, session_id: int) -> TaskSession:
+    now = _now()
+    with _conn(db) as c:
+        c.execute(
+            """UPDATE task_sessions
+               SET status='cancelled', ended_at=?, updated_at=?
+               WHERE id=? AND deleted=0""",
+            (now, now, session_id),
+        )
+        r = c.execute(
+            "SELECT * FROM task_sessions WHERE id=? AND deleted=0", (session_id,)
+        ).fetchone()
+    if not r:
+        raise KeyError(session_id)
+    return _row_to_task_session(r)
+
+
+def soft_delete_task_session(db: Path, session_id: int) -> None:
+    """Hide a session, keeping the row as a sync tombstone (mirrors installs)."""
+    with _conn(db) as c:
+        c.execute(
+            "UPDATE task_sessions SET deleted=1, updated_at=? WHERE id=?",
+            (_now(), session_id),
+        )
+
+
+def purge_task_session(db: Path, session_id: int) -> None:
+    """Irreversibly remove a session and, via ON DELETE CASCADE, its commands and
+    summaries. For transcripts the user wants genuinely off the machine, where a
+    soft-deleted row on disk would not be an honest answer.
+    """
+    with _conn(db) as c:
+        c.execute("DELETE FROM task_sessions WHERE id=?", (session_id,))
+
+
+def get_active_task_session(db: Path) -> TaskSession | None:
+    with _conn(db) as c:
+        r = c.execute(
+            """SELECT * FROM task_sessions
+               WHERE status='active' AND deleted=0
+               ORDER BY started_at DESC, id DESC LIMIT 1"""
+        ).fetchone()
+    return _row_to_task_session(r) if r else None
+
+
+def get_task_session(db: Path, session_id: int) -> TaskSession | None:
+    with _conn(db) as c:
+        r = c.execute(
+            "SELECT * FROM task_sessions WHERE id=? AND deleted=0",
+            (session_id,),
+        ).fetchone()
+    return _row_to_task_session(r) if r else None
+
+
+def list_task_sessions(
+    db: Path, *, summary_status: str | None = None, limit: int = 100
+) -> list[TaskSession]:
+    where = ["deleted=0"]
+    params: list[object] = []
+    if summary_status is not None:
+        where.append("summary_status=?")
+        params.append(summary_status)
+    sql = "SELECT * FROM task_sessions WHERE " + " AND ".join(where)
+    sql += " ORDER BY started_at DESC, id DESC LIMIT ?"
+    params.append(limit)
+    with _conn(db) as c:
+        rows = c.execute(sql, params).fetchall()
+    return [_row_to_task_session(r) for r in rows]
+
+
+def append_task_session_command(
+    db: Path,
+    session_id: int,
+    *,
+    command: str,
+    cwd: str,
+    exit_code: int | None,
+    started_at: str,
+    ended_at: str | None = None,
+    matched_install_id: int | None = None,
+) -> TaskSessionCommand:
+    with _conn(db) as c:
+        # The position is computed inside the INSERT so the read and the write happen
+        # as one statement under SQLite's write lock. A separate SELECT then INSERT
+        # races when two terminals record into the same follow session, producing
+        # duplicate positions and a nondeterministically ordered transcript.
+        cur = c.execute(
+            """INSERT INTO task_session_commands(
+                session_id,position,command,cwd,exit_code,started_at,ended_at,
+                matched_install_id)
+               VALUES (
+                 ?,
+                 (SELECT COALESCE(MAX(position), -1) + 1
+                    FROM task_session_commands WHERE session_id=?),
+                 ?,?,?,?,?,?)""",
+            (
+                session_id,
+                session_id,
+                command,
+                cwd,
+                exit_code,
+                started_at,
+                ended_at,
+                matched_install_id,
+            ),
+        )
+        new_id = cur.lastrowid
+        r = c.execute(
+            "SELECT * FROM task_session_commands WHERE id=?",
+            (new_id,),
+        ).fetchone()
+    return _row_to_task_session_command(r)
+
+
+def list_task_session_commands(db: Path, session_id: int) -> list[TaskSessionCommand]:
+    with _conn(db) as c:
+        rows = c.execute(
+            """SELECT * FROM task_session_commands
+               WHERE session_id=? ORDER BY position""",
+            (session_id,),
+        ).fetchall()
+    return [_row_to_task_session_command(r) for r in rows]
+
+
+def save_task_session_summary(
+    db: Path,
+    session_id: int,
+    *,
+    provider: str,
+    model: str,
+    endpoint: str | None,
+    prompt_version: int,
+    input_hash: str,
+    summary_markdown: str,
+) -> TaskSessionSummary:
+    now = _now()
+    with _conn(db) as c:
+        cur = c.execute(
+            """INSERT INTO task_session_summaries(
+                session_id,provider,model,endpoint,prompt_version,input_hash,
+                summary_markdown,created_at)
+               VALUES (?,?,?,?,?,?,?,?)""",
+            (
+                session_id,
+                provider,
+                model,
+                endpoint,
+                prompt_version,
+                input_hash,
+                summary_markdown,
+                now,
+            ),
+        )
+        c.execute(
+            """UPDATE task_sessions
+               SET summary_status='complete', updated_at=?
+               WHERE id=? AND deleted=0""",
+            (now, session_id),
+        )
+        new_id = cur.lastrowid
+        r = c.execute(
+            "SELECT * FROM task_session_summaries WHERE id=?",
+            (new_id,),
+        ).fetchone()
+    return _row_to_task_session_summary(r)
+
+
+def list_task_session_summaries(db: Path, session_id: int) -> list[TaskSessionSummary]:
+    with _conn(db) as c:
+        rows = c.execute(
+            """SELECT * FROM task_session_summaries
+               WHERE session_id=? ORDER BY created_at DESC, id DESC""",
+            (session_id,),
+        ).fetchall()
+    return [_row_to_task_session_summary(r) for r in rows]
+
+
+def set_task_session_summary_status(
+    db: Path, session_id: int, status: str
+) -> TaskSession:
+    if status not in _SUMMARY_STATUSES:
+        raise ValueError(f"bad summary status: {status}")
+    now = _now()
+    with _conn(db) as c:
+        c.execute(
+            """UPDATE task_sessions
+               SET summary_status=?, updated_at=?
+               WHERE id=? AND deleted=0""",
+            (status, now, session_id),
+        )
+        r = c.execute(
+            "SELECT * FROM task_sessions WHERE id=? AND deleted=0", (session_id,)
+        ).fetchone()
+    if not r:
+        raise KeyError(session_id)
+    return _row_to_task_session(r)
+
+
+def add_command_journal_entry(
+    db: Path,
+    *,
+    command: str,
+    cwd: str,
+    shell: str | None,
+    exit_code: int | None,
+    ran_at: str | None = None,
+) -> CommandJournalEntry:
+    timestamp = ran_at or _now()
+    with _conn(db) as c:
+        cur = c.execute(
+            """INSERT INTO command_journal(command,cwd,shell,exit_code,ran_at)
+               VALUES (?,?,?,?,?)""",
+            (command, cwd, shell, exit_code, timestamp),
+        )
+        new_id = cur.lastrowid
+        r = c.execute("SELECT * FROM command_journal WHERE id=?", (new_id,)).fetchone()
+    return _row_to_command_journal_entry(r)
+
+
+def list_recent_command_journal(db: Path, *, limit: int) -> list[CommandJournalEntry]:
+    with _conn(db) as c:
+        rows = c.execute(
+            """SELECT * FROM command_journal
+               ORDER BY ran_at DESC, id DESC LIMIT ?""",
+            (limit,),
+        ).fetchall()
+    return [_row_to_command_journal_entry(r) for r in rows]
+
+
+def prune_command_journal(db: Path, *, max_commands: int, max_age_hours: int) -> None:
+    cutoff = (datetime.now(UTC) - timedelta(hours=max_age_hours)).isoformat(timespec="seconds")
+    with _conn(db) as c:
+        c.execute("DELETE FROM command_journal WHERE ran_at < ?", (cutoff,))
+        if max_commands <= 0:
+            c.execute("DELETE FROM command_journal")
+            return
+        c.execute(
+            """DELETE FROM command_journal
+               WHERE id NOT IN (
+                 SELECT id FROM command_journal
+                 ORDER BY ran_at DESC, id DESC LIMIT ?
+               )""",
+            (max_commands,),
+        )
 
 
 # ---------------------------------------------------------------------------

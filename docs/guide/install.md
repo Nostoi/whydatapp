@@ -25,6 +25,16 @@ To upgrade later:
 uv tool upgrade why-cli           # or: pipx upgrade why-cli
 ```
 
+After upgrades that change shell-hook behavior, re-run:
+
+```bash
+why init
+```
+
+Then reload or restart your shell. Database migrations run automatically on the
+next `why` command and create a backup under `~/.why/backups/` before upgrading
+an existing database.
+
 ## Option B — From source (for development or pre-release)
 
 ```bash
@@ -78,6 +88,9 @@ why init
 8. **Offers to reload your shell** so the hook activates immediately. This is opt-in and skipped silently in non-TTY contexts (scripts, CI, Dockerfiles). Answering `y` runs `exec $SHELL -l`, replacing the current shell with a fresh login shell — any background jobs and unsaved env in this session are lost. Set `WHY_INIT_NO_RELOAD=1` to suppress the prompt entirely.
 
 If you decline the reload (or skip it in a script), restart your shell or run `source ~/.zshrc` before your first `brew install ripgrep` — the hook won't fire until your shell re-sources its rc file.
+
+`why init` does not force LLM setup. Configure optional task recaps later with
+`why llm configure` or in the web UI under **LLM**.
 
 ## Uninstall
 

@@ -30,6 +30,9 @@ def test_init_creates_home_and_rc_block(why_home: Path, tmp_path: Path, monkeypa
     assert (why_home / "config.toml").exists()
     assert (why_home / "data.db").exists()
     assert (why_home / "hook.zsh").exists()
+    hook_text = (why_home / "hook.zsh").read_text()
+    assert "WHY_HOOK_VERSION=2" in hook_text
+    assert "why _record" in hook_text
     assert BLOCK_BEGIN in rc.read_text()
 
 

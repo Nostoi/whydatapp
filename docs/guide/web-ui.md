@@ -57,11 +57,54 @@ A focused, one-at-a-time form for draining the skipped queue. Same fields as the
 
 The badge `Review N` in the nav bar shows queue size; it disappears when the queue is empty.
 
+## Sessions
+
+The **Sessions** view lists saved `why follow` and `why recall` transcripts.
+
+- **List** — title, source, summary status, command count, and start time.
+- **Detail** — transcript timeline, latest summary, provider/model metadata,
+  and summary history.
+- **Summarize** — sends the transcript to the configured LLM only after an
+  explicit click. If LLM settings are disabled, the UI sends you to
+  **LLM settings** first. When your confirmation policy applies (`always`, or
+  `remote` with a non-localhost endpoint), the click does **not** send: it opens a
+  confirmation panel naming the endpoint, the model, and how many commands would
+  leave the machine. Nothing is sent until you press **Send and summarize**. This
+  is the same policy the CLI applies to `why sessions summarize`.
+- **Ignore for LLM** — hides a session from "needs summary" workflows while
+  keeping the transcript viewable. **Un-ignore** reverses it.
+- **Delete** — soft delete. The session disappears from the list and detail views,
+  but the row stays in the database (matching install deletion, and preserving a
+  tombstone for the future sync feature). The transcript is still on disk.
+- **Erase transcript** — irreversible. Removes the session together with its
+  commands and summaries. The browser asks for confirmation first, naming the
+  number of commands. Use this when you need a transcript genuinely off the machine.
+
+Both deletion levels are also available from the CLI as
+`why sessions delete <id>` and `why sessions delete <id> --purge`.
+
+Transcripts remain local unless you click Summarize and clear any confirmation
+your policy requires.
+
+## Settings → LLM
+
+Navigate to **LLM** (or `/settings/llm`) to configure optional task recaps.
+
+- Provider: `openai-compatible`.
+- Base URL: local Ollama is usually `http://localhost:11434/v1`.
+- Model: the model name your endpoint expects.
+- API key env var: the name of the environment variable, not the secret value.
+- Confirmation policy: `always`, `remote`, or `never`.
+- Max input commands: cap for commands sent to the LLM.
+
+LLM support is off by default.
+
 ## Privacy posture
 
 - Bound to `127.0.0.1` only.
 - All static assets vendored locally — no CDN, no Google Fonts, no analytics.
-- No outbound network calls.
+- No outbound network calls unless you explicitly summarize a session with an
+  enabled LLM provider.
 - CSRF middleware on POST/PUT/DELETE (forward-compat for when auth lands).
 
 ## Keyboard shortcuts

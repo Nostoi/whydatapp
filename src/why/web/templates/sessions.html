@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="space-y-6">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight">Sessions</h1>
+      <p class="text-sm mt-1" style="color: var(--color-fg-muted);">Saved follow and recall transcripts.</p>
+    </div>
+    <form method="get" action="/sessions" class="flex items-center gap-2">
+      <select name="summary_status" class="select text-sm">
+        <option value="" {% if not summary_status %}selected{% endif %}>All summaries</option>
+        {% for value in ["none", "ignored", "complete", "failed"] %}
+          <option value="{{ value }}" {% if summary_status == value %}selected{% endif %}>{{ value }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn" type="submit">Filter</button>
+    </form>
+  </div>
+
+  {% if rows %}
+    <div class="overflow-x-auto border rounded-lg" style="border-color: var(--color-border); background-color: var(--color-bg-elevated);">
+      <table class="w-full text-sm">
+        <thead class="text-left border-b" style="border-color: var(--color-border); color: var(--color-fg-muted);">
+          <tr>
+            <th class="py-2 px-3">Title</th>
+            <th class="py-2 px-3">Source</th>
+            <th class="py-2 px-3">Summary</th>
+            <th class="py-2 px-3 text-right">Commands</th>
+            <th class="py-2 px-3">Started</th>
+            <th class="py-2 px-3 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y" style="border-color: var(--color-border);">
+          {% for row in rows %}
+            {% set s = row.session %}
+            <tr>
+              <td class="py-2 px-3 font-medium"><a class="hover:underline" href="/sessions/{{ s.id }}">{{ s.title or "untitled" }}</a></td>
+              <td class="py-2 px-3">{{ s.source }}</td>
+              <td class="py-2 px-3">{{ s.summary_status }}</td>
+              <td class="py-2 px-3 text-right tabular-nums">{{ row.command_count }}</td>
+              <td class="py-2 px-3 font-mono text-xs">{{ s.started_at[:10] }} {{ s.started_at[11:16] }}</td>
+              <td class="py-2 px-3">
+                <div class="flex justify-end gap-2">
+                  <a href="/sessions/{{ s.id }}" class="btn btn-ghost">View</a>
+                  <form method="post" action="/sessions/{{ s.id }}/ignore-llm">
+                    <input type="hidden" name="csrf_token" value="{{ request.cookies.get('why_csrf', '') }}">
+                    <button class="btn btn-ghost" type="submit">Ignore for LLM</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    {% set line = "No sessions yet — start one with why follow, or save recent commands with why recall." %}
+    {% include "components/empty_state.html" %}
+  {% endif %}
+</div>
+{% endblock %}

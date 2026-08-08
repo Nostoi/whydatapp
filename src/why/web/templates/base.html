@@ -30,7 +30,13 @@
       {% with href="/review", label="Review", active=(active_path == '/review'), badge_count=review_count %}
         {% include "components/nav_link.html" %}
       {% endwith %}
-      {% with href="/settings/purposes", label="Purposes", active=(active_path.startswith('/settings')), badge_count=0 %}
+      {% with href="/sessions", label="Sessions", active=(active_path.startswith('/sessions')), badge_count=0 %}
+        {% include "components/nav_link.html" %}
+      {% endwith %}
+      {% with href="/settings/purposes", label="Purposes", active=(active_path.startswith('/settings/purposes')), badge_count=0 %}
+        {% include "components/nav_link.html" %}
+      {% endwith %}
+      {% with href="/settings/llm", label="LLM", active=(active_path == '/settings/llm'), badge_count=0 %}
         {% include "components/nav_link.html" %}
       {% endwith %}
     </nav>
@@ -46,7 +52,11 @@
   <footer class="px-4 md:px-6 py-3 text-xs border-t" style="border-color: var(--color-border); background-color: color-mix(in srgb, var(--color-bg-elevated) 60%, transparent); color: var(--color-fg-faint);">
     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border"
           style="background-color: var(--color-bg-muted); border-color: var(--color-border);">
-      🔒 localhost · no network
+      {% if llm_enabled() %}
+        🔒 localhost · sends only when you summarize
+      {% else %}
+        🔒 localhost · no network
+      {% endif %}
     </span>
   </footer>
 <script defer>

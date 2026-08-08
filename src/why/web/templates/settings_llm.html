@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-2xl space-y-6">
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">LLM settings</h1>
+    <p class="text-sm mt-1" style="color: var(--color-fg-muted);">Configure optional task recap generation.</p>
+  </div>
+
+  <form method="post" action="/settings/llm" class="space-y-4 border rounded-lg p-5" style="border-color: var(--color-border); background-color: var(--color-bg-elevated);">
+    <input type="hidden" name="csrf_token" value="{{ request.cookies.get('why_csrf', '') }}">
+    <input type="hidden" name="session_id" value="{{ session_id or '' }}">
+
+    <label class="flex items-center gap-2 text-sm">
+      <input type="checkbox" name="enabled" value="1" {% if llm.enabled %}checked{% endif %}>
+      Enable LLM summaries
+    </label>
+
+    <label class="block text-sm">
+      <span class="font-medium">Provider</span>
+      <input class="input w-full mt-1" name="provider" value="{{ llm.provider }}">
+    </label>
+
+    <label class="block text-sm">
+      <span class="font-medium">Base URL</span>
+      <input class="input w-full mt-1" name="base_url" value="{{ llm.base_url }}">
+    </label>
+
+    <label class="block text-sm">
+      <span class="font-medium">Model</span>
+      <input class="input w-full mt-1" name="model" value="{{ llm.model }}">
+    </label>
+
+    <label class="block text-sm">
+      <span class="font-medium">API key env var</span>
+      <input class="input w-full mt-1" name="api_key_env" value="{{ llm.api_key_env }}">
+    </label>
+
+    <label class="block text-sm">
+      <span class="font-medium">Confirm before send</span>
+      <select class="select w-full mt-1" name="confirm_before_send">
+        {% for value in ["always", "remote", "never"] %}
+          <option value="{{ value }}" {% if llm.confirm_before_send == value %}selected{% endif %}>{{ value }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label class="block text-sm">
+      <span class="font-medium">Max input commands</span>
+      <input class="input w-full mt-1" type="number" min="1" name="max_input_commands" value="{{ llm.max_input_commands }}">
+    </label>
+
+    <p class="text-xs leading-relaxed" style="color: var(--color-fg-muted);">
+      Secrets are not stored here. Put API keys in the named environment variable. Ollama's OpenAI-compatible endpoint is usually http://localhost:11434/v1.
+    </p>
+
+    <button class="btn btn-primary" type="submit">Save settings</button>
+  </form>
+</div>
+{% endblock %}

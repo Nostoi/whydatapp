@@ -39,4 +39,7 @@ def create_app() -> FastAPI:
     from why.web.routes.settings import router as settings_router
     app.include_router(settings_router)
 
+    from why.web.routes.sessions import router as sessions_router
+    app.include_router(sessions_router)
+
     return app

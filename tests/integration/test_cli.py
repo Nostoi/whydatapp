@@ -7,6 +7,7 @@ from typer.testing import CliRunner
 from why import store
 from why.bootstrap import ensure_ready
 from why.cli import app
+from why.config import load_config, write_config
 from why.store import InstallFilters
 
 runner = CliRunner()
@@ -116,6 +117,25 @@ def test_hook_matched_runs_prompt(why_home: Path, monkeypatch) -> None:
     assert "ripgrep" in listed.stdout
 
 
+def test_hook_ignores_disabled_manager(why_home: Path, monkeypatch) -> None:
+    monkeypatch.setenv("WHY_HOOK_FORCE_PROMPT", "1")
+    cfg = load_config()
+    cfg["managers"]["brew"] = False
+    write_config(cfg)
+
+    result = runner.invoke(
+        app,
+        ["_hook", "--cmd", "brew install ripgrep", "--cwd", "/tmp", "--code", "0"],
+        input="\n".join(["1", "ripgrep", "g", "p", "w", ""]) + "\n",
+    )
+
+    assert result.exit_code == 0
+    assert result.stdout == ""
+    db = ensure_ready()
+    rows = store.list_installs(db, InstallFilters(manager="brew"))
+    assert rows == []
+
+
 def test_serve_invokes_uvicorn(monkeypatch, why_home: Path) -> None:
     called = {}
 
@@ -218,6 +238,22 @@ def test_log_creates_new_entry_by_default(why_home: Path) -> None:
     db = ensure_ready()
     rows = store.list_installs(db, InstallFilters(manager="brew"))
     assert len(rows) == 2
+
+
+def test_log_still_records_disabled_manager(why_home: Path) -> None:
+    cfg = load_config()
+    cfg["managers"]["brew"] = False
+    write_config(cfg)
+
+    answers = "\n".join(["1", "ripgrep", "fast grep", "proj", "speed", ""]) + "\n"
+    result = runner.invoke(
+        app, ["log", "--", "brew", "install", "ripgrep"], input=answers
+    )
+
+    assert result.exit_code == 0
+    db = ensure_ready()
+    rows = store.list_installs(db, InstallFilters(manager="brew"))
+    assert len(rows) == 1
 
 
 def test_log_with_enrich_flag(why_home: Path) -> None:

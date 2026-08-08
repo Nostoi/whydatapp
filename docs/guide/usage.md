@@ -15,6 +15,10 @@ Every subcommand of the `why` CLI, with examples.
 | `why delete <id>`    | Soft-delete an entry by id.                         |
 | `why serve`          | Start the local web UI and open the browser.        |
 | `why show <id>`      | Print full details + command history for an install. |
+| `why follow ...`     | Start/stop an intentional task transcript.          |
+| `why recall ...`     | Save recent command history as a transcript.        |
+| `why sessions ...`   | View transcripts and manually run LLM summaries.    |
+| `why llm ...`        | Configure optional LLM task recap settings.         |
 | `why purposes`       | Manage purpose categories (list/add/edit/delete).   |
 | `why uninstall`      | Remove the hook (and optionally the data dir).      |
 | `why --version`      | Print the installed version.                        |
@@ -191,6 +195,78 @@ why delete 47 --yes   # skip confirmation
 ```
 
 Soft-delete means the row is marked `deleted=1` and `updated_at` is bumped, but the row stays in the database (so future sync sees the tombstone). It no longer appears in `why list` or in the web UI.
+
+## `why follow` — record a task transcript
+
+Use this when you know you want a task recap later:
+
+```bash
+why follow start --title "Install Postgres locally" --project my-app
+why follow start --shell zsh        # override shell detection
+# run commands
+why follow stop
+```
+
+`stop` saves the transcript locally and prints the next useful commands:
+
+```bash
+why sessions show <id>       # view the transcript
+why sessions summarize <id>  # send it to your configured LLM
+why sessions ignore-llm <id> # mark it as not needing a summary
+```
+
+While recording, supported shell hooks add `[why rec]` to the prompt. If the prompt indicator is not visible, `why follow status` is authoritative.
+
+## `why recall` — save recent commands after the fact
+
+Use this when you forgot to start `why follow`:
+
+```bash
+why recall                  # same as --last 30
+why recall --last 50
+why recall --interactive    # choose commands from a numbered list
+why recall --title "Fixing the CI cache"
+```
+
+Recall creates a normal saved session with source `recall`. It does not call an LLM automatically.
+
+## `why sessions` — view transcripts and summaries
+
+```bash
+why sessions list
+why sessions show <id>
+why sessions summarize <id>
+why sessions summarize <id> --print-payload
+why sessions ignore-llm <id>
+why sessions unignore-llm <id>   # undo the above
+why sessions list --summary-status none --limit 20
+why sessions delete <id>         # hide it (soft delete, row kept)
+why sessions delete <id> --purge # erase the transcript from the database
+```
+
+`--print-payload` shows the exact JSON that would be sent to the LLM and makes no network call. Truncation keeps the **most recent** commands when a session exceeds `max_input_commands`. `ignore-llm` hides a session from "needs summary" views while keeping the transcript searchable and viewable.
+
+### Deleting a session
+
+Transcripts hold raw command history, so there are two levels of removal:
+
+- `why sessions delete <id>` — **soft delete.** The session disappears from the CLI and the web UI, but the row stays in the database (consistent with `why delete` for installs, and it preserves a tombstone for the future sync feature). The transcript is still on disk.
+- `why sessions delete <id> --purge` — **irreversible.** Removes the session and, via `ON DELETE CASCADE`, its commands and summaries. Use this when you need the transcript genuinely off the machine.
+
+Both are available in the web UI on the session page as **Delete** and **Erase transcript**; the latter asks for confirmation first.
+
+## `why llm` — configure optional task recaps
+
+```bash
+why llm configure
+why llm test
+```
+
+LLM support is disabled by default. The first provider is OpenAI-compatible HTTP, which works with OpenAI-compatible hosted endpoints and local Ollama at `http://localhost:11434/v1`.
+
+`why llm test` sends a one-word request to the configured endpoint and exits non-zero if it is unreachable, the key is wrong, or the response is malformed — so a broken configuration surfaces here rather than the first time you summarize.
+
+`why llm configure` is interactive. With no TTY (scripts, Dockerfiles, CI) it leaves settings unchanged and tells you to edit the `[llm]` section of `~/.why/config.toml` or use `/settings/llm` instead of aborting. Likewise `why recall --interactive` falls back to saving the whole window when no input is available.
 
 ## `why serve` — web UI
 

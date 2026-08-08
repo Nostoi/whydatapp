@@ -5,6 +5,7 @@ import re
 import shlex
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -110,6 +111,50 @@ def _extract_gh_clone(tokens: list[str]) -> list[str] | None:
     ref = args[0]
     name = ref.rsplit("/", 1)[-1]
     return [name] if name else None
+
+
+def _extract_custom(command: str, pattern: dict[str, Any]) -> MatchResult | None:
+    manager = pattern.get("manager")
+    regex = pattern.get("regex")
+    if not isinstance(manager, str) or not manager:
+        return None
+    if not isinstance(regex, str) or not regex:
+        return None
+    try:
+        matched = re.search(regex, command)
+    except re.error:
+        return None
+    if matched is None:
+        return None
+
+    package = matched.groupdict().get("package")
+    if package:
+        packages = [package]
+    else:
+        try:
+            tokens = shlex.split(command)
+        except ValueError:
+            return None
+        packages = _strip_flags(tokens)
+        if packages:
+            packages = [packages[-1]]
+
+    if not packages:
+        return None
+    if is_self_or_source_install(manager, packages):
+        return None
+    return MatchResult(manager=manager, packages=packages)
+
+
+def _match_custom_install(
+    command: str,
+    patterns: list[dict[str, Any]] | None,
+) -> MatchResult | None:
+    for pattern in patterns or []:
+        match = _extract_custom(command, pattern)
+        if match is not None:
+            return match
+    return None
 
 
 _HEAD = {
@@ -255,7 +300,11 @@ def is_self_or_source_install(manager: str, packages: list[str]) -> bool:
     return normalized in _SELF_NAMES
 
 
-def match_install(command: str) -> MatchResult | None:
+def match_install(
+    command: str,
+    *,
+    custom_patterns: list[dict[str, Any]] | None = None,
+) -> MatchResult | None:
     """Return a MatchResult if the command is a user-intent install. Else None."""
     try:
         tokens = shlex.split(command)
@@ -266,18 +315,18 @@ def match_install(command: str) -> MatchResult | None:
     head = tokens[0].rsplit("/", 1)[-1]
     rule = _HEAD.get(head)
     if not rule:
-        return None
+        return _match_custom_install(command, custom_patterns)
     manager, extractor = rule
     if head == "brew":
         if len(tokens) < 3 or tokens[1] not in ("install", "reinstall"):
-            return None
+            return _match_custom_install(command, custom_patterns)
         pkgs = extractor(tokens)
         if not pkgs:
-            return None
+            return _match_custom_install(command, custom_patterns)
         return MatchResult(manager=manager, packages=pkgs)
     pkgs = extractor(tokens)
     if not pkgs:
-        return None
+        return _match_custom_install(command, custom_patterns)
     if is_self_or_source_install(manager, pkgs):
         return None
     return MatchResult(manager=manager, packages=pkgs)
