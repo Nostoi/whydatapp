@@ -243,16 +243,38 @@ After the first successful publish, the "pending" publisher converts to a real o
 
 ### Dry-run on TestPyPI
 
-Trigger the workflow manually (Actions tab → release → "Run workflow") to publish to TestPyPI without tagging. Then verify install:
+**Dispatch from a feature branch with an unreleased version**, not from `main`:
 
 ```bash
-uv tool install \
-  --index-url https://test.pypi.org/simple/ \
-  --extra-index-url https://pypi.org/simple/ \
-  'why-cli[web]'
+gh workflow run release.yml --ref my-branch
 ```
 
-The `--extra-index-url` is needed because TestPyPI doesn't mirror dependencies (FastAPI, Typer, etc. live on real PyPI).
+Two constraints make that the only shape that works, and both are easy to trip over:
+
+- `decide` sets `should_release=false` when `v<version>` already exists on origin, and every publish job is gated on it. Dispatching at a version that has already shipped silently does nothing.
+- `Auto-tag main` is gated on `refs/heads/main`, so a branch dispatch skips it — which is the point (no stray tags). `publish-testpypi` carries `always()` specifically so it survives that skip; see the comment on the job. Dispatching from `main` instead would tag `main` from a branch's contents.
+
+`publish-pypi` and `github-release` are gated on `github.event_name != 'workflow_dispatch'`, so a dispatch can never reach real PyPI.
+
+#### Verifying the TestPyPI artifact
+
+Do **not** install by name from TestPyPI. Both obvious recipes fail, in ways that look like success:
+
+- `--index-url` TestPyPI + `--extra-index-url` PyPI uses uv's default first-index strategy, which finds `why-cli` on **real PyPI** and installs the already-released version. You verify nothing.
+- Adding `--index-strategy unsafe-best-match` searches both indexes and happily pulls TestPyPI's **squatted placeholder packages** — a `fastapi 1.0` that fails to build is what you actually get.
+
+Download the wheel and install the file, so dependencies resolve from real PyPI:
+
+```bash
+URL=$(curl -s https://test.pypi.org/pypi/why-cli/<version>/json \
+  | python3 -c "import json,sys; print([f['url'] for f in json.load(sys.stdin)['urls'] if f['filename'].endswith('.whl')][0])")
+mkdir -p /tmp/tpy && curl -sL "$URL" -o "/tmp/tpy/$(basename "$URL")"
+uv venv /tmp/tpy/v
+uv pip install --python /tmp/tpy/v/bin/python "/tmp/tpy/$(basename "$URL")[web]"
+/tmp/tpy/v/bin/why --version
+```
+
+Keep the wheel's real filename — uv rejects a renamed wheel with "Must have a version".
 
 ### Filenames are immutable
 
@@ -269,24 +291,24 @@ If a release is broken: yank it, bump PATCH, fix, re-release.
 - **Stale shell-hook auto-refresh** (2.3.0) — `WHY_HOOK_VERSION` is finally read. Any user-facing command rewrites an out-of-date `~/.why/hook.*` in place and prints a one-time notice. See "Shell-hook auto-refresh" in `configuration.md`.
 - **Working CLI-only installs** (2.3.2) — `import click` had been satisfied only transitively through typer; typer 0.27 vendored click and dropped it, so `uv tool install why-cli` shipped a tool that crashed on every command. Fixed, with `tests/unit/test_packaging.py` and a wheel smoke-test to keep it fixed.
 - **CI on pull requests** (2.3.3) — `ci.yml`. Before this, PRs ran no automated checks at all; the first gate a change met was the release that published it.
+- **A working TestPyPI dry run** (2.3.6) — trusted publisher configured, and `publish-testpypi` fixed so a branch dispatch can actually reach it. Verified end to end: 2.3.5 published to TestPyPI, downloaded, installed, and run.
 
 ### Next, in priority order
 
 The order is the argument — read the reasons, not just the list. Reordered 2026-08-08 after
 2.3.x shipped; the previous order had been inherited rather than re-derived.
 
-1. **Configure a TestPyPI trusted publisher.** Highest value per unit of effort on this list and **blocked on the repo owner** — nobody else can do it. Roughly five minutes at test.pypi.org. `workflow_dispatch` currently runs the entire gate and then dies at publish with `invalid-publisher`, so the release rehearsal can never complete. That rehearsal is not ceremonial: it is how the missing-shells gap in CI was found, and 2.3.2 proved that release plumbing is where this project's real bugs live.
-2. **Homebrew tap.** Distribution reach, and this project's stated thesis is that it lives or dies on setup friction. `brew install` is how most macOS developers find CLI tools. Deliberately promoted above every remaining feature: both genuine bugs found on 2026-08-08 were in distribution, not in features.
-3. **AI supplementation** — enrich `what_it_does` / `why` from the command plus a scraped homepage. Much cheaper than originally scoped: 2.2.0 already ships the `[llm]` config block and an OpenAI-compatible client (`why/llm.py`) to reuse rather than rebuild. Best feature-value-per-effort remaining.
-4. **Source scraping.** `source_url` exists on `installs` and is displayed, but nothing populates it. Natural pair with item 3 — the same fetch answers both, so doing them together is cheaper than doing either alone.
-5. **UI editor for `patterns.toml` and `presentation.toml`.** `/settings` currently manages purposes only. Real but bounded value: the files are hand-editable today and documented in `configuration.md`.
-6. **Update discovery.** Nothing checks whether a newer `why-cli` exists; the user must decide to run `uv tool upgrade why-cli` unprompted. **Demoted from #1**, where it sat only because it shared a heading with the stale-hook problem. That was the painful half and it shipped in 2.3.0 — a user whose hook now self-heals is not badly hurt by running a version behind. It is also the most design-encumbered item here: a network call from a local-first tool needs its own privacy decision, opt-out, and cache design. See "Upgrade path" below.
-7. **Sync** (pluggable backend + auth). By far the largest item, and the only one that turns a local-first tool into a service — it carries an auth and hosted-backend problem the rest of the roadmap does not. The schema already carries `sync_id` / `updated_at` / `deleted` on every table including task sessions, which means it can wait cheaply. That is a reason to leave it, not a reason to start it.
-8. **One-click remote install.**
+1. **Homebrew tap.** Distribution reach, and this project's stated thesis is that it lives or dies on setup friction. `brew install` is how most macOS developers find CLI tools. Deliberately promoted above every remaining feature: both genuine bugs found on 2026-08-08 were in distribution, not in features.
+2. **AI supplementation** — enrich `what_it_does` / `why` from the command plus a scraped homepage. Much cheaper than originally scoped: 2.2.0 already ships the `[llm]` config block and an OpenAI-compatible client (`why/llm.py`) to reuse rather than rebuild. Best feature-value-per-effort remaining.
+3. **Source scraping.** `source_url` exists on `installs` and is displayed, but nothing populates it. Natural pair with item 2 — the same fetch answers both, so doing them together is cheaper than doing either alone.
+4. **UI editor for `patterns.toml` and `presentation.toml`.** `/settings` currently manages purposes only. Real but bounded value: the files are hand-editable today and documented in `configuration.md`.
+5. **Update discovery.** Nothing checks whether a newer `why-cli` exists; the user must decide to run `uv tool upgrade why-cli` unprompted. **Demoted from #1**, where it sat only because it shared a heading with the stale-hook problem. That was the painful half and it shipped in 2.3.0 — a user whose hook now self-heals is not badly hurt by running a version behind. It is also the most design-encumbered item here: a network call from a local-first tool needs its own privacy decision, opt-out, and cache design. See "Upgrade path" below.
+6. **Sync** (pluggable backend + auth). By far the largest item, and the only one that turns a local-first tool into a service — it carries an auth and hosted-backend problem the rest of the roadmap does not. The schema already carries `sync_id` / `updated_at` / `deleted` on every table including task sessions, which means it can wait cheaply. That is a reason to leave it, not a reason to start it.
+7. **One-click remote install.**
 
 ### Known follow-ups
 
-- Nothing outstanding. (`release.yml`'s `Auto-tag main` gating, previously listed here, shipped in 2.2.1 and is covered by the CI section above. The TestPyPI publisher was promoted to roadmap item 1 — it is a task, not a note.)
+- Nothing outstanding. `release.yml`'s `Auto-tag main` gating shipped in 2.2.1; the TestPyPI trusted publisher and the dry run it unblocked shipped in 2.3.6.
 
 ## Upgrade path
 

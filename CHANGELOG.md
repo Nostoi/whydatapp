@@ -6,6 +6,38 @@ Versioning follows [SemVer](https://semver.org/).
 
 ---
 
+## [2.3.6] — 2026-08-08
+
+### Fixed
+- **The TestPyPI dry run could never run from a branch.** `publish-testpypi` is gated on
+  `event_name == workflow_dispatch`, and the dispatch is meant to come from a feature
+  branch — but it depends on `build`, which depends on `tag`, and `Auto-tag main` is gated
+  on `refs/heads/main`. GitHub propagates a skip down the entire `needs` chain unless a job
+  opts out with a status function; `build` opts out via `always()`, `publish-testpypi` did
+  not, so it inherited `tag`'s skip and reported `skipped` even with `should_release=true`.
+  Now carries `always()` plus an explicit `needs.build.result == 'success'` so a failed
+  build still cannot publish.
+- This was fallout from 2.2.1, which branch-gated `Auto-tag main` to stop stray tags. That
+  fix was correct; it just silently disabled the dry run, and nobody noticed because the
+  dry run had been failing at publish for an unrelated reason (`invalid-publisher`) and was
+  assumed to still be reaching that point.
+
+### Changed
+- **Roadmap item 1 (TestPyPI trusted publisher) is done** and moves to Shipped. Verified end
+  to end: 2.3.5 published to TestPyPI, downloaded, installed, and run. Remaining items
+  renumbered; Homebrew tap is now #1.
+- `development.md`'s TestPyPI section rewritten around what actually works. The previous
+  recipe silently verified nothing, and the obvious alternative is worse:
+  - `--index-url` TestPyPI + `--extra-index-url` PyPI resolves `why-cli` from **real PyPI**
+    under uv's default first-index strategy — you install the already-released version.
+  - `--index-strategy unsafe-best-match` searches both indexes and pulls TestPyPI's
+    **squatted placeholder packages**; a `fastapi 1.0` that fails to build is what you get.
+  - The working approach — download the wheel and install the file — is now documented,
+    along with the two `decide`/`tag` constraints that make a branch dispatch the only
+    shape that works, and the fact that uv rejects a renamed wheel.
+
+---
+
 ## [2.3.4] — 2026-08-08
 
 ### Changed
