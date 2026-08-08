@@ -88,6 +88,16 @@ why init
 
 Restart your shell, then try `brew install ripgrep` (or any tracked manager).
 
+**To upgrade:**
+
+```bash
+uv tool upgrade why-cli          # or: pipx upgrade why-cli
+```
+
+That's it. Schema migrations, new config keys, and the shell hook in `~/.why/` all
+catch up on their own the next time you run any `why` command. If the hook was
+refreshed you'll be told to start a new shell — nothing is restarted for you.
+
 Full install instructions, including building from a wheel: **[Install guide](https://github.com/Nostoi/whydatapp/blob/main/docs/guide/install.md)**.
 
 ## Quick reference

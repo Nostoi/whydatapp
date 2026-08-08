@@ -6,6 +6,24 @@ Versioning follows [SemVer](https://semver.org/).
 
 ---
 
+## [2.3.1] — 2026-08-08
+
+### Fixed
+- **Upgrade docs contradicted the feature shipped one commit earlier.** `install.md` still
+  said "after upgrades that change shell-hook behavior, re-run `why init`", and both
+  hook-recovery recipes in `troubleshooting.md` prescribed `uv tool upgrade && why init`.
+  All three now say what's true: `uv tool upgrade why-cli`, then any `why` command
+  refreshes the hook, then restart your shell. `why init` remains the answer when the
+  *rc-file block* is missing — auto-refresh updates the hook script, not your shell config.
+- `install.md` gains a table of what an upgrade handles automatically (schema, config keys,
+  hook) and states the one thing it can't: restarting your shell.
+
+### Added
+- README has an **upgrade** section. It had install and uninstall but never said how to
+  update, which is the single most-asked question a CLI gets.
+
+---
+
 ## [2.3.0] — 2026-08-08
 
 ### Added

@@ -14,17 +14,20 @@ If you're on 1.1.1+ and still don't see the prompt, the section below applies.
 
 ## `why follow` or `why recall` is not recording commands
 
-These commands require the newer shell hook. Upgrade the package, then refresh
-the copied hook script and rc block:
+These commands require the newer shell hook. Upgrade the package and run any `why`
+command — the next one refreshes `~/.why/hook.*` for you:
 
 ```bash
 uv tool upgrade why-cli
-why init
+why list                    # prints "↻ shell hook updated" if yours was stale
 ```
 
-Restart or reload your shell afterwards. Existing install capture may keep
-working with an older hook, but follow/recall recording needs the hook that
-calls `why _record`.
+Restart or reload your shell afterwards; the running shell keeps the old functions
+until it does. Existing install capture may keep working with an older hook, but
+follow/recall recording needs the hook that calls `why _record`.
+
+If the rc-file block itself is missing (see below), run `why init` — auto-refresh
+updates the hook script, not your shell configuration.
 
 ## Errors on every prompt, or `[why rec]` never appears (versions ≤ 2.1.0)
 
@@ -35,7 +38,7 @@ included. Refresh the hook:
 
 ```bash
 uv tool upgrade why-cli
-why init
+why list                    # the refresh happens here
 ```
 
 Then restart your shell. Related symptom on the same versions: a prompt that stops
