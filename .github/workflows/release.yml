@@ -172,7 +172,18 @@ jobs:
     name: Publish to TestPyPI
     needs: [decide, build]
     runs-on: ubuntu-latest
-    if: needs.decide.outputs.should_release == 'true' && github.event_name == 'workflow_dispatch'
+    # `always()` is load-bearing, not defensive. The rehearsal is dispatched from a
+    # feature branch, where `tag` is correctly skipped (it is gated on refs/heads/main).
+    # GitHub propagates a skip down the whole needs chain unless a job opts out with a
+    # status function: `build` opts out via always(), but without the same here this job
+    # inherits `tag`'s skip and can never run from a branch — which is exactly how
+    # branch-gating auto-tag in 2.2.1 silently disabled the TestPyPI dry run.
+    # `needs.build.result == 'success'` keeps always() from publishing a failed build.
+    if: >-
+      always()
+      && needs.build.result == 'success'
+      && needs.decide.outputs.should_release == 'true'
+      && github.event_name == 'workflow_dispatch'
     environment:
       name: testpypi
       url: https://test.pypi.org/project/why-cli/
