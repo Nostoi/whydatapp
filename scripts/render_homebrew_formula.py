@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import ssl
 import subprocess
 import sys
 import tempfile
@@ -106,6 +107,12 @@ def fetch_json(url: str, *, attempts: int = 30, delay: int = 20) -> dict:
     A release is visible on the JSON API before the simple index serves it, and
     the sdist can 404 briefly after publish. Both were hit by hand on 2026-08-08,
     so the retry is load-bearing rather than defensive.
+
+    Only *transient* failures are retried. A TLS verification failure is a broken
+    environment, not a slow index: retrying it burns `attempts * delay` seconds per
+    URL and then reports the wrong problem. Observed for real — a venv without a
+    usable cert store turned a fast failure into a ten-minute stall per package,
+    which reads as a hang rather than a misconfiguration.
     """
     last: Exception | None = None
     for attempt in range(attempts):
@@ -117,6 +124,13 @@ def fetch_json(url: str, *, attempts: int = 30, delay: int = 20) -> dict:
                 raise
             last = exc
         except urllib.error.URLError as exc:
+            if isinstance(exc.reason, ssl.SSLError):
+                raise FormulaError(
+                    f"TLS verification failed for {url}: {exc.reason}. "
+                    "This is a certificate-store problem, not a slow index — "
+                    "run this script with a Python that can verify PyPI "
+                    "(the system python3 works; a bare venv may not)."
+                ) from exc
             last = exc
         if attempt < attempts - 1:
             print(f"  waiting for {url} ({attempt + 1}/{attempts})", file=sys.stderr)
@@ -124,9 +138,15 @@ def fetch_json(url: str, *, attempts: int = 30, delay: int = 20) -> dict:
     raise FormulaError(f"gave up fetching {url}: {last}")
 
 
-def sdist_for(name: str, version: str) -> tuple[str, str]:
-    """(url, sha256) of a release's source distribution."""
-    data = fetch_json(f"{PYPI}/{name}/{version}/json")
+def sdist_for(name: str, version: str, *, attempts: int = 3) -> tuple[str, str]:
+    """(url, sha256) of a release's source distribution.
+
+    `attempts` defaults low because dependency versions were published long ago —
+    only the release currently being bumped can lag PyPI's index, and the caller
+    raises the budget for that one lookup. Waiting 30x20s per dependency would
+    turn one bad pin into a multi-hour job.
+    """
+    data = fetch_json(f"{PYPI}/{name}/{version}/json", attempts=attempts)
     sdists = [u for u in data["urls"] if u["packagetype"] == "sdist"]
     if not sdists:
         # Homebrew builds resources from source; a wheel-only dependency cannot be
@@ -209,7 +229,8 @@ def render_resources(pins: list[tuple[str, str]]) -> str:
 
 
 def render(version: str, pins: list[tuple[str, str]]) -> str:
-    url, sha = sdist_for(PACKAGE, version)
+    # The one lookup that can legitimately race a fresh publish.
+    url, sha = sdist_for(PACKAGE, version, attempts=30)
     return FORMULA_TEMPLATE.format(url=url, sha256=sha, resources=render_resources(pins))
 
 

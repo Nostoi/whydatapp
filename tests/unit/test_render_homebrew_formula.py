@@ -26,7 +26,7 @@ def fake_sdists(monkeypatch):
     """Answer sdist lookups locally so the tests never touch PyPI."""
     seen: list[tuple[str, str]] = []
 
-    def _sdist_for(name: str, version: str) -> tuple[str, str]:
+    def _sdist_for(name: str, version: str, **_kwargs: object) -> tuple[str, str]:
         seen.append((name, version))
         return (
             f"https://files.pythonhosted.org/packages/ab/cd/{name}-{version}.tar.gz",
@@ -88,6 +88,69 @@ def test_missing_sdist_is_fatal(monkeypatch):
     monkeypatch.setattr(rhf, "fetch_json", _no_sdist)
     with pytest.raises(rhf.FormulaError, match="no sdist"):
         rhf.sdist_for("somepkg", "1.0")
+
+
+def test_tls_failure_fails_fast_instead_of_retrying(monkeypatch):
+    """A cert problem is a broken environment, not a slow index.
+
+    Retrying it burned 30 attempts x 20s per URL and then blamed the index —
+    ~10 minutes per package, which reads as a hang. Observed for real against a
+    venv with no usable cert store.
+    """
+    import ssl
+    import urllib.error
+
+    calls = {"n": 0}
+
+    def _urlopen(url, *a, **k):
+        calls["n"] += 1
+        raise urllib.error.URLError(ssl.SSLError("CERTIFICATE_VERIFY_FAILED"))
+
+    monkeypatch.setattr(rhf.urllib.request, "urlopen", _urlopen)
+    monkeypatch.setattr(rhf.time, "sleep", lambda _s: pytest.fail("slept on a TLS error"))
+
+    with pytest.raises(rhf.FormulaError, match="certificate-store problem"):
+        rhf.fetch_json("https://pypi.org/pypi/rich/15.0.0/json", attempts=30, delay=20)
+    assert calls["n"] == 1, "must not retry a permanent failure"
+
+
+def test_transient_404_is_retried(monkeypatch):
+    """The index genuinely lags a fresh publish; that one must keep trying."""
+    import urllib.error
+
+    calls = {"n": 0}
+
+    def _urlopen(url, *a, **k):
+        calls["n"] += 1
+        if calls["n"] < 3:
+            raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)
+        raise SystemExit("reached the success path")
+
+    monkeypatch.setattr(rhf.urllib.request, "urlopen", _urlopen)
+    monkeypatch.setattr(rhf.time, "sleep", lambda _s: None)
+
+    with pytest.raises(SystemExit):
+        rhf.fetch_json("https://pypi.org/pypi/why-cli/9.9.9/json", attempts=5, delay=0)
+    assert calls["n"] == 3
+
+
+def test_dependency_lookups_use_a_small_retry_budget(monkeypatch):
+    """Dependency versions were published long ago; only the release can lag.
+
+    A generous budget here turns one bad pin into a multi-hour job.
+    """
+    seen = {}
+
+    def _fetch(url, *, attempts=30):
+        seen[url] = attempts
+        return {"urls": [{"packagetype": "sdist", "url": "u",
+                          "digests": {"sha256": "s"}}]}
+
+    monkeypatch.setattr(rhf, "fetch_json", _fetch)
+    rhf.sdist_for("rich", "15.0.0")
+    assert seen["https://pypi.org/pypi/rich/15.0.0/json"] == 3
+    rhf.sdist_for("why-cli", "2.3.9", attempts=30)
+    assert seen["https://pypi.org/pypi/why-cli/2.3.9/json"] == 30
 
 
 def test_read_pins_drops_the_package_itself(tmp_path: Path):
