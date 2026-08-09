@@ -1,0 +1,34 @@
+name: verify tap token
+
+# Temporary: proves HOMEBREW_TAP_TOKEN can actually reach the tap, without
+# waiting for a release to find out.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the tap with the token
+        uses: actions/checkout@v4
+        with:
+          repository: Nostoi/homebrew-why
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap
+
+      - name: Confirm read and write access
+        working-directory: tap
+        run: |
+          set -euo pipefail
+          echo "read OK: $(head -1 Formula/why-cli.rb)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Push a throwaway ref rather than touching main, then delete it. Proves
+          # write access without leaving anything behind.
+          git commit --allow-empty -m "token verification (deleted immediately)"
+          git push origin "HEAD:refs/heads/token-check-$GITHUB_RUN_ID"
+          git push origin --delete "token-check-$GITHUB_RUN_ID"
+          echo "write OK — token has Contents: read and write on the tap"
