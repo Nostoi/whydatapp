@@ -291,12 +291,13 @@ If a release is broken: yank it, bump PATCH, fix, re-release.
 - **Stale shell-hook auto-refresh** (2.3.0) — `WHY_HOOK_VERSION` is finally read. Any user-facing command rewrites an out-of-date `~/.why/hook.*` in place and prints a one-time notice. See "Shell-hook auto-refresh" in `configuration.md`.
 - **Working CLI-only installs** (2.3.2) — `import click` had been satisfied only transitively through typer; typer 0.27 vendored click and dropped it, so `uv tool install why-cli` shipped a tool that crashed on every command. Fixed, with `tests/unit/test_packaging.py` and a wheel smoke-test to keep it fixed.
 - **CI on pull requests** (2.3.3) — `ci.yml`. Before this, PRs ran no automated checks at all; the first gate a change met was the release that published it.
+- **Automated Homebrew formula bumps** (2.3.9) — `release.yml`'s `bump-homebrew` job regenerates the formula from `scripts/render_homebrew_formula.py` after every PyPI publish and pushes it to the tap. See "Maintaining the Homebrew tap" below.
 - **Homebrew tap** (2026-08-08) — [`Nostoi/homebrew-why`](https://github.com/Nostoi/homebrew-why) ships the **full** feature set, web UI included, vendoring all 24 transitive dependencies as resources. Notes for maintaining it:
   - homebrew-core was not an option: it requires notability (~75+ stars/forks/watchers). A personal tap has no such bar.
   - Homebrew 6 requires `brew trust --tap nostoi/why` before it will load the formula. That applies to every non-core tap, so the tap README documents it rather than pretending the one-liner works.
   - `pydantic-core` (via FastAPI) is the only dependency needing a compiler, hence `depends_on "rust" => :build`. Dropping `uvicorn[standard]` in 2.3.7 is what kept that list to one.
   - The tap's CI builds from source and runs `brew test` on every push and weekly. **Nothing else validates a tap** — a stale resource would otherwise surface at a user's `brew install` and never in CI.
-  - **The formula is not bumped automatically yet.** Until it is, a whydatApp release leaves the tap pinned at the previous version; bump `url`, `sha256`, and any changed resources by hand. See the roadmap.
+  - The formula is regenerated and pushed automatically on release (2.3.9+).
 - **A working TestPyPI dry run** (2.3.6) — trusted publisher configured, and `publish-testpypi` fixed so a branch dispatch can actually reach it. Verified end to end: 2.3.5 published to TestPyPI, downloaded, installed, and run.
 
 ### Next, in priority order
@@ -304,17 +305,53 @@ If a release is broken: yank it, bump PATCH, fix, re-release.
 The order is the argument — read the reasons, not just the list. Reordered 2026-08-08 after
 2.3.x shipped; the previous order had been inherited rather than re-derived.
 
-1. **Automate the Homebrew formula bump.** The tap exists and is CI-validated, but the formula is still hand-bumped — so it goes stale on the *next* whydatApp release and every one after. That is active decay, not a missing feature, which is why it outranks everything below. Needs a job in `release.yml` that recomputes the sdist URL, sha256, and any changed resource pins, then pushes to `Nostoi/homebrew-why`. The cross-repo push needs a PAT or deploy key, so it cannot be set up without the repo owner. Resource pins can be regenerated from a resolved `why-cli[web]==<version>` environment; see the tap's README.
-2. **AI supplementation** — enrich `what_it_does` / `why` from the command plus a scraped homepage. Much cheaper than originally scoped: 2.2.0 already ships the `[llm]` config block and an OpenAI-compatible client (`why/llm.py`) to reuse rather than rebuild. Best feature-value-per-effort remaining.
-3. **Source scraping.** `source_url` exists on `installs` and is displayed, but nothing populates it. Natural pair with item 2 — the same fetch answers both, so doing them together is cheaper than doing either alone.
-4. **UI editor for `patterns.toml` and `presentation.toml`.** The settings surface currently covers purposes (`/settings/purposes`) and LLM config (`/settings/llm`) only. Real but bounded value: both files are hand-editable today and documented in `configuration.md`.
-5. **Update discovery.** Nothing checks whether a newer `why-cli` exists; the user must decide to run `uv tool upgrade why-cli` unprompted. **Demoted from #1**, where it sat only because it shared a heading with the stale-hook problem. That was the painful half and it shipped in 2.3.0 — a user whose hook now self-heals is not badly hurt by running a version behind. It is also the most design-encumbered item here: a network call from a local-first tool needs its own privacy decision, opt-out, and cache design. See "Upgrade path" below.
-6. **Sync** (pluggable backend + auth). By far the largest item, and the only one that turns a local-first tool into a service — it carries an auth and hosted-backend problem the rest of the roadmap does not. The schema already carries `sync_id` / `updated_at` / `deleted` on every table including task sessions, which means it can wait cheaply. That is a reason to leave it, not a reason to start it.
-7. **One-click remote install.**
+1. **AI supplementation** — enrich `what_it_does` / `why` from the command plus a scraped homepage. Much cheaper than originally scoped: 2.2.0 already ships the `[llm]` config block and an OpenAI-compatible client (`why/llm.py`) to reuse rather than rebuild. Best feature-value-per-effort remaining.
+2. **Source scraping.** `source_url` exists on `installs` and is displayed, but nothing populates it. Natural pair with item 1 — the same fetch answers both, so doing them together is cheaper than doing either alone.
+3. **UI editor for `patterns.toml` and `presentation.toml`.** The settings surface currently covers purposes (`/settings/purposes`) and LLM config (`/settings/llm`) only. Real but bounded value: both files are hand-editable today and documented in `configuration.md`.
+4. **Update discovery.** Nothing checks whether a newer `why-cli` exists; the user must decide to run `uv tool upgrade why-cli` unprompted. **Demoted from #1**, where it sat only because it shared a heading with the stale-hook problem. That was the painful half and it shipped in 2.3.0 — a user whose hook now self-heals is not badly hurt by running a version behind. It is also the most design-encumbered item here: a network call from a local-first tool needs its own privacy decision, opt-out, and cache design. See "Upgrade path" below.
+5. **Sync** (pluggable backend + auth). By far the largest item, and the only one that turns a local-first tool into a service — it carries an auth and hosted-backend problem the rest of the roadmap does not. The schema already carries `sync_id` / `updated_at` / `deleted` on every table including task sessions, which means it can wait cheaply. That is a reason to leave it, not a reason to start it.
+6. **One-click remote install.**
 
 ### Known follow-ups
 
 - Nothing outstanding. `release.yml`'s `Auto-tag main` gating shipped in 2.2.1; the TestPyPI trusted publisher and the dry run it unblocked shipped in 2.3.6.
+
+## Maintaining the Homebrew tap
+
+The formula in [`Nostoi/homebrew-why`](https://github.com/Nostoi/homebrew-why) is **generated, never hand-edited** — the `bump-homebrew` job in `release.yml` overwrites it after every PyPI publish.
+
+### One-time setup (repo owner only)
+
+The push targets a different repository, so `GITHUB_TOKEN` cannot reach it. Create a **fine-grained personal access token** and store it as a secret named `HOMEBREW_TAP_TOKEN` in this repo:
+
+1. <https://github.com/settings/personal-access-tokens/new>
+2. Repository access: **Only select repositories** → `Nostoi/homebrew-why`.
+3. Permissions: **Contents → Read and write**. Nothing else.
+4. Save the token, then add it at *Settings → Secrets and variables → Actions → New repository secret* in `Nostoi/whydatapp`, named `HOMEBREW_TAP_TOKEN`.
+
+Until that secret exists the job **warns and skips** rather than failing — a release that already published to PyPI must not go red because the tap could not be updated. The visible symptom is a `brew install` one version behind.
+
+### How the generator works
+
+`scripts/render_homebrew_formula.py <version>`:
+
+- Fetches the sdist URL and sha256 for `why-cli==<version>`.
+- Resolves `why-cli[web]==<version>` in a throwaway venv and emits one `resource` block per dependency, each pinned to its own sdist.
+- Refuses to write anything if a dependency ships no sdist (Homebrew builds resources from source) or if resolution comes back empty.
+
+It resolves from **PyPI, not `uv.lock`** — deliberately. `uv.lock` is the development resolution; users get whatever the ranges in `pyproject.toml` resolve to, and those diverged far enough once to ship a release that crashed on every command.
+
+Both lookups retry: PyPI's simple index (which uv reads) lags the JSON API right after a release, so a bump run immediately after publish would otherwise fail on exactly the releases it exists for.
+
+To regenerate by hand — a dry run, or if the job was skipped:
+
+```bash
+python3 scripts/render_homebrew_formula.py 2.3.9 > /path/to/tap/Formula/why-cli.rb
+```
+
+Use plain `python3`, not `uv run`: the script is stdlib-only and shells out to the `uv` CLI, so it needs no project environment.
+
+`tests/unit/test_render_homebrew_formula.py` covers the failures that would produce a *plausible-looking* formula rather than a crash: unnormalised resource names (`pydantic_core` fails `brew audit`), Ruby `#{version}` interpolation being eaten as a Python format field, unstable ordering, and a silently empty resource list.
 
 ## Upgrade path
 

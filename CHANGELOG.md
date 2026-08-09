@@ -6,6 +6,43 @@ Versioning follows [SemVer](https://semver.org/).
 
 ---
 
+## [2.3.9] — 2026-08-08
+
+### Added
+- **The Homebrew formula now bumps itself.** A `bump-homebrew` job in `release.yml`
+  regenerates the formula after every PyPI publish and pushes it to
+  [`Nostoi/homebrew-why`](https://github.com/Nostoi/homebrew-why). Previously the tap went
+  stale on the release *after* it was created, with no signal — brew users would silently
+  sit on an old version.
+- `scripts/render_homebrew_formula.py` renders the whole formula: sdist URL + sha256 for
+  the release, plus one `resource` block per resolved dependency. Verified against the
+  live 2.3.8 formula — it reproduces it byte-for-byte apart from one deliberately
+  version-agnostic comment.
+- `tests/unit/test_render_homebrew_formula.py` (10 tests) covering the failures that would
+  produce a *plausible-looking* formula rather than a crash: unnormalised resource names
+  (`pydantic_core` fails `brew audit`), Ruby `#{version}` being eaten as a Python format
+  field, unstable ordering, a wheel-only dependency, and a silently empty resource list.
+
+### Notes
+- **Requires a `HOMEBREW_TAP_TOKEN` secret** — the push targets a different repository, so
+  `GITHUB_TOKEN` cannot reach it. Until the secret exists the job **warns and skips**: a
+  release that already published to PyPI must not go red because the tap lagged. Setup
+  steps are in `development.md` under "Maintaining the Homebrew tap".
+- The generator resolves from **PyPI, not `uv.lock`**, because `uv.lock` is the development
+  resolution and users get whatever `pyproject.toml`'s ranges resolve to — a divergence
+  that shipped a crashing release once already.
+- Both PyPI lookups retry. The simple index that uv reads lags the JSON API right after a
+  release, so a bump run immediately after publish would otherwise fail on exactly the
+  releases it exists for.
+
+### Fixed
+- `SC1087` in both workflows: `"$WHEEL[web]"` reads as array indexing to shellcheck (and
+  zsh actually glob-expands it). Now `"${WHEEL}[web]"`. Found by running `actionlint`
+  locally — nothing in this repo's CI lints workflow files, which is how it survived since
+  2.3.2.
+
+---
+
 ## [2.3.8] — 2026-08-08
 
 ### Added
