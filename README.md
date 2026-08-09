@@ -77,6 +77,17 @@ uv tool install 'why-cli[web]'   # or: pipx install 'why-cli[web]'
 why init                          # interactive setup; edits your shell rc
 ```
 
+**With Homebrew** (macOS/Linux):
+
+```bash
+brew tap nostoi/why
+brew trust --tap nostoi/why      # Homebrew 6 requires this for any third-party tap
+brew install why-cli
+why init
+```
+
+The formula includes the web UI. Tap source: [Nostoi/homebrew-why](https://github.com/Nostoi/homebrew-why).
+
 **From source** (for development or pre-release):
 
 ```bash

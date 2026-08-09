@@ -19,30 +19,24 @@ The `[web]` extra installs FastAPI, uvicorn, Jinja2, and friends. If you only wa
 uv tool install why-cli           # CLI only, no web UI
 ```
 
-To upgrade later:
+## Option B — With Homebrew (macOS / Linux)
 
 ```bash
-uv tool upgrade why-cli           # or: pipx upgrade why-cli
+brew tap nostoi/why
+brew trust --tap nostoi/why
+brew install why-cli
+why init
 ```
 
-That is the whole procedure. Everything else catches up on its own the next time you
-run any `why` command:
+The formula includes the web UI — there is no separate extra to ask for.
 
-| Concern | What happens |
-|---|---|
-| Database schema | Migrated automatically, after a backup into `~/.why/backups/`. |
-| New config keys | Merged into `~/.why/config.toml` over the current defaults. |
-| Shell hook (`~/.why/hook.*`) | Rewritten automatically when it predates the installed version (2.3.0+). You'll see `↻ zsh shell hook updated (v2 → v3)`. |
+`brew trust` is required by Homebrew 6 before it will load a formula from any tap outside `homebrew/core`; it is not specific to this one. Inspect what you're trusting first with `brew cat nostoi/why/why-cli`.
 
-The one thing whydatApp can't do for you is restart your shell — the old hook functions
-live in the running shell's memory until it reloads. When you see the refresh notice,
-open a new terminal or run `exec $SHELL -l` at your convenience. Nothing breaks in the
-meantime; you're just still on the old hook.
+Upgrades are `brew upgrade why-cli`, and nothing else — see [Upgrading](#upgrading) below.
 
-Re-running `why init` after an upgrade is no longer necessary. It remains safe, and is
-still how you *change* settings or reinstall the rc-file block if you removed it.
+Tap source: [Nostoi/homebrew-why](https://github.com/Nostoi/homebrew-why).
 
-## Option B — From source (for development or pre-release)
+## Option C — From source (for development or pre-release)
 
 ```bash
 git clone https://github.com/Nostoi/whydatapp.git
@@ -64,7 +58,7 @@ If you don't need the web UI, drop the extra:
 uv tool install --editable .
 ```
 
-## Option C — From a locally built wheel
+## Option D — From a locally built wheel
 
 ```bash
 git clone https://github.com/Nostoi/whydatapp.git
@@ -98,6 +92,32 @@ If you decline the reload (or skip it in a script), restart your shell or run `s
 
 `why init` does not force LLM setup. Configure optional task recaps later with
 `why llm configure` or in the web UI under **LLM**.
+
+## Upgrading
+
+Use whichever matches how you installed:
+
+```bash
+uv tool upgrade why-cli           # or: pipx upgrade why-cli
+brew upgrade why-cli              # Homebrew
+```
+
+That is the whole procedure. Everything else catches up on its own the next time you
+run any `why` command:
+
+| Concern | What happens |
+|---|---|
+| Database schema | Migrated automatically, after a backup into `~/.why/backups/`. |
+| New config keys | Merged into `~/.why/config.toml` over the current defaults. |
+| Shell hook (`~/.why/hook.*`) | Rewritten automatically when it predates the installed version (2.3.0+). You'll see `↻ zsh shell hook updated (v2 → v3)`. |
+
+The one thing whydatApp can't do for you is restart your shell — the old hook functions
+live in the running shell's memory until it reloads. When you see the refresh notice,
+open a new terminal or run `exec $SHELL -l` at your convenience. Nothing breaks in the
+meantime; you're just still on the old hook.
+
+Re-running `why init` after an upgrade is no longer necessary. It remains safe, and is
+still how you *change* settings or reinstall the rc-file block if you removed it.
 
 ## Uninstall
 
