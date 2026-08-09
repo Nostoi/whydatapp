@@ -6,6 +6,33 @@ Versioning follows [SemVer](https://semver.org/).
 
 ---
 
+## [2.3.8] — 2026-08-08
+
+### Added
+- **Homebrew tap: [`Nostoi/homebrew-why`](https://github.com/Nostoi/homebrew-why).**
+  `brew install why-cli` now works, and the formula ships the **full** feature set — the
+  web UI included, with no extra to remember. It vendors all 24 transitive dependencies as
+  Homebrew resources.
+- Install instructions for it in `README.md` and `install.md` (now Option B; the wheel path
+  became Option D).
+
+### Notes
+- **`brew trust --tap nostoi/why` is required** before installing. Homebrew 6 refuses to
+  load formulae from any tap outside `homebrew/core`; it is not specific to this tap. The
+  docs show the real three-command sequence rather than a one-liner that would fail in the
+  user's terminal.
+- `pydantic-core` (via FastAPI) is the only dependency needing a compiler, hence
+  `depends_on "rust" => :build`. Dropping `uvicorn[standard]` in 2.3.7 is what kept that
+  list to one instead of five.
+- The tap's CI builds the formula **from source** and runs `brew test` on every push and
+  weekly, because nothing else validates a tap — a stale resource would otherwise surface
+  at a user's `brew install` and never in CI. Verified green on a macOS runner.
+- **The formula is not bumped automatically yet**, so it will go stale on the next release.
+  That is now roadmap item 1; it needs a cross-repo push credential only the repo owner can
+  create.
+
+---
+
 ## [2.3.7] — 2026-08-08
 
 ### Changed

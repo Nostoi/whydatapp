@@ -291,6 +291,12 @@ If a release is broken: yank it, bump PATCH, fix, re-release.
 - **Stale shell-hook auto-refresh** (2.3.0) — `WHY_HOOK_VERSION` is finally read. Any user-facing command rewrites an out-of-date `~/.why/hook.*` in place and prints a one-time notice. See "Shell-hook auto-refresh" in `configuration.md`.
 - **Working CLI-only installs** (2.3.2) — `import click` had been satisfied only transitively through typer; typer 0.27 vendored click and dropped it, so `uv tool install why-cli` shipped a tool that crashed on every command. Fixed, with `tests/unit/test_packaging.py` and a wheel smoke-test to keep it fixed.
 - **CI on pull requests** (2.3.3) — `ci.yml`. Before this, PRs ran no automated checks at all; the first gate a change met was the release that published it.
+- **Homebrew tap** (2026-08-08) — [`Nostoi/homebrew-why`](https://github.com/Nostoi/homebrew-why) ships the **full** feature set, web UI included, vendoring all 24 transitive dependencies as resources. Notes for maintaining it:
+  - homebrew-core was not an option: it requires notability (~75+ stars/forks/watchers). A personal tap has no such bar.
+  - Homebrew 6 requires `brew trust --tap nostoi/why` before it will load the formula. That applies to every non-core tap, so the tap README documents it rather than pretending the one-liner works.
+  - `pydantic-core` (via FastAPI) is the only dependency needing a compiler, hence `depends_on "rust" => :build`. Dropping `uvicorn[standard]` in 2.3.7 is what kept that list to one.
+  - The tap's CI builds from source and runs `brew test` on every push and weekly. **Nothing else validates a tap** — a stale resource would otherwise surface at a user's `brew install` and never in CI.
+  - **The formula is not bumped automatically yet.** Until it is, a whydatApp release leaves the tap pinned at the previous version; bump `url`, `sha256`, and any changed resources by hand. See the roadmap.
 - **A working TestPyPI dry run** (2.3.6) — trusted publisher configured, and `publish-testpypi` fixed so a branch dispatch can actually reach it. Verified end to end: 2.3.5 published to TestPyPI, downloaded, installed, and run.
 
 ### Next, in priority order
@@ -298,14 +304,7 @@ If a release is broken: yank it, bump PATCH, fix, re-release.
 The order is the argument — read the reasons, not just the list. Reordered 2026-08-08 after
 2.3.x shipped; the previous order had been inherited rather than re-derived.
 
-1. **Homebrew tap.** Distribution reach, and this project's stated thesis is that it lives or dies on setup friction. `brew install` is how most macOS developers find CLI tools. Deliberately promoted above every remaining feature: both genuine bugs found on 2026-08-08 were in distribution, not in features.
-
-   Groundwork and constraints, established 2026-08-08:
-   - **homebrew-core is not an option yet.** It requires notability (~75+ stars/forks/watchers); this repo has single digits. The path is a personal tap — a repo named `Nostoi/homebrew-why`, giving `brew install nostoi/why/why-cli`. The `homebrew-` prefix is what makes the one-argument `brew tap` shortcut work; the two-argument form can tap any repo, but costs the user a URL.
-   - **Keep the tap in its own repo.** The formula is rewritten on every release by automation, and pointing that at `whydatapp` would have the release process pushing commits to the branch that triggers releases.
-   - **Every transitive dependency becomes a `resource` block built from source.** That makes the dependency list a distribution cost, not just an install cost. Dropping `uvicorn[standard]` in 2.3.7 removed four compiled resources (two of them Rust builds); `pydantic-core`, via fastapi, is the only compiled dependency left. `brew update-python-resources` generates the blocks.
-   - **Nothing validates a tap.** A broken formula surfaces at a user's `brew install`, never in this repo's CI — so the automated bump on release is the load-bearing part, not a nicety.
-   - Names are free: neither `why` nor `why-cli` exists in homebrew-core.
+1. **Automate the Homebrew formula bump.** The tap exists and is CI-validated, but the formula is still hand-bumped — so it goes stale on the *next* whydatApp release and every one after. That is active decay, not a missing feature, which is why it outranks everything below. Needs a job in `release.yml` that recomputes the sdist URL, sha256, and any changed resource pins, then pushes to `Nostoi/homebrew-why`. The cross-repo push needs a PAT or deploy key, so it cannot be set up without the repo owner. Resource pins can be regenerated from a resolved `why-cli[web]==<version>` environment; see the tap's README.
 2. **AI supplementation** — enrich `what_it_does` / `why` from the command plus a scraped homepage. Much cheaper than originally scoped: 2.2.0 already ships the `[llm]` config block and an OpenAI-compatible client (`why/llm.py`) to reuse rather than rebuild. Best feature-value-per-effort remaining.
 3. **Source scraping.** `source_url` exists on `installs` and is displayed, but nothing populates it. Natural pair with item 2 — the same fetch answers both, so doing them together is cheaper than doing either alone.
 4. **UI editor for `patterns.toml` and `presentation.toml`.** The settings surface currently covers purposes (`/settings/purposes`) and LLM config (`/settings/llm`) only. Real but bounded value: both files are hand-editable today and documented in `configuration.md`.
