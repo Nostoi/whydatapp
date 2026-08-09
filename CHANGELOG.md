@@ -6,6 +6,43 @@ Versioning follows [SemVer](https://semver.org/).
 
 ---
 
+## [2.3.7] — 2026-08-08
+
+### Changed
+- **`[web]` now depends on plain `uvicorn`, not `uvicorn[standard]`.** The extra pulled in
+  `uvloop`, `httptools`, `watchfiles`, and `websockets` — four compiled packages buying
+  event-loop speed, faster HTTP parsing, `--reload`, and websocket support. `why serve` is
+  a single-user localhost UI that uses none of them: it calls `uvicorn.run()` with no
+  reload, and the app has no websocket or SSE routes (verified by grep across
+  `src/why/web/` — the only `htmx` asset is `htmx.min.js`, with no ws or sse extension).
+- Measured effect on `why-cli[web]`, installed from the built wheel:
+
+  | | Packages | site-packages |
+  |---|---|---|
+  | 2.3.6 | 31 | 28 MB |
+  | 2.3.7 | **25** | **20 MB** |
+
+- This also removes four source builds — two of them Rust — from the dependency tree,
+  which is what makes a Homebrew formula practical: a tap vendors every transitive
+  dependency as a `resource` built from source. `pydantic-core`, via fastapi, is now the
+  only compiled dependency left.
+- Verified by running the real server on plain uvicorn, not just the test client: `/`,
+  `/installs`, `/dashboard`, `/sessions`, `/review`, `/settings/purposes`, `/settings/llm`,
+  `/installs/table`, and both static assets all return 200; a POST without a CSRF token
+  still returns 403.
+
+### Docs
+- `development.md` records the Homebrew groundwork established while scoping the tap:
+  homebrew-core needs notability this project doesn't have yet, so the path is a personal
+  tap (`Nostoi/homebrew-why`); the tap belongs in its own repo because the formula is
+  rewritten on every release and pointing that at `whydatapp` would have the release
+  process committing to the branch that triggers releases; and nothing validates a tap, so
+  the automated bump is load-bearing rather than a convenience.
+- Corrected a stale roadmap line claiming the settings UI manages purposes only — it has
+  also covered `/settings/llm` since 2.2.0.
+
+---
+
 ## [2.3.6] — 2026-08-08
 
 ### Fixed

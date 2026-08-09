@@ -1,6 +1,6 @@
 [project]
 name = "why-cli"
-version = "2.3.6"
+version = "2.3.7"
 description = "Track why you installed every tool on your machine."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -42,7 +42,14 @@ why = "why.cli:app"
 [project.optional-dependencies]
 web = [
   "fastapi>=0.110",
-  "uvicorn[standard]>=0.29",
+  # Plain uvicorn, not uvicorn[standard]. The [standard] extra pulls uvloop,
+  # httptools, watchfiles, and websockets — four compiled packages that buy
+  # event-loop speed, faster HTTP parsing, --reload, and websocket support.
+  # `why serve` is a single-user localhost UI that uses none of them: it calls
+  # uvicorn.run() with no reload, and the app has no websocket or SSE routes.
+  # Dropping the extra cuts four source builds (two of them Rust) out of every
+  # install, which is what makes a Homebrew formula practical.
+  "uvicorn>=0.29",
   "jinja2>=3.1",
   "python-multipart>=0.0.9",
   "itsdangerous>=2.2",
