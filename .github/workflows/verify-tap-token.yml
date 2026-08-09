@@ -1,0 +1,40 @@
+name: verify tap token
+
+# A dispatchable health check for HOMEBREW_TAP_TOKEN, so credential problems are
+# found deliberately rather than during a release that has already published to
+# PyPI. Worth running before a fine-grained PAT's expiry date, since an expired
+# token makes `bump-homebrew` fail quietly (it is continue-on-error by design).
+#
+# Note: workflow_dispatch only works for workflows present on the DEFAULT branch.
+# This cannot be run from a feature branch.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the tap with the token
+        uses: actions/checkout@v4
+        with:
+          repository: Nostoi/homebrew-why
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap
+
+      - name: Confirm read and write access
+        working-directory: tap
+        run: |
+          set -euo pipefail
+          echo "read OK: $(head -1 Formula/why-cli.rb)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit --allow-empty -m "token check"
+          # --dry-run authenticates and negotiates with the remote but updates no
+          # refs: a read-only or expired token is rejected here, and nothing is
+          # left behind on the tap. Pushing a real throwaway branch would also
+          # work but writes to someone else's repository to answer a question.
+          git push --dry-run origin "HEAD:refs/heads/token-check"
+          echo "write OK — the token can push to Nostoi/homebrew-why"

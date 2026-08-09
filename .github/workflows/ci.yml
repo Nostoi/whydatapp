@@ -84,7 +84,9 @@ jobs:
         run: |
           set -euo pipefail
           WHEEL=$(ls dist/why_cli-*.whl)
-          for variant in "$WHEEL" "$WHEEL[web]"; do
+          # Braces are required: "$WHEEL[web]" reads as array indexing to shellcheck
+          # (SC1087), and zsh actually glob-expands it.
+          for variant in "$WHEEL" "${WHEEL}[web]"; do
             echo "::group::$variant"
             rm -rf /tmp/smoke && uv venv -q /tmp/smoke
             uv pip install -q --python /tmp/smoke/bin/python "$variant"
